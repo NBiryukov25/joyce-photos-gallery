@@ -88,37 +88,42 @@ def slugify(title):
     slug = re.sub(r'^-+|-+$', '', slug)
     return slug or "gallery"
 
-def build_card(g, use_portfolio_link=True):
+def build_card(g, gallery_has_photos=False):
     title = h(g.get("Gallery Title", "Untitled"))
     meta = h(g.get("Camera Metadata", ""))
     caption = h(g.get("Gallery Caption", ""))
     img_url = g.get("Cover Image URL", "")
-    ext_link = g.get("Full Series Link", "") or ""
+    ext_link = (g.get("Full Series Link", "") or "").strip()
 
-    # Prefer the generated portfolio page link; fall back to external link
-    if use_portfolio_link:
+    # Priority: 1) External Series Link, 2) Internal portfolio page (if photos exist), 3) no link
+    if ext_link:
+        link = ext_link
+    elif gallery_has_photos:
         slug = slugify(g.get("Gallery Title", "gallery"))
         link = f"galleries/{slug}.html"
-    elif ext_link:
-        link = ext_link
     else:
-        link = "#"
+        link = ""
 
     target = '_blank" rel="noopener' if link.startswith("http") else '_self'
     img_tag = (f'<img src="{h(img_url)}" alt="{title}">'
                if img_url else
                '<div style="width:100%;height:180px;background:#e8e8e8;border-radius:2px;"></div>')
     cap_html = f'\n        <p class="gallery-caption-text">{caption}</p>' if caption else ""
-    link_html = f'\n        <a class="gallery-view-link" href="{h(link)}" target="{target}">View full series \u2192</a>'
+    link_html = (f'\n        <a class="gallery-view-link" href="{h(link)}" target="{target}">View full series \u2192</a>'
+                 if link else "")
+    img_wrap = (f'<a href="{h(link)}" target="{target}">{img_tag}</a>'
+                if link else img_tag)
     return (f'\n    <div class="gallery-item">'
-            f'<a href="{h(link)}" target="{target}">{img_tag}</a>'
+            f'{img_wrap}'
             f'<div class="gallery-caption">'
             f'<p class="gallery-caption-title">{title}</p>'
             f'<p class="gallery-caption-meta">{meta}</p>'
             f'{cap_html}{link_html}'
             f'</div></div>')
 
-def build_html(by_series):
+def build_html(by_series, photos_by_gallery=None):
+    if photos_by_gallery is None:
+        photos_by_gallery = {}
     preferred = ["Series I \u2014 Light & Form","Series II \u2014 Landscapes","Series III \u2014 Portraits","Series IV \u2014 Color Studies"]
     sections, seen = "", set()
     for name in preferred + [s for s in by_series if s not in preferred]:
@@ -126,8 +131,9 @@ def build_html(by_series):
             continue
         seen.add(name)
         galleries = sorted(by_series[name], key=lambda g: int(g.get("Sort Order") or 999))
+        cards = "".join(build_card(g, gallery_has_photos=bool(photos_by_gallery.get(g.get("Gallery Title","").strip()))) for g in galleries)
         sections += (f'\n  <div class="gallery-section-label">{h(name)}</div>\n'
-                     f'  <div class="gallery-row">{"".join(build_card(g) for g in galleries)}\n  </div>\n')
+                     f'  <div class="gallery-row">{cards}\n  </div>\n')
     return (f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
             f'  <meta charset="UTF-8">\n'
             f'  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
@@ -221,7 +227,7 @@ def main():
     for g in published:
         by_series[g.get("Series","Uncategorized")].append(g)
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write(build_html(by_series))
+        f.write(build_html(by_series, photos_by_gallery=photos_by_gallery))
     print(f"Written: {OUTPUT_FILE}")
 
     # --- Build individual gallery pages ---
