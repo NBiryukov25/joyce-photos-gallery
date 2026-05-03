@@ -218,7 +218,7 @@ def main():
     # Group photos by gallery title
     photos_by_gallery = defaultdict(list)
     for p in published_photos:
-        gallery_name = p.get("Gallery", "").strip()
+        gallery_name = (p.get("Gallery", "") or p.get("Gallery (match Gallery Title exactly)", "")).strip()
         if gallery_name:
             photos_by_gallery[gallery_name].append(p)
 
