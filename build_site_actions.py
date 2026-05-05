@@ -24,7 +24,7 @@ CSS = """
 :root { --text-normal:#1a1a1a; --text-muted:#6b6b6b; --background-modifier-border:#d4d4d4; --background-body:#faf9f7; }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{background-color:var(--background-body);background-image:url('https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/KlxdYsobDXQekTOC.png');background-size:cover;background-position:center top;background-attachment:fixed;background-repeat:no-repeat;}
-html::before{content:'';position:fixed;inset:0;background:rgba(250,249,247,0.70);z-index:0;pointer-events:none;}
+html::before{content:'';position:fixed;inset:0;background:rgba(250,249,247,0.35);z-index:0;pointer-events:none;}
 body{position:relative;z-index:1;background:transparent;color:var(--text-normal);font-family:Georgia,"Times New Roman",serif;padding:3em 2em 5em;max-width:1100px;margin:0 auto;}
 .gallery-page-title{font-size:2.2em;font-weight:400;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.2em;margin-top:0.5em;}
 .gallery-page-subtitle{font-size:0.95em;font-weight:300;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2em;}
@@ -43,6 +43,13 @@ body{position:relative;z-index:1;background:transparent;color:var(--text-normal)
 .gallery-caption-text{font-size:0.74em;color:var(--text-muted);margin-top:4px;line-height:1.45;font-style:italic;}
 .gallery-view-link{display:inline-block;margin-top:5px;font-size:0.68em;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;border-bottom:1px solid var(--background-modifier-border);padding-bottom:1px;transition:color 0.2s;}
 .gallery-view-link:hover{color:var(--text-normal);border-bottom-color:var(--text-muted);}
+.stories-section{margin-top:3.5em;padding-top:2em;border-top:1px solid var(--background-modifier-border);}
+.stories-label{font-size:0.78em;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-muted);margin-bottom:1.5em;padding-bottom:0.4em;border-bottom:1px solid var(--background-modifier-border);}
+.story-card{margin-bottom:2.5em;padding-bottom:2.5em;border-bottom:1px solid var(--background-modifier-border);}
+.story-card:last-child{border-bottom:none;padding-bottom:0;}
+.story-title{font-size:1.05em;font-weight:400;letter-spacing:0.04em;margin-bottom:0.3em;line-height:1.4;}
+.story-meta{font-size:0.72em;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.8em;}
+.story-body{font-size:0.92em;line-height:1.85;color:var(--text-normal);font-weight:300;white-space:pre-line;}
 """
 
 PORTFOLIO_CSS = """
@@ -123,7 +130,26 @@ def build_card(g, gallery_has_photos=False):
             f'{cap_html}{link_html}'
             f'</div></div>')
 
-def build_html(by_series, photos_by_gallery=None):
+def build_stories_section(stories):
+    if not stories:
+        return ""
+    cards = ""
+    for s in stories:
+        title = h(s.get("Title", ""))
+        date = h(s.get("Date", ""))
+        author = h(s.get("Author", ""))
+        body = h(s.get("Story", "") or s.get("Content", ""))
+        meta_parts = [p for p in [date, author] if p]
+        meta_html = f'<p class="story-meta">{" · ".join(meta_parts)}</p>' if meta_parts else ""
+        title_html = f'<p class="story-title">{title}</p>' if title else ""
+        body_html = f'<p class="story-body">{body}</p>' if body else ""
+        cards += f'<div class="story-card">{title_html}{meta_html}{body_html}</div>\n'
+    return (f'<div class="stories-section">\n'
+            f'  <div class="stories-label">Stories &amp; Notes</div>\n'
+            f'  {cards}\n'
+            f'</div>\n')
+
+def build_html(by_series, photos_by_gallery=None, stories=None):
     if photos_by_gallery is None:
         photos_by_gallery = {}
     preferred = ["Series I \u2014 Light & Form","Series II \u2014 Landscapes","Series III \u2014 Portraits","Series IV \u2014 Color Studies"]
@@ -136,6 +162,7 @@ def build_html(by_series, photos_by_gallery=None):
         cards = "".join(build_card(g, gallery_has_photos=bool(photos_by_gallery.get(g.get("Gallery Title","").strip()))) for g in galleries)
         sections += (f'\n  <div class="gallery-section-label">{h(name)}</div>\n'
                      f'  <div class="gallery-row">{cards}\n  </div>\n')
+    stories_html = build_stories_section(stories or [])
     return (f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
             f'  <meta charset="UTF-8">\n'
             f'  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
@@ -149,7 +176,7 @@ def build_html(by_series, photos_by_gallery=None):
             f'  <p class="gallery-intro-headline">Discover the Radiance of Sheryl Joyce \u2013 Alluring Filipino Beauty Captured in Timeless Light</p>\n'
             f'  <p class="gallery-intro-body">This exquisite collection unveils Sheryl Joyce \u2013 a vision of tropical elegance and enigmatic grace. Her warm, sun-kissed Filipina features glow against lush landscapes, hinting at private moments of raw, unfiltered desire that lie beneath the surface. From the soft caress of golden hour on her curves to the playful dance of morning light on her silhouette, each image celebrates her magnetic allure and a complexity known only to the few.</p>\n'
             f'  <hr class="gallery-divider">\n'
-            f'{sections}\n</body>\n</html>\n')
+            f'{sections}\n{stories_html}</body>\n</html>\n')
 
 def build_portfolio_page(gallery, photos):
     """Generate an individual gallery portfolio HTML page."""
@@ -224,12 +251,24 @@ def main():
         if gallery_name:
             photos_by_gallery[gallery_name].append(p)
 
+    # --- Stories tab ---
+    print("Fetching stories from Google Sheets...")
+    try:
+        stories_csv = fetch_csv("Stories")
+        stories_all = parse_csv(stories_csv)
+        published_stories = [s for s in stories_all if s.get("Publish","").strip().upper() in ("TRUE","YES","1")]
+        published_stories.sort(key=lambda s: s.get("Date",""), reverse=True)
+        print(f"Found {len(published_stories)} published stories.")
+    except Exception as e:
+        print(f"Warning: Could not fetch Stories tab: {e}")
+        published_stories = []
+
     # --- Build main index.html ---
     by_series = defaultdict(list)
     for g in published:
         by_series[g.get("Series","Uncategorized")].append(g)
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write(build_html(by_series, photos_by_gallery=photos_by_gallery))
+        f.write(build_html(by_series, photos_by_gallery=photos_by_gallery, stories=published_stories))
     print(f"Written: {OUTPUT_FILE}")
 
     # --- Build individual gallery pages ---
