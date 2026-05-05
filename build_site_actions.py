@@ -44,12 +44,11 @@ body{position:relative;z-index:1;background:transparent;color:var(--text-normal)
 .gallery-view-link{display:inline-block;margin-top:5px;font-size:0.68em;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;border-bottom:1px solid var(--background-modifier-border);padding-bottom:1px;transition:color 0.2s;}
 .gallery-view-link:hover{color:var(--text-normal);border-bottom-color:var(--text-muted);}
 .stories-section{margin-top:3.5em;padding-top:2em;border-top:1px solid var(--background-modifier-border);}
-.stories-label{font-size:0.78em;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-muted);margin-bottom:1.5em;padding-bottom:0.4em;border-bottom:1px solid var(--background-modifier-border);}
-.story-card{margin-bottom:2.5em;padding-bottom:2.5em;border-bottom:1px solid var(--background-modifier-border);}
-.story-card:last-child{border-bottom:none;padding-bottom:0;}
-.story-title{font-size:1.05em;font-weight:400;letter-spacing:0.04em;margin-bottom:0.3em;line-height:1.4;}
-.story-meta{font-size:0.72em;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.8em;}
-.story-body{font-size:0.92em;line-height:1.85;color:var(--text-normal);font-weight:300;white-space:pre-line;}
+.stories-label{font-size:0.78em;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2em;padding-bottom:0.4em;border-bottom:1px solid var(--background-modifier-border);}
+.story-card{margin-bottom:3.5em;max-width:720px;}
+.story-title{font-size:1.25em;font-weight:400;font-style:italic;letter-spacing:0.01em;margin-bottom:0.5em;line-height:1.45;}
+.story-meta{font-size:0.72em;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:1.2em;}
+.story-body{font-size:0.97em;line-height:2;color:var(--text-normal);font-weight:300;white-space:pre-line;}
 """
 
 PORTFOLIO_CSS = """
@@ -145,7 +144,7 @@ def build_stories_section(stories):
         body_html = f'<p class="story-body">{body}</p>' if body else ""
         cards += f'<div class="story-card">{title_html}{meta_html}{body_html}</div>\n'
     return (f'<div class="stories-section">\n'
-            f'  <div class="stories-label">Stories &amp; Notes</div>\n'
+            f'  <div class="stories-label">Stories</div>\n'
             f'  {cards}\n'
             f'</div>\n')
 
