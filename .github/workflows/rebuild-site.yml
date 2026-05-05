@@ -1,31 +1,43 @@
-name: Rebuild Gallery Site
+name: Rebuild site from Google Sheets
 
 on:
+  # Trigger manually from GitHub Actions tab
   workflow_dispatch:
+  # Optional: auto-rebuild every 6 hours (remove if you prefer manual only)
+  schedule:
+    - cron: "0 */6 * * *"
+
+permissions:
+  contents: write   # needed to commit generated HTML back to main
+  pages: write
+  id-token: write
 
 jobs:
-  build:
+  rebuild:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - name: Checkout repository
+      - name: Checkout main
         uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - name: Install dependencies
-        run: pip install requests
-      - name: Fetch gallery data from Google Sheets and build site
+          python-version: "3.12"
+
+      - name: Build site from Google Sheets
         env:
-          SHEETS_API_KEY: <LaTex>${{ secrets.SHEETS_API_KEY }}
-          SPREADSHEET_ID: $</LaTex>{{ secrets.SPREADSHEET_ID }}
-        run: python3 build_site_actions.py
-      - name: Commit and push updated site
+          SHEET_ID: ${{ vars.SHEET_ID }}
+        run: python build_site_actions.py
+
+      - name: Commit and push generated files
         run: |
-          git config user.name "Joyce Gallery Bot"
-          git config user.email "gallery-bot@noreply.github.com"
-          git add index.html galleries/
-          git diff --staged --quiet || git commit -m "Auto-rebuild: update galleries [skip ci]"
-          git push
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html gallery/
+          git diff --staged --quiet \
+            && echo "Nothing changed — skipping commit." \
+            || ( git commit -m "chore: rebuild site from Google Sheets" \
+                 && git push origin main )
