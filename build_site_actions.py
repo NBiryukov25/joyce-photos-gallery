@@ -20,53 +20,27 @@ SPREADSHEET_ID = "1N8ToEDXnsYKFFRPfYXiqjUqlsPUp5PCMbm0BeZBokTo"
 OUTPUT_FILE    = "index.html"
 GALLERIES_DIR  = "galleries"
 
-CSS = """
-:root { --text-normal:#1a1a1a; --text-muted:#6b6b6b; --background-modifier-border:#d4d4d4; --background-body:#faf9f7; }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{background-color:var(--background-body);background-image:url('https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/KlxdYsobDXQekTOC.png');background-size:cover;background-position:center top;background-attachment:fixed;background-repeat:no-repeat;}
-html::before{content:'';position:fixed;inset:0;background:rgba(250,249,247,0.70);z-index:0;pointer-events:none;}
-body{position:relative;z-index:1;background:transparent;color:var(--text-normal);font-family:Georgia,"Times New Roman",serif;padding:3em 2em 5em;max-width:1100px;margin:0 auto;}
-.gallery-page-title{font-size:2.2em;font-weight:400;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.2em;margin-top:0.5em;}
-.gallery-page-subtitle{font-size:0.95em;font-weight:300;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2em;}
-.gallery-divider{border:none;border-top:1px solid var(--background-modifier-border);margin:1.5em 0 2em 0;}
-.gallery-section-label{font-size:0.78em;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.75em;margin-top:2em;padding-bottom:0.4em;border-bottom:1px solid var(--background-modifier-border);}
-.gallery-row{display:flex;flex-direction:row;overflow-x:auto;gap:20px;padding:0 0 18px 0;margin-bottom:1.5em;scrollbar-width:thin;scrollbar-color:var(--background-modifier-border) transparent;-webkit-overflow-scrolling:touch;}
-.gallery-row::-webkit-scrollbar{height:5px;}.gallery-row::-webkit-scrollbar-track{background:transparent;}.gallery-row::-webkit-scrollbar-thumb{background-color:var(--background-modifier-border);border-radius:3px;}
-.gallery-item{flex:0 0 auto;width:240px;display:flex;flex-direction:column;align-items:flex-start;}
-@media(max-width:600px){.gallery-item{width:68vw;}}
-.gallery-item a{display:block;width:100%;text-decoration:none;border:none;box-shadow:none;}
-.gallery-item img{width:100%;height:180px;object-fit:cover;display:block;border-radius:2px;transition:opacity 0.25s ease;box-shadow:0 2px 12px rgba(0,0,0,0.12);}
-.gallery-item a:hover img{opacity:0.88;}
-.gallery-caption{margin-top:10px;padding:0 2px;width:100%;}
-.gallery-caption-title{font-size:0.82em;font-weight:400;letter-spacing:0.03em;margin:0 0 3px 0;line-height:1.3;}
-.gallery-caption-meta{font-size:0.72em;font-weight:300;font-style:italic;color:var(--text-muted);margin:0;letter-spacing:0.01em;line-height:1.4;}
-.gallery-caption-text{font-size:0.74em;color:var(--text-muted);margin-top:4px;line-height:1.45;font-style:italic;}
-.gallery-view-link{display:inline-block;margin-top:5px;font-size:0.68em;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;border-bottom:1px solid var(--background-modifier-border);padding-bottom:1px;transition:color 0.2s;}
-.gallery-view-link:hover{color:var(--text-normal);border-bottom-color:var(--text-muted);}
-"""
+FONT_LINK = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">'
 
-PORTFOLIO_CSS = """
-:root { --text-normal:#1a1a1a; --text-muted:#6b6b6b; --background-modifier-border:#d4d4d4; --background-body:#faf9f7; }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{background-color:var(--background-body);color:var(--text-normal);font-family:Georgia,"Times New Roman",serif;padding:3em 2em 5em;max-width:1100px;margin:0 auto;}
-.back-link{display:inline-block;font-size:0.72em;letter-spacing:0.16em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;border-bottom:1px solid var(--background-modifier-border);padding-bottom:1px;margin-bottom:2.5em;transition:color 0.2s;}
-.back-link:hover{color:var(--text-normal);}
-.portfolio-title{font-size:2em;font-weight:400;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.2em;}
-.portfolio-subtitle{font-size:0.88em;font-weight:300;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.6em;}
-.portfolio-caption{font-size:0.92em;font-weight:300;line-height:1.8;color:var(--text-muted);max-width:720px;margin-bottom:0.5em;font-style:italic;}
-.portfolio-meta{font-size:0.78em;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:2em;}
-.portfolio-divider{border:none;border-top:1px solid var(--background-modifier-border);margin:1.5em 0 2.5em 0;}
-.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:28px;}
-@media(max-width:600px){.photo-grid{grid-template-columns:1fr;}}
-.photo-item{display:flex;flex-direction:column;}
-.photo-item img{width:100%;display:block;border-radius:2px;box-shadow:0 2px 14px rgba(0,0,0,0.13);transition:opacity 0.25s ease;object-fit:cover;}
-.photo-item img:hover{opacity:0.9;}
-.photo-info{margin-top:10px;padding:0 2px;}
-.photo-title{font-size:0.82em;font-weight:400;letter-spacing:0.03em;margin-bottom:3px;line-height:1.3;}
-.photo-caption{font-size:0.74em;color:var(--text-muted);line-height:1.5;font-style:italic;}
-.photo-meta{font-size:0.68em;color:var(--text-muted);margin-top:3px;letter-spacing:0.04em;}
-.empty-notice{font-size:0.9em;color:var(--text-muted);font-style:italic;padding:2em 0;}
-"""
+SITE_NAV = """  <header class="site-header">
+    <div class="site-nav">
+      <a href="index.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="index.html" class="nav-link active">Galleries</a>
+        <a href="stories.html" class="nav-link">Stories</a>
+      </nav>
+    </div>
+  </header>"""
+
+GALLERY_NAV = """  <header class="site-header">
+    <div class="site-nav">
+      <a href="../index.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="../index.html" class="nav-link active">Galleries</a>
+        <a href="../stories.html" class="nav-link">Stories</a>
+      </nav>
+    </div>
+  </header>"""
 
 def fetch_csv(sheet_name):
     url = (f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}"
@@ -139,15 +113,32 @@ def build_html(by_series, photos_by_gallery=None):
     return (f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
             f'  <meta charset="UTF-8">\n'
             f'  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
-            f'  <title>Joyce Photos \u00b7 Collection I</title>\n'
-            f'  <style>{CSS}\n'
-            f'.gallery-intro-headline{{font-size:1.15em;font-weight:400;letter-spacing:0.02em;line-height:1.5;margin:1.5em 0 0.75em 0;color:var(--text-normal);max-width:780px;}}\n'
-            f'.gallery-intro-body{{font-size:0.92em;font-weight:300;line-height:1.8;color:var(--text-muted);max-width:780px;margin-bottom:1.5em;font-style:italic;}}\n'
-            f'</style>\n</head>\n<body>\n'
-            f'  <div class="gallery-page-title">Collection I</div>\n'
-            f'  <div class="gallery-page-subtitle">An ongoing archive &nbsp;\u00b7&nbsp; Vol. 1</div>\n'
-            f'  <p class="gallery-intro-headline">Discover the Radiance of Sheryl Joyce \u2013 Alluring Filipino Beauty Captured in Timeless Light</p>\n'
-            f'  <p class="gallery-intro-body">This exquisite collection unveils Sheryl Joyce \u2013 a vision of tropical elegance and enigmatic grace. Her warm, sun-kissed Filipina features glow against lush landscapes, hinting at private moments of raw, unfiltered desire that lie beneath the surface. From the soft caress of golden hour on her curves to the playful dance of morning light on her silhouette, each image celebrates her magnetic allure and a complexity known only to the few.</p>\n'
+            f'  <meta name="description" content="Sheryl Joyce \u2014 An ongoing photographic archive. Collection I.">\n'
+            f'  <title>Sheryl Joyce</title>\n'
+            f'  {FONT_LINK}\n'
+            f'  <link rel="stylesheet" href="gallery.css">\n'
+            f'</head>\n<body>\n'
+            f'{SITE_NAV}\n'
+            f'  <section class="hero">\n'
+            f'    <p class="hero-overline">Portfolio</p>\n'
+            f'    <h1 class="hero-name">Sheryl Joyce</h1>\n'
+            f'    <p class="hero-tagline">An ongoing archive &nbsp;\u00b7&nbsp; Vol. 1</p>\n'
+            f'    <div class="comp-strip">\n'
+            f'      <span class="comp-item"><span class="comp-label">Height</span><span class="comp-value">152 cm</span></span>\n'
+            f'      <span class="comp-sep">\u00b7</span>\n'
+            f'      <span class="comp-item"><span class="comp-label">Weight</span><span class="comp-value">53 kg</span></span>\n'
+            f'      <span class="comp-sep">\u00b7</span>\n'
+            f'      <span class="comp-item"><span class="comp-label">Waist</span><span class="comp-value">27 cm</span></span>\n'
+            f'      <span class="comp-sep">\u00b7</span>\n'
+            f'      <span class="comp-item"><span class="comp-label">Hair</span><span class="comp-value">Black</span></span>\n'
+            f'      <span class="comp-sep">\u00b7</span>\n'
+            f'      <span class="comp-item"><span class="comp-label">Eyes</span><span class="comp-value">Brown</span></span>\n'
+            f'    </div>\n'
+            f'  </section>\n'
+            f'  <section class="intro-section">\n'
+            f'    <p class="intro-headline">Discover the Radiance of Sheryl Joyce \u2013 Alluring Filipino Beauty Captured in Timeless Light</p>\n'
+            f'    <p class="intro-body">This exquisite collection unveils Sheryl Joyce \u2013 a vision of tropical elegance and enigmatic grace. Her warm, sun-kissed Filipina features glow against lush landscapes, hinting at private moments of raw, unfiltered desire that lie beneath the surface. From the soft caress of golden hour on her curves to the playful dance of morning light on her silhouette, each image celebrates her magnetic allure and a complexity known only to the few.</p>\n'
+            f'  </section>\n'
             f'  <hr class="gallery-divider">\n'
             f'{sections}\n</body>\n</html>\n')
 
@@ -186,10 +177,12 @@ def build_portfolio_page(gallery, photos):
     return (f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
             f'  <meta charset="UTF-8">\n'
             f'  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
-            f'  <title>{title} \u00b7 Joyce Photos</title>\n'
-            f'  <style>{PORTFOLIO_CSS}</style>\n'
+            f'  <title>{title} \u00b7 Sheryl Joyce</title>\n'
+            f'  {FONT_LINK}\n'
+            f'  <link rel="stylesheet" href="../gallery.css">\n'
             f'</head>\n<body>\n'
-            f'  <a class="back-link" href="../index.html">\u2190 Back to Collection I</a>\n'
+            f'{GALLERY_NAV}\n'
+            f'  <a class="back-link" href="../index.html">\u2190 Back to Galleries</a>\n'
             f'  <div class="portfolio-title">{title}</div>\n'
             f'  <div class="portfolio-subtitle">{series}</div>\n'
             f'  {caption_html}{meta_html}'
