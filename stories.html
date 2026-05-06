@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sheryl Joyce — Stories. Notes on light, stillness and desire.">
+  <title>Stories · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="gallery.css">
+</head>
+<body>
+
+  <!-- ── NAVIGATION ── -->
+  <header class="site-header">
+    <div class="site-nav">
+      <a href="index.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="index.html" class="nav-link">Galleries</a>
+        <a href="stories.html" class="nav-link active">Stories</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── PAGE HERO ── -->
+  <section class="page-hero">
+    <p class="page-hero-overline">Journal</p>
+    <h1 class="page-hero-title">Stories</h1>
+    <p class="page-hero-subtitle">Notes on light, stillness &amp; desire</p>
+  </section>
+
+  <hr class="gallery-divider">
+
+  <!-- ── FEATURED PHOTOS FROM GOOGLE SHEET ── -->
+  <!--
+    Feature photos below are pulled from the Google Sheet gallery covers.
+    To update: edit the src attributes to point to the new image URLs from the sheet.
+    Sheet: https://docs.google.com/spreadsheets/d/1N8ToEDXnsYKFFRPfYXiqjUqlsPUp5PCMbm0BeZBokTo/edit
+  -->
+  <div class="featured-label">Featured</div>
+  <div class="featured-row">
+    <img class="featured-photo" src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/yjLUpdTMxDrcHfxp.png" alt="Morning Softness">
+    <img class="featured-photo" src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/AUvEUSpKITgngsrV.png" alt="The Green Hour">
+    <img class="featured-photo" src="assets/domestic-helper/domestic-helper-09.png" alt="Domestic Helper">
+    <img class="featured-photo" src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/ZfqjNowUERNCvoDV.jpg" alt="Number 19">
+    <img class="featured-photo" src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/wksapShkdqVsDvFp.png" alt="Bohemian Adventures">
+    <img class="featured-photo" src="https://drive.google.com/thumbnail?id=1ARdBtq69QCSMzmj2A1JvKzX4cpHB_Io7&sz=w2000" alt="Shadowed Affections">
+  </div>
+
+  <!-- ── STORIES ── -->
+  <!--
+    HOW TO ADD A NEW STORY
+    ──────────────────────
+    Copy the story-card block below, paste it at the top of .stories-grid,
+    and fill in the image, tag, title, date, excerpt and link.
+    For story detail pages, create a new HTML file in the /stories/ folder.
+  -->
+  <div class="stories-section-label">All Stories</div>
+  <div class="stories-grid">
+
+    <!-- STORY 1 -->
+    <article class="story-card">
+      <div class="story-card-img-wrap">
+        <img class="story-card-img"
+             src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/yjLUpdTMxDrcHfxp.png"
+             alt="In Golden Hour">
+      </div>
+      <p class="story-card-tag">Behind the Lens</p>
+      <h2 class="story-card-title">In Golden Hour</h2>
+      <p class="story-card-date">April 2024</p>
+      <p class="story-card-excerpt">There is a window of light just before the afternoon turns — when everything softens and the world holds its breath. That is when I first understood what it means to be truly seen. The camera found me in that stillness, and for a moment, nothing else existed.</p>
+      <a class="story-read-link" href="#">Read →</a>
+    </article>
+
+    <!-- STORY 2 -->
+    <article class="story-card">
+      <div class="story-card-img-wrap">
+        <img class="story-card-img"
+             src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/AUvEUSpKITgngsrV.png"
+             alt="The Green Hour">
+      </div>
+      <p class="story-card-tag">Series Notes</p>
+      <h2 class="story-card-title">The Green Hour</h2>
+      <p class="story-card-date">March 2024</p>
+      <p class="story-card-excerpt">We chose the afternoon deliberately — the hour when the light turns green-gold through the leaves and shadows stretch long. There was no hurry. The whole series was built on patience, on waiting for the light to agree with the mood we were after.</p>
+      <a class="story-read-link" href="#">Read →</a>
+    </article>
+
+    <!-- STORY 3 -->
+    <article class="story-card">
+      <div class="story-card-img-wrap">
+        <img class="story-card-img"
+             src="assets/domestic-helper/domestic-helper-09.png"
+             alt="Domestic Helper">
+      </div>
+      <p class="story-card-tag">Series Notes</p>
+      <h2 class="story-card-title">On Quiet Domesticity</h2>
+      <p class="story-card-date">February 2024</p>
+      <p class="story-card-excerpt">The domestic series began as an experiment — what happens when you bring editorial lighting into the intimacy of everyday spaces? The result was something unexpected: images that feel both familiar and charged, ordinary and quietly electric.</p>
+      <a class="story-read-link" href="#">Read →</a>
+    </article>
+
+    <!-- STORY 4 -->
+    <article class="story-card">
+      <div class="story-card-img-wrap">
+        <img class="story-card-img"
+             src="https://drive.google.com/thumbnail?id=1ARdBtq69QCSMzmj2A1JvKzX4cpHB_Io7&sz=w2000"
+             alt="Shadowed Affections">
+      </div>
+      <p class="story-card-tag">Night Work</p>
+      <h2 class="story-card-title">Shadowed Affections</h2>
+      <p class="story-card-date">January 2024</p>
+      <p class="story-card-excerpt">The city at night has its own grammar — short sentences, long silences. We moved through it slowly, looking for the pockets of warmth between street lights. Every shadow told a different version of the same story.</p>
+      <a class="story-read-link" href="#">Read →</a>
+    </article>
+
+  </div>
+
+</body>
+</html>
