@@ -3,76 +3,204 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Joyce Photos · Collection I</title>
-  <style>
-:root { --text-normal:#1a1a1a; --text-muted:#6b6b6b; --background-modifier-border:#d4d4d4; --background-body:#faf9f7; }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{background-color:var(--background-body);background-image:url('https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/KlxdYsobDXQekTOC.png');background-size:cover;background-position:center top;background-attachment:fixed;background-repeat:no-repeat;}
-html::before{content:'';position:fixed;inset:0;background:rgba(250,249,247,0.70);z-index:0;pointer-events:none;}
-body{position:relative;z-index:1;background:transparent;color:var(--text-normal);font-family:Georgia,"Times New Roman",serif;padding:3em 2em 5em;max-width:1100px;margin:0 auto;}
-.gallery-page-title{font-size:2.2em;font-weight:400;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.2em;margin-top:0.5em;}
-.gallery-page-subtitle{font-size:0.95em;font-weight:300;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2em;}
-.gallery-divider{border:none;border-top:1px solid var(--background-modifier-border);margin:1.5em 0 2em 0;}
-.gallery-section-label{font-size:0.78em;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.75em;margin-top:2em;padding-bottom:0.4em;border-bottom:1px solid var(--background-modifier-border);}
-.gallery-row{display:flex;flex-direction:row;overflow-x:auto;gap:20px;padding:0 0 18px 0;margin-bottom:1.5em;scrollbar-width:thin;scrollbar-color:var(--background-modifier-border) transparent;-webkit-overflow-scrolling:touch;}
-.gallery-row::-webkit-scrollbar{height:5px;}.gallery-row::-webkit-scrollbar-track{background:transparent;}.gallery-row::-webkit-scrollbar-thumb{background-color:var(--background-modifier-border);border-radius:3px;}
-.gallery-item{flex:0 0 auto;width:240px;display:flex;flex-direction:column;align-items:flex-start;}
-@media(max-width:600px){.gallery-item{width:68vw;}}
-.gallery-item a{display:block;width:100%;text-decoration:none;border:none;box-shadow:none;}
-.gallery-item img{width:100%;height:180px;object-fit:cover;display:block;border-radius:2px;transition:opacity 0.25s ease;box-shadow:0 2px 12px rgba(0,0,0,0.12);}
-.gallery-item a:hover img{opacity:0.88;}
-.gallery-caption{margin-top:10px;padding:0 2px;width:100%;}
-.gallery-caption-title{font-size:0.82em;font-weight:400;letter-spacing:0.03em;margin:0 0 3px 0;line-height:1.3;}
-.gallery-caption-meta{font-size:0.72em;font-weight:300;font-style:italic;color:var(--text-muted);margin:0;letter-spacing:0.01em;line-height:1.4;}
-.gallery-caption-text{font-size:0.74em;color:var(--text-muted);margin-top:4px;line-height:1.45;font-style:italic;}
-.gallery-view-link{display:inline-block;margin-top:5px;font-size:0.68em;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;border-bottom:1px solid var(--background-modifier-border);padding-bottom:1px;transition:color 0.2s;}
-.gallery-view-link:hover{color:var(--text-normal);border-bottom-color:var(--text-muted);}
-
-.gallery-intro-headline{font-size:1.15em;font-weight:400;letter-spacing:0.02em;line-height:1.5;margin:1.5em 0 0.75em 0;color:var(--text-normal);max-width:780px;}
-.gallery-intro-body{font-size:0.92em;font-weight:300;line-height:1.8;color:var(--text-muted);max-width:780px;margin-bottom:1.5em;font-style:italic;}
-</style>
+  <meta name="description" content="Sheryl Joyce — An ongoing photographic archive. Collection I.">
+  <title>Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="gallery.css">
 </head>
 <body>
-  <div class="gallery-page-title">Collection I</div>
-  <div class="gallery-page-subtitle">An ongoing archive &nbsp;·&nbsp; Vol. 1</div>
-  <p class="gallery-intro-headline">Discover the Radiance of Sheryl Joyce – Alluring Filipino Beauty Captured in Timeless Light</p>
-  <p class="gallery-intro-body">This exquisite collection unveils Sheryl Joyce – a vision of tropical elegance and enigmatic grace. Her warm, sun-kissed Filipina features glow against lush landscapes, hinting at private moments of raw, unfiltered desire that lie beneath the surface. From the soft caress of golden hour on her curves to the playful dance of morning light on her silhouette, each image celebrates her magnetic allure and a complexity known only to the few.</p>
+
+  <!-- ── NAVIGATION ── -->
+  <header class="site-header">
+    <div class="site-nav">
+      <a href="index.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="index.html" class="nav-link active">Galleries</a>
+        <a href="stories.html" class="nav-link">Stories</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── HERO ── -->
+  <section class="hero">
+    <p class="hero-overline">Portfolio</p>
+    <h1 class="hero-name">Sheryl Joyce</h1>
+    <p class="hero-tagline">An ongoing archive &nbsp;·&nbsp; Vol. 1</p>
+    <div class="comp-strip">
+      <span class="comp-item">
+        <span class="comp-label">Height</span>
+        <span class="comp-value">152 cm</span>
+      </span>
+      <span class="comp-sep">·</span>
+      <span class="comp-item">
+        <span class="comp-label">Weight</span>
+        <span class="comp-value">53 kg</span>
+      </span>
+      <span class="comp-sep">·</span>
+      <span class="comp-item">
+        <span class="comp-label">Waist</span>
+        <span class="comp-value">27 cm</span>
+      </span>
+      <span class="comp-sep">·</span>
+      <span class="comp-item">
+        <span class="comp-label">Hair</span>
+        <span class="comp-value">Black</span>
+      </span>
+      <span class="comp-sep">·</span>
+      <span class="comp-item">
+        <span class="comp-label">Eyes</span>
+        <span class="comp-value">Brown</span>
+      </span>
+    </div>
+  </section>
+
+  <!-- ── INTRO ── -->
+  <section class="intro-section">
+    <p class="intro-headline">Discover the Radiance of Sheryl Joyce – Alluring Filipino Beauty Captured in Timeless Light</p>
+    <p class="intro-body">This exquisite collection unveils Sheryl Joyce – a vision of tropical elegance and enigmatic grace. Her warm, sun-kissed Filipina features glow against lush landscapes, hinting at private moments of raw, unfiltered desire that lie beneath the surface. From the soft caress of golden hour on her curves to the playful dance of morning light on her silhouette, each image celebrates her magnetic allure and a complexity known only to the few.</p>
+  </section>
+
   <hr class="gallery-divider">
 
+  <!-- ── SERIES I — LIGHT & FORM ── -->
   <div class="gallery-section-label">Series I — Light &amp; Form</div>
   <div class="gallery-row">
-    <div class="gallery-item"><a href="https://unscriptedphotographers.com/basementinnovations/number-19" target="_blank" rel="noopener"><img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/ZfqjNowUERNCvoDV.jpg" alt="Number 19"></a><div class="gallery-caption"><p class="gallery-caption-title">Number 19</p><p class="gallery-caption-meta">Digital, 50–85mm · f/2.8–4 · 1/160 sec · ISO 200 · Natural doorway shade / available light</p>
+
+    <div class="gallery-item">
+      <a href="https://unscriptedphotographers.com/basementinnovations/number-19" target="_blank" rel="noopener">
+        <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/ZfqjNowUERNCvoDV.jpg" alt="Number 19">
+      </a>
+      <div class="gallery-caption">
+        <p class="gallery-caption-title">Number 19</p>
+        <p class="gallery-caption-meta">Digital, 50–85mm · f/2.8–4 · 1/160 sec · ISO 200 · Natural doorway shade / available light</p>
         <p class="gallery-caption-text">A study in doorway light and natural shade.</p>
-        <a class="gallery-view-link" href="https://unscriptedphotographers.com/basementinnovations/number-19" target="_blank" rel="noopener">View full series →</a></div></div>
-    <div class="gallery-item"><a href="https://unscriptedphotographers.com/1386771/the-green-hour" target="_blank" rel="noopener"><img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/AUvEUSpKITgngsrV.png" alt="The Green Hour"></a><div class="gallery-caption"><p class="gallery-caption-title">The Green Hour</p><p class="gallery-caption-meta">Digital, 50–85mm · f/2.8–4 · 1/160 sec · ISO 200 · Natural doorway shade / available light</p>
+        <a class="gallery-view-link" href="https://unscriptedphotographers.com/basementinnovations/number-19" target="_blank" rel="noopener">View full series →</a>
+      </div>
+    </div>
+
+    <div class="gallery-item">
+      <a href="https://unscriptedphotographers.com/1386771/the-green-hour" target="_blank" rel="noopener">
+        <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/AUvEUSpKITgngsrV.png" alt="The Green Hour">
+      </a>
+      <div class="gallery-caption">
+        <p class="gallery-caption-title">The Green Hour</p>
+        <p class="gallery-caption-meta">Digital, 50–85mm · f/2.8–4 · 1/160 sec · ISO 200 · Natural doorway shade / available light</p>
         <p class="gallery-caption-text">Golden tones and soft afternoon light.</p>
-        <a class="gallery-view-link" href="https://unscriptedphotographers.com/1386771/the-green-hour" target="_blank" rel="noopener">View full series →</a></div></div>
-    <div class="gallery-item"><a href="https://drive.google.com/drive/folders/1c0lLjLL5kDPUt_PO-tRMBp8SBZK0Syhx" target="_blank" rel="noopener"><img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/wksapShkdqVsDvFp.png" alt="Bohemian Adventures"></a><div class="gallery-caption"><p class="gallery-caption-title">Bohemian Adventures</p><p class="gallery-caption-meta">Digital, 2024 · Natural Light</p>
+        <a class="gallery-view-link" href="https://unscriptedphotographers.com/1386771/the-green-hour" target="_blank" rel="noopener">View full series →</a>
+      </div>
+    </div>
+
+    <div class="gallery-item">
+      <a href="https://drive.google.com/drive/folders/1c0lLjLL5kDPUt_PO-tRMBp8SBZK0Syhx" target="_blank" rel="noopener">
+        <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/wksapShkdqVsDvFp.png" alt="Bohemian Adventures">
+      </a>
+      <div class="gallery-caption">
+        <p class="gallery-caption-title">Bohemian Adventures</p>
+        <p class="gallery-caption-meta">Digital, 2024 · Natural Light</p>
         <p class="gallery-caption-text">Free-spirited moments in natural light.</p>
-        <a class="gallery-view-link" href="https://drive.google.com/drive/folders/1c0lLjLL5kDPUt_PO-tRMBp8SBZK0Syhx" target="_blank" rel="noopener">View full series →</a></div></div>
-    <div class="gallery-item"><a href="https://unscriptedphotographers.com/basementinnovations/joyce-morning-softness" target="_blank" rel="noopener"><img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/yjLUpdTMxDrcHfxp.png" alt="Morning Softness"></a><div class="gallery-caption"><p class="gallery-caption-title">Morning Softness</p><p class="gallery-caption-meta">Digital, 2024 · Soft Light</p>
+        <a class="gallery-view-link" href="https://drive.google.com/drive/folders/1c0lLjLL5kDPUt_PO-tRMBp8SBZK0Syhx" target="_blank" rel="noopener">View full series →</a>
+      </div>
+    </div>
+
+    <div class="gallery-item">
+      <a href="https://unscriptedphotographers.com/basementinnovations/joyce-morning-softness" target="_blank" rel="noopener">
+        <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/yjLUpdTMxDrcHfxp.png" alt="Morning Softness">
+      </a>
+      <div class="gallery-caption">
+        <p class="gallery-caption-title">Morning Softness</p>
+        <p class="gallery-caption-meta">Digital, 2024 · Soft Light</p>
         <p class="gallery-caption-text">Quiet mornings and diffused soft light.</p>
-        <a class="gallery-view-link" href="https://unscriptedphotographers.com/basementinnovations/joyce-morning-softness" target="_blank" rel="noopener">View full series →</a></div></div>
-    <div class="gallery-item"><a href="https://drive.google.com/drive/folders/1Dmq7z7QFneELHv8y_sEs80J23TxsR62P?usp=sharing" target="_blank" rel="noopener"><img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/jsEXKqSVgwMDgVAe.jpg" alt="Vacation Walk"></a><div class="gallery-caption"><p class="gallery-caption-title">Vacation Walk</p><p class="gallery-caption-meta">Film, 2023 · Outdoor</p>
+        <a class="gallery-view-link" href="https://unscriptedphotographers.com/basementinnovations/joyce-morning-softness" target="_blank" rel="noopener">View full series →</a>
+      </div>
+    </div>
+
+    <div class="gallery-item">
+      <a href="https://drive.google.com/drive/folders/1Dmq7z7QFneELHv8y_sEs80J23TxsR62P?usp=sharing" target="_blank" rel="noopener">
+        <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/jsEXKqSVgwMDgVAe.jpg" alt="Vacation Walk">
+      </a>
+      <div class="gallery-caption">
+        <p class="gallery-caption-title">Vacation Walk</p>
+        <p class="gallery-caption-meta">Film, 2023 · Outdoor</p>
         <p class="gallery-caption-text">Candid moments from an outdoor walk.</p>
-        <a class="gallery-view-link" href="https://drive.google.com/drive/folders/1Dmq7z7QFneELHv8y_sEs80J23TxsR62P?usp=sharing" target="_blank" rel="noopener">View full series →</a></div></div>
+        <a class="gallery-view-link" href="https://drive.google.com/drive/folders/1Dmq7z7QFneELHv8y_sEs80J23TxsR62P?usp=sharing" target="_blank" rel="noopener">View full series →</a>
+      </div>
+    </div>
+
   </div>
 
+  <!-- ── SERIES II — LANDSCAPES ── -->
   <div class="gallery-section-label">Series II — Landscapes</div>
   <div class="gallery-row">
-    <div class="gallery-item"><a href="https://drive.google.com/drive/folders/1TsqMo_V53rMHgSnkQqBobh46_N4B0YI-" target="_blank" rel="noopener"><img src="https://drive.google.com/thumbnail?id=1LNZgm1H4vmyeAWo1nF1bFV3HGO9zAyD9&amp;sz=w2000" alt="Mile High Helper"></a><div class="gallery-caption"><p class="gallery-caption-title">Mile High Helper</p><p class="gallery-caption-meta"></p>
-        <p class="gallery-caption-text">Whimsical flights contrast her reserved routine. Sheryl's duality: Soft skies meet steadfast heart. 😊💖</p>
-        <a class="gallery-view-link" href="https://drive.google.com/drive/folders/1TsqMo_V53rMHgSnkQqBobh46_N4B0YI-" target="_blank" rel="noopener">View full series →</a></div></div>
-    <div class="gallery-item"><a href="https://unscriptedphotographers.com/basementinnovations/the-bedroom-suite" target="_blank" rel="noopener"><img src="https://drive.google.com/thumbnail?id=1kom-InAWdf5YAoAILb9hvxC4NXeqQjCW&amp;sz=w2000" alt="The Bedroom Suite"></a><div class="gallery-caption"><p class="gallery-caption-title">The Bedroom Suite</p><p class="gallery-caption-meta"></p>
+
+    <div class="gallery-item">
+      <a href="https://drive.google.com/drive/folders/1TsqMo_V53rMHgSnkQqBobh46_N4B0YI-" target="_blank" rel="noopener">
+        <img src="https://drive.google.com/thumbnail?id=1LNZgm1H4vmyeAWo1nF1bFV3HGO9zAyD9&sz=w2000" alt="Mile High Helper">
+      </a>
+      <div class="gallery-caption">
+        <p class="gallery-caption-title">Mile High Helper</p>
+        <p class="gallery-caption-meta">Digital, 2024 · Available Light</p>
+        <p class="gallery-caption-text">Whimsical flights contrast her reserved routine. Soft skies meet steadfast heart.</p>
+        <a class="gallery-view-link" href="https://drive.google.com/drive/folders/1TsqMo_V53rMHgSnkQqBobh46_N4B0YI-" target="_blank" rel="noopener">View full series →</a>
+      </div>
+    </div>
+
+    <div class="gallery-item">
+      <a href="https://unscriptedphotographers.com/basementinnovations/the-bedroom-suite" target="_blank" rel="noopener">
+        <img src="https://drive.google.com/thumbnail?id=1kom-InAWdf5YAoAILb9hvxC4NXeqQjCW&sz=w2000" alt="The Bedroom Suite">
+      </a>
+      <div class="gallery-caption">
+        <p class="gallery-caption-title">The Bedroom Suite</p>
+        <p class="gallery-caption-meta">Digital, 2024 · Interior</p>
         <p class="gallery-caption-text">Caught in the heat of the moment. The scent of her hair is intoxicating, and the warmth of her skin is the only thing that matters right now.</p>
-        <a class="gallery-view-link" href="https://unscriptedphotographers.com/basementinnovations/the-bedroom-suite" target="_blank" rel="noopener">View full series →</a></div></div>
-    <div class="gallery-item"><a href="https://unscriptedphotographers.com/basementinnovations/shadowed-affections-a-night-s-embrace" target="_blank" rel="noopener"><img src="https://drive.google.com/thumbnail?id=1ARdBtq69QCSMzmj2A1JvKzX4cpHB_Io7&amp;sz=w2000" alt="Shadowed Affections: A Night's Embrace"></a><div class="gallery-caption"><p class="gallery-caption-title">Shadowed Affections: A Night's Embrace</p><p class="gallery-caption-meta"></p>
-        <p class="gallery-caption-text">The city speaks in hushed tones as the sun sets, and she listens, her presence a silent narrative woven into the fabric of the urban night. The city's whispers follow her back to the hotel, where the echoes of the night's adventures linger, a collection of intimate moments captured in the shadows and the echoes of the streets.
-</p>
-        <a class="gallery-view-link" href="https://unscriptedphotographers.com/basementinnovations/shadowed-affections-a-night-s-embrace" target="_blank" rel="noopener">View full series →</a></div></div>
-    <div class="gallery-item"><a href="galleries/domestic-helper.html" target="_self"><img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/fYFNVUHVWfWVQthx.png" alt="Domestic Helper"></a><div class="gallery-caption"><p class="gallery-caption-title">Domestic Helper</p><p class="gallery-caption-meta">Digital, 2024 · Available Light</p>
+        <a class="gallery-view-link" href="https://unscriptedphotographers.com/basementinnovations/the-bedroom-suite" target="_blank" rel="noopener">View full series →</a>
+      </div>
+    </div>
+
+    <div class="gallery-item">
+      <a href="https://unscriptedphotographers.com/basementinnovations/shadowed-affections-a-night-s-embrace" target="_blank" rel="noopener">
+        <img src="https://drive.google.com/thumbnail?id=1ARdBtq69QCSMzmj2A1JvKzX4cpHB_Io7&sz=w2000" alt="Shadowed Affections: A Night's Embrace">
+      </a>
+      <div class="gallery-caption">
+        <p class="gallery-caption-title">Shadowed Affections: A Night's Embrace</p>
+        <p class="gallery-caption-meta">Digital, 2024 · Evening</p>
+        <p class="gallery-caption-text">The city speaks in hushed tones as the sun sets, and she listens — her presence a silent narrative woven into the fabric of the urban night.</p>
+        <a class="gallery-view-link" href="https://unscriptedphotographers.com/basementinnovations/shadowed-affections-a-night-s-embrace" target="_blank" rel="noopener">View full series →</a>
+      </div>
+    </div>
+
+    <div class="gallery-item">
+      <a href="galleries/domestic-helper.html">
+        <img src="assets/domestic-helper/domestic-helper-01.png" alt="Domestic Helper">
+      </a>
+      <div class="gallery-caption">
+        <p class="gallery-caption-title">Domestic Helper</p>
+        <p class="gallery-caption-meta">Digital, 2024 · Available Light</p>
         <p class="gallery-caption-text">An intimate portrait series exploring quiet domesticity and everyday grace.</p>
-        <a class="gallery-view-link" href="galleries/domestic-helper.html" target="_self">View full series →</a></div></div>
+        <a class="gallery-view-link" href="galleries/domestic-helper.html">View full series →</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── SERIES III — ON LOCATION ── -->
+  <div class="gallery-section-label">Series III — On Location</div>
+  <div class="gallery-row">
+
+    <div class="gallery-item">
+      <a href="galleries/a-quiet-distance.html">
+        <img src="assets/boston/IMG_5438.PNG" alt="A Quiet Distance"
+             onerror="this.outerHTML='<div style=&quot;width:100%;height:310px;background:#f5ece8;border-radius:1px;display:flex;align-items:center;justify-content:center;&quot;><span style=&quot;font-family:Jost,sans-serif;font-size:0.62em;letter-spacing:0.18em;color:#c8a89e;text-transform:uppercase;&quot;>Boston, 2024</span></div>'">
+      </a>
+      <div class="gallery-caption">
+        <p class="gallery-caption-title">A Quiet Distance</p>
+        <p class="gallery-caption-meta">Digital, 2024 · Boston, MA</p>
+        <p class="gallery-caption-text">She is in the city but not of it — a Filipina woman navigating Boston's brownstone streets with quiet grace, emotional distance, and a beauty that keeps its own counsel.</p>
+        <a class="gallery-view-link" href="galleries/a-quiet-distance.html">View full series →</a>
+      </div>
+    </div>
+
   </div>
 
 </body>

@@ -140,7 +140,23 @@ def build_html(by_series, photos_by_gallery=None):
             f'    <p class="intro-body">This exquisite collection unveils Sheryl Joyce \u2013 a vision of tropical elegance and enigmatic grace. Her warm, sun-kissed Filipina features glow against lush landscapes, hinting at private moments of raw, unfiltered desire that lie beneath the surface. From the soft caress of golden hour on her curves to the playful dance of morning light on her silhouette, each image celebrates her magnetic allure and a complexity known only to the few.</p>\n'
             f'  </section>\n'
             f'  <hr class="gallery-divider">\n'
-            f'{sections}\n</body>\n</html>\n')
+            f'{sections}'
+            f'\n  <div class="gallery-section-label">Series III — On Location</div>\n'
+            f'  <div class="gallery-row">\n'
+            f'    <div class="gallery-item">\n'
+            f'      <a href="galleries/a-quiet-distance.html">\n'
+            f'        <img src="assets/boston/IMG_5438.PNG" alt="A Quiet Distance"\n'
+            f'             onerror="this.outerHTML=\'<div style=&quot;width:100%;height:310px;background:#f5ece8;border-radius:1px;display:flex;align-items:center;justify-content:center;&quot;><span style=&quot;font-family:Jost,sans-serif;font-size:0.62em;letter-spacing:0.18em;color:#c8a89e;text-transform:uppercase;&quot;>Boston, 2024</span></div>\'">\n'
+            f'      </a>\n'
+            f'      <div class="gallery-caption">\n'
+            f'        <p class="gallery-caption-title">A Quiet Distance</p>\n'
+            f'        <p class="gallery-caption-meta">Digital, 2024 · Boston, MA</p>\n'
+            f'        <p class="gallery-caption-text">She is in the city but not of it — a Filipina woman navigating Boston’s brownstone streets with quiet grace, emotional distance, and a beauty that keeps its own counsel.</p>\n'
+            f'        <a class="gallery-view-link" href="galleries/a-quiet-distance.html">View full series →</a>\n'
+            f'      </div>\n'
+            f'    </div>\n'
+            f'  </div>\n'
+            f'\n</body>\n</html>\n')
 
 def build_portfolio_page(gallery, photos):
     """Generate an individual gallery portfolio HTML page."""
