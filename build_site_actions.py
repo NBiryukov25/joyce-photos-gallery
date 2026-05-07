@@ -195,6 +195,7 @@ def build_portfolio_page(gallery, photos):
             f'  <title>{title} \u00b7 Sheryl Joyce</title>\n'
             f'  {FONT_LINK}\n'
             f'  <link rel="stylesheet" href="../gallery.css">\n'
+            f'  <link rel="stylesheet" href="../lightbox.css">\n'
             f'</head>\n<body>\n'
             f'{GALLERY_NAV}\n'
             f'  <a class="back-link" href="../index.html">\u2190 Back to Galleries</a>\n'
@@ -203,6 +204,7 @@ def build_portfolio_page(gallery, photos):
             f'  {caption_html}{meta_html}'
             f'<hr class="portfolio-divider">\n'
             f'  {grid_html}\n'
+            f'  <script src="../lightbox.js"></script>\n'
             f'</body>\n</html>\n')
 
 def main():
