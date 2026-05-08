@@ -1,0 +1,117 @@
+/* ---- LIGHTBOX ---- */
+.lb-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 10, 8, 0.92);
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+}
+.lb-overlay.active { display: flex; }
+
+.lb-img-wrap {
+  position: relative;
+  max-width: 92vw;
+  max-height: 92vh;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lb-img {
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 1px;
+  box-shadow: 0 12px 60px rgba(0,0,0,0.6);
+  display: block;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+.lb-img.loaded { opacity: 1; }
+
+.lb-spinner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: rgba(255,255,255,0.55);
+  border-radius: 50%;
+  animation: lb-spin 0.7s linear infinite;
+}
+@keyframes lb-spin { to { transform: rotate(360deg); } }
+
+.lb-close {
+  position: fixed;
+  top: 1.4em;
+  right: 1.6em;
+  font-family: 'Jost', sans-serif;
+  font-size: 1.5em;
+  font-weight: 200;
+  color: rgba(255,255,255,0.55);
+  background: none;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.2em 0.4em;
+  transition: color 0.2s;
+  z-index: 1001;
+}
+.lb-close:hover { color: rgba(255,255,255,0.9); }
+
+.lb-arrow {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Jost', sans-serif;
+  font-size: 1.6em;
+  font-weight: 200;
+  color: rgba(255,255,255,0.45);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.3em 0.7em;
+  transition: color 0.2s;
+  z-index: 1001;
+  line-height: 1;
+  user-select: none;
+}
+.lb-arrow:hover { color: rgba(255,255,255,0.9); }
+.lb-prev { left: 0.8em; }
+.lb-next { right: 0.8em; }
+.lb-arrow.hidden { opacity: 0; pointer-events: none; }
+
+.lb-counter {
+  position: fixed;
+  bottom: 1.6em;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Jost', sans-serif;
+  font-size: 0.62em;
+  font-weight: 300;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+}
+
+.lb-caption {
+  position: fixed;
+  bottom: 3.2em;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 560px;
+  width: 90vw;
+  text-align: center;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 0.88em;
+  font-weight: 300;
+  font-style: italic;
+  line-height: 1.7;
+  color: rgba(255,255,255,0.5);
+  padding: 0 1em;
+}
+
+/* Make photo-item images show pointer */
+.photo-item img { cursor: zoom-in; }
