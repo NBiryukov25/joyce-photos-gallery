@@ -469,7 +469,7 @@
         </div>
       </div>
       <div class="search-hint">
-        <strong>Tip:</strong> Use airport codes (BOS, RSW, MIA, FLL, PBI) for best results. JetBlue and Breeze fly BOS&rarr;FLL/RSW routes. All searches open in a new tab.
+        <strong>Tip:</strong> Use airport codes (BOS, RSW, MIA, FLL, PBI) for best results. JetBlue and Breeze open their homepages &mdash; search from there. All results open in a new tab.
       </div>
     </div>
 
@@ -660,8 +660,8 @@
         case 'kayak':      return dep ? (hr ? `https://www.kayak.com/flights/${origin}-${dest}/${dep.y}-${dep.m}-${dep.d}/${ret.y}-${ret.m}-${ret.d}/${pax}adults` : `https://www.kayak.com/flights/${origin}-${dest}/${dep.y}-${dep.m}-${dep.d}/${pax}adults`) : null;
         case 'expedia':    return dep && hr ? `https://www.expedia.com/Flights-Search?trip=roundtrip&leg1=from:${origin},to:${dest},departure:${dep.m}%2F${dep.d}%2F${dep.y}TANYT&leg2=from:${dest},to:${origin},departure:${ret.m}%2F${ret.d}%2F${ret.y}TANYT&passengers=adults:${pax}` : dep ? `https://www.expedia.com/Flights-Search?trip=oneway&leg1=from:${origin},to:${dest},departure:${dep.m}%2F${dep.d}%2F${dep.y}TANYT&passengers=adults:${pax}` : `https://www.expedia.com/Flights-Search`;
         case 'momondo':    return dep ? (hr ? `https://www.momondo.com/flight-search/${origin}-${dest}/${dep.y}-${dep.m}-${dep.d}/${ret.y}-${ret.m}-${ret.d}?adults=${pax}` : `https://www.momondo.com/flight-search/${origin}-${dest}/${dep.y}-${dep.m}-${dep.d}?adults=${pax}`) : `https://www.momondo.com`;
-        case 'jetblue':    return dep ? `https://www.jetblue.com/flights/results?from=${origin}&to=${dest}&depart=${dep.iso}${hr ? '&return=' + ret.iso : ''}&passengers=${pax}&tripType=${hr ? 'roundtrip' : 'oneway'}` : `https://www.jetblue.com`;
-        case 'breeze':     return dep ? `https://www.flybreeze.com/book/flights?origin=${origin}&destination=${dest}&departureDate=${dep.iso}${hr ? '&returnDate=' + ret.iso : ''}&adults=${pax}&tripType=${hr ? 'roundTrip' : 'oneWay'}` : `https://www.flybreeze.com`;
+        case 'jetblue':    return `https://www.jetblue.com`;
+        case 'breeze':     return `https://www.flybreeze.com`;
         default: return null;
       }
     }
