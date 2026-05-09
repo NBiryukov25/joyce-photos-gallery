@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>6-Week Trip Budget Planner</title>
+  <style>
+    /* ---- DESIGN TOKENS ---- */
+    :root {
+      --bg:         #f4f6f9;
+      --surface:    #ffffff;
+      --surface-2:  #f0f4f8;
+      --border:     #d8e0ea;
+      --text:       #1a2535;
+      --text-soft:  #6b7f96;
+      --accent:     #2563eb;
+      --accent-lt:  #dbeafe;
+      --green:      #16a34a;
+      --green-lt:   #dcfce7;
+      --red:        #dc2626;
+      --red-lt:     #fee2e2;
+      --amber:      #d97706;
+      --amber-lt:   #fef3c7;
+      --radius:     10px;
+      --shadow:     0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.55;
+      min-height: 100vh;
+    }
+
+    /* ---- TOP BAR ---- */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 54px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .topbar-brand {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .topbar-brand .icon {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-size: 15px;
+    }
+    .topbar-meta {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.28em 0.75em;
+      border-radius: 2em;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: var(--accent-lt);
+      color: var(--accent);
+    }
+
+    /* ---- LAYOUT ---- */
+    .app-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.6rem 1.2rem 4rem;
+    }
+    .page-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+    .page-sub {
+      font-size: 0.85rem;
+      color: var(--text-soft);
+      margin-bottom: 1.6rem;
+    }
+
+    /* ---- SUMMARY STRIP ---- */
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1.4rem;
+    }
+    .s-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.1rem;
+      box-shadow: var(--shadow);
+    }
+    .s-card .sc-label {
+      font-size: 0.72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-soft);
+      margin-bottom: 0.35rem;
+    }
+    .s-card .sc-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .s-card.positive .sc-value { color: var(--green); }
+    .s-card.negative .sc-value { color: var(--red); }
+
+    /* ---- PROGRESS ---- */
+    .prog-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.4rem;
+    }
+    .prog-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-soft);
+      margin-bottom: 0.5rem;
+    }
+    .prog-bar {
+      height: 10px;
+      background: var(--surface-2);
+      border-radius: 5px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .prog-fill {
+      height: 100%;
+      border-radius: 5px;
+      background: var(--accent);
+      transition: width 0.35s ease;
+    }
+    .prog-fill.warn  { background: var(--amber); }
+    .prog-fill.over  { background: var(--red); }
+
+    /* ---- CALLOUTS ---- */
+    .callout-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1.6rem;
+    }
+    .callout {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.9rem 1.1rem;
+      box-shadow: var(--shadow);
+    }
+    .callout .c-label {
+      font-size: 0.72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-soft);
+      margin-bottom: 0.25rem;
+    }
+    .callout .c-value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .callout.alert .c-value { color: var(--red); }
+    .callout.ok    .c-value { color: var(--green); }
+
+    /* ---- TIP BOX ---- */
+    .tip-box {
+      background: var(--amber-lt);
+      border: 1px solid #fde68a;
+      border-radius: var(--radius);
+      padding: 0.85rem 1.1rem;
+      font-size: 0.82rem;
+      color: #78350f;
+      line-height: 1.6;
+      margin-bottom: 1.6rem;
+    }
+    .tip-box.ok { background: var(--green-lt); border-color: #86efac; color: #14532d; }
+
+    /* ---- MAIN GRID ---- */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 680px) { .main-grid { grid-template-columns: 1fr; } }
+    .full-col { grid-column: 1 / -1; }
+
+    /* ---- CARD ---- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.2rem 1.3rem;
+    }
+    .card-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.2rem;
+    }
+    .card-sub {
+      font-size: 0.73rem;
+      color: var(--text-soft);
+      margin-bottom: 1rem;
+    }
+
+    /* ---- FORM ROWS ---- */
+    .f-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
+    }
+    .f-row label {
+      flex: 1;
+      font-size: 0.8rem;
+      color: var(--text);
+    }
+    .f-row .f-unit {
+      font-size: 0.72rem;
+      color: var(--text-soft);
+      white-space: nowrap;
+    }
+    input[type="number"],
+    input[type="text"],
+    select {
+      padding: 0.38em 0.6em;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface-2);
+      font-family: inherit;
+      font-size: 0.82rem;
+      color: var(--text);
+      width: 100px;
+    }
+    input[type="number"] { text-align: right; }
+    input:focus, select:focus { outline: none; border-color: var(--accent); background: #fff; }
+    .f-total {
+      width: 88px;
+      text-align: right;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+    .card-footer {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 0.5rem;
+      border-top: 1px solid var(--border);
+      margin-top: 0.5rem;
+      padding-top: 0.6rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-soft);
+    }
+    .card-footer .footer-val {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    /* ---- SETTINGS ROW ---- */
+    .settings-row {
+      display: flex;
+      align-items: center;
+      gap: 1.4rem;
+      flex-wrap: wrap;
+    }
+    .settings-row .setting {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+    }
+    .settings-row select,
+    .settings-row input[type="number"] {
+      width: auto;
+    }
+
+    /* ---- TIMELINE ---- */
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.6rem;
+      margin-top: 0.8rem;
+    }
+    @media (max-width: 700px) { .timeline-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 420px) { .timeline-grid { grid-template-columns: repeat(2, 1fr); } }
+    .wk {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 0.65rem;
+      text-align: center;
+    }
+    .wk.trip { background: var(--accent-lt); border-color: #bfdbfe; }
+    .wk-label {
+      font-size: 0.62rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-soft);
+      margin-bottom: 0.3rem;
+    }
+    .wk.trip .wk-label { color: var(--accent); }
+    .wk-amount {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .wk-detail {
+      font-size: 0.62rem;
+      color: var(--text-soft);
+      margin-top: 0.25rem;
+      line-height: 1.45;
+    }
+
+    /* ---- CONTROLS ---- */
+    .controls-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 1.6rem;
+      justify-content: center;
+    }
+    .btn {
+      padding: 0.5em 1.4em;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-soft);
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .btn:hover { background: var(--surface-2); color: var(--text); }
+    .btn.danger:hover { border-color: var(--red); color: var(--red); }
+    .save-note {
+      font-size: 0.73rem;
+      color: var(--text-soft);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .save-note.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="icon">✈</div>
+      Trip Budget Planner
+    </div>
+    <div class="topbar-meta">
+      <div class="badge" id="countdown-badge">⏳ 6 weeks to go</div>
+    </div>
+  </div>
+
+  <div class="app-wrap">
+    <div class="page-title">6-Week Trip Budget</div>
+    <p class="page-sub">Track travel costs, daily home expenses, and trip spending — all in one place.</p>
+
+    <!-- SETTINGS -->
+    <div class="card full-col" style="margin-bottom:1rem;">
+      <div class="card-title">Setup</div>
+      <div class="card-sub">Your available funds and trip details</div>
+      <div class="settings-row">
+        <div class="setting">
+          <label for="currency">Currency</label>
+          <select id="currency">
+            <option value="$">USD $</option>
+            <option value="€">EUR €</option>
+            <option value="£">GBP £</option>
+            <option value="¥">JPY ¥</option>
+            <option value="₱">PHP ₱</option>
+            <option value="A$">AUD A$</option>
+            <option value="C$">CAD C$</option>
+            <option value="₩">KRW ₩</option>
+            <option value="CHF">CHF</option>
+            <option value="MXN$">MXN</option>
+          </select>
+        </div>
+        <div class="setting">
+          <label for="funds-available">Funds on hand</label>
+          <input type="number" id="funds-available" min="0" step="1" placeholder="0">
+        </div>
+        <div class="setting">
+          <label for="weekly-income">Income / savings per week</label>
+          <input type="number" id="weekly-income" min="0" step="1" placeholder="0">
+        </div>
+        <div class="setting">
+          <label for="trip-days">Trip length (days)</label>
+          <input type="number" id="trip-days" min="1" max="365" step="1" placeholder="7" value="7">
+        </div>
+        <div class="setting">
+          <label for="weeks-out">Weeks until trip</label>
+          <input type="number" id="weeks-out" min="1" max="52" step="1" placeholder="6" value="6">
+        </div>
+      </div>
+    </div>
+
+    <!-- SUMMARY STRIP -->
+    <div class="summary-strip">
+      <div class="s-card">
+        <div class="sc-label">Total Available</div>
+        <div class="sc-value" id="sum-available">$0</div>
+      </div>
+      <div class="s-card">
+        <div class="sc-label">Travel Costs</div>
+        <div class="sc-value" id="sum-travel">$0</div>
+      </div>
+      <div class="s-card">
+        <div class="sc-label">Home Expenses</div>
+        <div class="sc-value" id="sum-home">$0</div>
+      </div>
+      <div class="s-card">
+        <div class="sc-label">Trip Expenses</div>
+        <div class="sc-value" id="sum-trip">$0</div>
+      </div>
+      <div class="s-card">
+        <div class="sc-label">Pre-Trip Costs</div>
+        <div class="sc-value" id="sum-pretip">$0</div>
+      </div>
+      <div class="s-card" id="balance-card">
+        <div class="sc-label">Balance</div>
+        <div class="sc-value" id="sum-balance">$0</div>
+      </div>
+    </div>
+
+    <!-- PROGRESS BAR -->
+    <div class="prog-wrap">
+      <div class="prog-row">
+        <span>Budget utilisation</span>
+        <span id="prog-pct">0% of available funds</span>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-fill" id="prog-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- CALLOUT CARDS -->
+    <div class="callout-row">
+      <div class="callout" id="callout-save">
+        <div class="c-label">Need to save each week</div>
+        <div class="c-value" id="c-weekly-save">$0 / wk</div>
+      </div>
+      <div class="callout">
+        <div class="c-label">Daily budget on the trip</div>
+        <div class="c-value" id="c-daily">$0 / day</div>
+      </div>
+      <div class="callout">
+        <div class="c-label">Grand total needed</div>
+        <div class="c-value" id="c-grand">$0</div>
+      </div>
+    </div>
+
+    <!-- TIP BOX -->
+    <div class="tip-box" id="tip-box">
+      Fill in the sections below to see your personalised budget summary and savings plan.
+    </div>
+
+    <!-- EXPENSE SECTIONS -->
+    <div class="main-grid">
+
+      <!-- TRAVEL COSTS -->
+      <div class="card">
+        <div class="card-title">✈ Travel Costs</div>
+        <div class="card-sub">One-time costs to get there and back</div>
+
+        <div class="f-row">
+          <label>Flights / transport to destination</label>
+          <input type="number" class="travel-input" id="t-flights" min="0" step="1" placeholder="0">
+        </div>
+        <div class="f-row" style="align-items:flex-start; flex-wrap:wrap; gap:0.4rem;">
+          <label style="flex-basis:100%;">Accommodation</label>
+          <input type="number" class="travel-input" id="t-hotel-nights" min="0" step="1" placeholder="0" style="width:70px">
+          <span class="f-unit">nights ×</span>
+          <input type="number" class="travel-input" id="t-hotel-rate" min="0" step="1" placeholder="rate/nt" style="width:90px">
+          <span class="f-unit">= <span id="hotel-sub">$0</span></span>
+        </div>
+        <div class="f-row">
+          <label>Airport / ground transport</label>
+          <input type="number" class="travel-input" id="t-transport" min="0" step="1" placeholder="0">
+        </div>
+        <div class="f-row">
+          <label>Travel insurance</label>
+          <input type="number" class="travel-input" id="t-insurance" min="0" step="1" placeholder="0">
+        </div>
+        <div class="f-row">
+          <label>Visa / passport / entry fees</label>
+          <input type="number" class="travel-input" id="t-visa" min="0" step="1" placeholder="0">
+        </div>
+        <div class="f-row">
+          <label>Luggage / gear check-in fees</label>
+          <input type="number" class="travel-input" id="t-luggage" min="0" step="1" placeholder="0">
+        </div>
+        <div class="f-row">
+          <label>Other travel costs</label>
+          <input type="number" class="travel-input" id="t-other" min="0" step="1" placeholder="0">
+        </div>
+        <div class="card-footer">
+          Travel total &nbsp;<span class="footer-val" id="travel-total">$0</span>
+        </div>
+      </div>
+
+      <!-- HOME EXPENSES -->
+      <div class="card">
+        <div class="card-title">🏠 Home Expenses</div>
+        <div class="card-sub">Weekly costs that continue while you're away</div>
+
+        <div class="f-row">
+          <label>Rent / mortgage</label>
+          <input type="number" class="home-input" id="h-rent" min="0" step="1" placeholder="0/wk">
+          <span class="f-total" id="ht-rent">$0</span>
+        </div>
+        <div class="f-row">
+          <label>Utilities (power, water, gas)</label>
+          <input type="number" class="home-input" id="h-utilities" min="0" step="1" placeholder="0/wk">
+          <span class="f-total" id="ht-utilities">$0</span>
+        </div>
+        <div class="f-row">
+          <label>Groceries / household</label>
+          <input type="number" class="home-input" id="h-groceries" min="0" step="1" placeholder="0/wk">
+          <span class="f-total" id="ht-groceries">$0</span>
+        </div>
+        <div class="f-row">
+          <label>Subscriptions &amp; internet</label>
+          <input type="number" class="home-input" id="h-subs" min="0" step="1" placeholder="0/wk">
+          <span class="f-total" id="ht-subs">$0</span>
+        </div>
+        <div class="f-row">
+          <label>Pet care / house sitter</label>
+          <input type="number" class="home-input" id="h-pet" min="0" step="1" placeholder="0/wk">
+          <span class="f-total" id="ht-pet">$0</span>
+        </div>
+        <div class="f-row">
+          <label>Loan / insurance payments</label>
+          <input type="number" class="home-input" id="h-loan" min="0" step="1" placeholder="0/wk">
+          <span class="f-total" id="ht-loan">$0</span>
+        </div>
+        <div class="f-row">
+          <label>Other home expenses</label>
+          <input type="number" class="home-input" id="h-other" min="0" step="1" placeholder="0/wk">
+          <span class="f-total" id="ht-other">$0</span>
+        </div>
+        <div class="card-footer">
+          <span id="home-weeks-label">6-wk</span> home total &nbsp;<span class="footer-val" id="home-total">$0</span>
+        </div>
+      </div>
+
+      <!-- TRIP DAILY EXPENSES -->
+      <div class="card">
+        <div class="card-title">🗺 Daily Trip Expenses</div>
+        <div class="card-sub">Per-day spending while on the trip</div>
+
+        <div class="f-row">
+          <label>Food &amp; drink</label>
+          <input type="number" class="trip-input" id="d-food" min="0" step="1" placeholder="0/day">
+          <span class="f-total" id="dt-food">$0</span>
+        </div>
+        <div class="f-row">
+          <label>Local transport</label>
+          <input type="number" class="trip-input" id="d-transport" min="0" step="1" placeholder="0/day">
+          <span class="f-total" id="dt-transport">$0</span>
+        </div>
+        <div class="f-row">
+          <label>Activities &amp; tours</label>
+          <input type="number" class="trip-input" id="d-activities" min="0" step="1" placeholder="0/day">
+          <span class="f-total" id="dt-activities">$0</span>
+        </div>
+        <div class="f-row">
+          <label>Shopping &amp; souvenirs</label>
+          <input type="number" class="trip-input" id="d-shopping" min="0" step="1" placeholder="0/day">
+          <span class="f-total" id="dt-shopping">$0</span>
+        </div>
+        <div class="f-row">
+          <label>Miscellaneous / emergency buffer</label>
+          <input type="number" class="trip-input" id="d-misc" min="0" step="1" placeholder="0/day">
+          <span class="f-total" id="dt-misc">$0</span>
+        </div>
+        <div class="card-footer">
+          Trip total (<span id="trip-days-label">7</span> days) &nbsp;<span class="footer-val" id="trip-total">$0</span>
+        </div>
+      </div>
+
+      <!-- PRE-TRIP ONE-OFFS -->
+      <div class="card">
+        <div class="card-title">🧳 Pre-Trip Costs</div>
+        <div class="card-sub">One-off expenses before you leave</div>
+
+        <div class="f-row">
+          <label>Clothing, gear &amp; packing supplies</label>
+          <input type="number" class="pre-input" id="p-shopping" min="0" step="1" placeholder="0">
+        </div>
+        <div class="f-row">
+          <label>Health prep (vaccines, prescriptions)</label>
+          <input type="number" class="pre-input" id="p-health" min="0" step="1" placeholder="0">
+        </div>
+        <div class="f-row">
+          <label>Document fees (copies, notary)</label>
+          <input type="number" class="pre-input" id="p-docs" min="0" step="1" placeholder="0">
+        </div>
+        <div class="f-row">
+          <label>Currency exchange / card setup</label>
+          <input type="number" class="pre-input" id="p-currency" min="0" step="1" placeholder="0">
+        </div>
+        <div class="f-row">
+          <label>SIM card / roaming plan</label>
+          <input type="number" class="pre-input" id="p-comms" min="0" step="1" placeholder="0">
+        </div>
+        <div class="f-row">
+          <label>Other pre-trip costs</label>
+          <input type="number" class="pre-input" id="p-other" min="0" step="1" placeholder="0">
+        </div>
+        <div class="card-footer">
+          Pre-trip total &nbsp;<span class="footer-val" id="pretip-total">$0</span>
+        </div>
+      </div>
+
+      <!-- WEEKLY TIMELINE -->
+      <div class="card full-col">
+        <div class="card-title">📅 Week-by-Week Spending Plan</div>
+        <div class="card-sub">Estimated spend per week across the planning horizon</div>
+        <div class="timeline-grid" id="timeline"></div>
+      </div>
+
+    </div><!-- .main-grid -->
+
+    <div class="controls-row">
+      <button class="btn danger" id="btn-reset">Reset all</button>
+      <span class="save-note" id="save-note">✓ Saved</span>
+    </div>
+  </div><!-- .app-wrap -->
+
+  <script>
+    const STORAGE_KEY = 'trip-budget-v2';
+
+    const INPUT_IDS = [
+      'currency','funds-available','weekly-income','trip-days','weeks-out',
+      't-flights','t-hotel-nights','t-hotel-rate','t-transport','t-insurance','t-visa','t-luggage','t-other',
+      'h-rent','h-utilities','h-groceries','h-subs','h-pet','h-loan','h-other',
+      'd-food','d-transport','d-activities','d-shopping','d-misc',
+      'p-shopping','p-health','p-docs','p-currency','p-comms','p-other'
+    ];
+
+    // ---- PERSISTENCE ----
+    function save() {
+      const d = {};
+      INPUT_IDS.forEach(id => { const el = document.getElementById(id); if (el) d[id] = el.value; });
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {}
+      const note = document.getElementById('save-note');
+      note.classList.add('show');
+      clearTimeout(note._t);
+      note._t = setTimeout(() => note.classList.remove('show'), 1600);
+    }
+    function load() {
+      try {
+        const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        INPUT_IDS.forEach(id => { const el = document.getElementById(id); if (el && d[id] !== undefined) el.value = d[id]; });
+      } catch(e) {}
+    }
+
+    // ---- HELPERS ----
+    function v(id) { return parseFloat(document.getElementById(id)?.value) || 0; }
+    function sym() { return document.getElementById('currency')?.value || '$'; }
+    function fmt(n) {
+      const s = sym();
+      const neg = n < 0;
+      const abs = Math.abs(n);
+      const str = abs >= 1000 ? Math.round(abs).toLocaleString() : abs.toFixed(0);
+      return (neg ? '−' : '') + s + str;
+    }
+    function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+
+    // ---- RECALC ----
+    function recalc() {
+      const weeks = Math.max(1, v('weeks-out'));
+      const days  = Math.max(1, v('trip-days'));
+
+      // --- Travel ---
+      const hotelSub   = v('t-hotel-nights') * v('t-hotel-rate');
+      const travelTotal = v('t-flights') + hotelSub + v('t-transport') + v('t-insurance') + v('t-visa') + v('t-luggage') + v('t-other');
+      setText('hotel-sub', fmt(hotelSub));
+      setText('travel-total', fmt(travelTotal));
+
+      // --- Home ---
+      const homeFields = ['h-rent','h-utilities','h-groceries','h-subs','h-pet','h-loan','h-other'];
+      const homeWeekly = homeFields.reduce((s, id) => s + v(id), 0);
+      const homeTotal  = homeWeekly * weeks;
+      homeFields.forEach(id => {
+        const rid = id.replace('h-', 'ht-');
+        setText(rid, fmt(v(id) * weeks));
+      });
+      setText('home-weeks-label', weeks + '-wk');
+      setText('home-total', fmt(homeTotal));
+
+      // --- Trip daily ---
+      const tripFields = ['d-food','d-transport','d-activities','d-shopping','d-misc'];
+      const dailyTotal = tripFields.reduce((s, id) => s + v(id), 0);
+      const tripTotal  = dailyTotal * days;
+      tripFields.forEach(id => {
+        const rid = id.replace('d-', 'dt-');
+        setText(rid, fmt(v(id) * days));
+      });
+      setText('trip-days-label', days);
+      setText('trip-total', fmt(tripTotal));
+
+      // --- Pre-trip ---
+      const preTotal = v('p-shopping') + v('p-health') + v('p-docs') + v('p-currency') + v('p-comms') + v('p-other');
+      setText('pretip-total', fmt(preTotal));
+
+      // --- Totals ---
+      const grandTotal = travelTotal + homeTotal + tripTotal + preTotal;
+      const totalIn    = v('funds-available') + v('weekly-income') * weeks;
+      const balance    = totalIn - grandTotal;
+      const shortfall  = Math.max(0, grandTotal - v('funds-available'));
+      const weeklySave = weeks > 0 ? shortfall / weeks : 0;
+
+      // Summary strip
+      setText('sum-available', fmt(totalIn));
+      setText('sum-travel',    fmt(travelTotal));
+      setText('sum-home',      fmt(homeTotal));
+      setText('sum-trip',      fmt(tripTotal));
+      setText('sum-pretip',    fmt(preTotal));
+      setText('sum-balance',   fmt(balance));
+
+      const balCard = document.getElementById('balance-card');
+      balCard.className = 's-card ' + (balance > 0 ? 'positive' : balance < 0 ? 'negative' : '');
+
+      // Progress
+      const pct = totalIn > 0 ? (grandTotal / totalIn) * 100 : 0;
+      const fill = document.getElementById('prog-fill');
+      fill.style.width = Math.min(100, pct) + '%';
+      fill.className = 'prog-fill' + (pct > 100 ? ' over' : pct > 80 ? ' warn' : '');
+      setText('prog-pct', pct.toFixed(0) + '% of available funds');
+
+      // Callouts
+      const saveCallout = document.getElementById('callout-save');
+      setText('c-weekly-save', fmt(weeklySave) + ' / wk');
+      saveCallout.className = 'callout' + (weeklySave === 0 ? ' ok' : ' alert');
+      setText('c-daily', fmt(dailyTotal) + ' / day');
+      setText('c-grand',  fmt(grandTotal));
+
+      // Tip
+      buildTip(balance, weeklySave, grandTotal, totalIn, pct);
+
+      // Timeline
+      buildTimeline(weeks, homeWeekly, travelTotal, tripTotal, preTotal, days);
+
+      // Countdown badge
+      setText('countdown-badge', '⏳ ' + weeks + (weeks === 1 ? ' week' : ' weeks') + ' to go');
+    }
+
+    function buildTip(balance, weeklySave, grandTotal, totalIn, pct) {
+      const box = document.getElementById('tip-box');
+      if (grandTotal === 0) {
+        box.className = 'tip-box';
+        box.textContent = 'Fill in the sections below to see your personalised budget summary and savings plan.';
+        return;
+      }
+      if (balance >= 0) {
+        box.className = 'tip-box ok';
+        box.textContent = `You're on track! With ${fmt(totalIn)} available and ${fmt(grandTotal)} needed, you have a ${fmt(balance)} cushion (${(100 - pct).toFixed(0)}% headroom). Keep an emergency buffer of at least 10% (${fmt(grandTotal * 0.1)}) for the unexpected.`;
+      } else {
+        box.className = 'tip-box';
+        box.textContent = `You're ${fmt(Math.abs(balance))} short of your total. You need to save ${fmt(weeklySave)}/week over the planning period. Consider cutting home expenses, finding better flight deals, or reducing the daily trip budget to close the gap.`;
+      }
+    }
+
+    function buildTimeline(weeks, homeWeekly, travelTotal, tripTotal, preTotal, days) {
+      const container = document.getElementById('timeline');
+      container.innerHTML = '';
+
+      // Distribute pre-trip costs across weeks 1-2
+      const preW1 = Math.ceil(preTotal * 0.6);
+      const preW2 = preTotal - preW1;
+
+      for (let w = 1; w <= weeks; w++) {
+        const isTrip = w === weeks;
+        let cost = homeWeekly;
+        const details = [];
+
+        if (homeWeekly > 0) details.push('Home: ' + fmt(homeWeekly));
+        if (w === 1 && preW1 > 0) { cost += preW1; details.push('Pre-trip: ' + fmt(preW1)); }
+        if (w === 2 && preW2 > 0) { cost += preW2; details.push('Pre-trip: ' + fmt(preW2)); }
+        if (isTrip) {
+          cost += travelTotal + tripTotal;
+          if (travelTotal > 0) details.push('Travel: ' + fmt(travelTotal));
+          if (tripTotal > 0)   details.push('Trip (' + days + 'd): ' + fmt(tripTotal));
+        }
+
+        const div = document.createElement('div');
+        div.className = 'wk' + (isTrip ? ' trip' : '');
+        div.innerHTML = `
+          <div class="wk-label">${isTrip ? '✈ Trip Week' : 'Week ' + w}</div>
+          <div class="wk-amount">${fmt(cost)}</div>
+          <div class="wk-detail">${details.join('<br>')}</div>
+        `;
+        container.appendChild(div);
+      }
+    }
+
+    // ---- WIRE UP ----
+    document.addEventListener('DOMContentLoaded', () => {
+      load();
+      recalc();
+
+      document.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input',  () => { recalc(); save(); });
+        el.addEventListener('change', () => { recalc(); save(); });
+      });
+
+      document.getElementById('btn-reset').addEventListener('click', () => {
+        if (!confirm('Reset all figures? This will clear everything.')) return;
+        localStorage.removeItem(STORAGE_KEY);
+        document.querySelectorAll('input[type="number"]').forEach(el => el.value = '');
+        document.getElementById('trip-days').value  = 7;
+        document.getElementById('weeks-out').value  = 6;
+        document.getElementById('currency').value   = '$';
+        recalc();
+      });
+    });
+  </script>
+</body>
+</html>
