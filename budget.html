@@ -381,6 +381,90 @@
       transition: opacity 0.3s;
     }
     .save-note.show { opacity: 1; }
+
+    /* ---- DEAL SEARCH PANEL ---- */
+    .search-panel { border: 2px solid var(--accent-lt); }
+    .search-fields {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.1rem;
+    }
+    .sf-group { display: flex; flex-direction: column; gap: 0.28rem; }
+    .sf-group label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-soft);
+    }
+    .sf-group input,
+    .sf-group select {
+      width: 100%;
+    }
+    input[type="date"] {
+      padding: 0.38em 0.6em;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface-2);
+      font-family: inherit;
+      font-size: 0.82rem;
+      color: var(--text);
+      width: 100%;
+    }
+    input[type="date"]:focus { outline: none; border-color: var(--accent); background: #fff; }
+    input[type="text"] { text-align: left; }
+    .search-category { padding: 0.85rem 0; border-top: 1px solid var(--border); }
+    .search-cat-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.55rem;
+    }
+    .search-btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      align-items: center;
+    }
+    .search-btn {
+      padding: 0.42em 1.05em;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .search-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .search-btn-all {
+      background: var(--accent-lt);
+      border-color: #93c5fd;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .search-btn-all:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .car-extra {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.55rem;
+      flex-wrap: wrap;
+    }
+    .car-extra label { font-size: 0.75rem; color: var(--text-soft); white-space: nowrap; }
+    .car-extra input[type="text"] { width: 200px; max-width: 100%; }
+    .search-hint {
+      font-size: 0.72rem;
+      color: var(--text-soft);
+      margin-top: 0.85rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+      line-height: 1.5;
+    }
+    .search-hint strong { color: var(--text); }
   </style>
 </head>
 <body>
@@ -497,6 +581,91 @@
     <!-- TIP BOX -->
     <div class="tip-box" id="tip-box">
       Fill in the sections below to see your personalised budget summary and savings plan.
+    </div>
+
+    <!-- DEAL SEARCH PANEL -->
+    <div class="card full-col search-panel" style="margin-bottom:1rem;">
+      <div class="card-title">🔍 Find the Best Deal</div>
+      <div class="card-sub">Enter your trip details, then open any search site pre-filled — prices found can be entered in the Travel Costs section below</div>
+
+      <div class="search-fields">
+        <div class="sf-group">
+          <label>From (city or airport code)</label>
+          <input type="text" id="s-origin" placeholder="e.g. LAX">
+        </div>
+        <div class="sf-group">
+          <label>To (city or airport code)</label>
+          <input type="text" id="s-dest" placeholder="e.g. JFK">
+        </div>
+        <div class="sf-group">
+          <label>Departure date</label>
+          <input type="date" id="s-depart">
+        </div>
+        <div class="sf-group">
+          <label>Return date</label>
+          <input type="date" id="s-return">
+        </div>
+        <div class="sf-group">
+          <label>Adults</label>
+          <input type="number" id="s-pax" min="1" max="9" step="1" value="1" placeholder="1">
+        </div>
+        <div class="sf-group">
+          <label>Trip type</label>
+          <select id="s-triptype">
+            <option value="round">Round trip</option>
+            <option value="oneway">One way</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- FLIGHTS -->
+      <div class="search-category">
+        <div class="search-cat-label">✈ Flights</div>
+        <div class="search-btn-row">
+          <button class="search-btn" data-action="flight-google">Google Flights</button>
+          <button class="search-btn" data-action="flight-skyscanner">Skyscanner</button>
+          <button class="search-btn" data-action="flight-kayak">Kayak</button>
+          <button class="search-btn" data-action="flight-expedia">Expedia</button>
+          <button class="search-btn" data-action="flight-momondo">Momondo</button>
+          <button class="search-btn search-btn-all" data-action="flight-all">Open All ↗</button>
+        </div>
+      </div>
+
+      <!-- CAR RENTAL -->
+      <div class="search-category">
+        <div class="search-cat-label">🚗 Car Rental</div>
+        <div class="car-extra">
+          <label>Pickup location (leave blank to use destination):</label>
+          <input type="text" id="s-car-loc" placeholder="e.g. JFK Airport or city">
+        </div>
+        <div class="search-btn-row">
+          <button class="search-btn" data-action="car-kayak">Kayak Cars</button>
+          <button class="search-btn" data-action="car-expedia">Expedia Cars</button>
+          <button class="search-btn" data-action="car-enterprise">Enterprise</button>
+          <button class="search-btn" data-action="car-hertz">Hertz</button>
+          <button class="search-btn" data-action="car-budget">Budget Rent-a-Car</button>
+          <button class="search-btn search-btn-all" data-action="car-all">Open All ↗</button>
+        </div>
+      </div>
+
+      <!-- HOTELS -->
+      <div class="search-category">
+        <div class="search-cat-label">🏨 Hotels &amp; Accommodation</div>
+        <div class="search-btn-row">
+          <button class="search-btn" data-action="hotel-booking">Booking.com</button>
+          <button class="search-btn" data-action="hotel-expedia">Expedia Hotels</button>
+          <button class="search-btn" data-action="hotel-hotels">Hotels.com</button>
+          <button class="search-btn" data-action="hotel-airbnb">Airbnb</button>
+          <button class="search-btn" data-action="hotel-trivago">Trivago</button>
+          <button class="search-btn search-btn-all" data-action="hotel-all">Open All ↗</button>
+        </div>
+      </div>
+
+      <div class="search-hint">
+        <strong>Tip:</strong> Airport codes (LAX, JFK, LHR) give the best results on Skyscanner and Kayak.
+        City names work for hotels and Airbnb. All searches open in a new tab — come back and enter
+        the best prices you find in the <strong>Travel Costs</strong> and <strong>Daily Trip Expenses</strong> sections below.
+      </div>
     </div>
 
     <!-- EXPENSE SECTIONS -->
@@ -680,8 +849,132 @@
       't-flights','t-hotel-nights','t-hotel-rate','t-transport','t-insurance','t-visa','t-luggage','t-other',
       'h-rent','h-utilities','h-groceries','h-subs','h-pet','h-loan','h-other',
       'd-food','d-transport','d-activities','d-shopping','d-misc',
-      'p-shopping','p-health','p-docs','p-currency','p-comms','p-other'
+      'p-shopping','p-health','p-docs','p-currency','p-comms','p-other',
+      's-origin','s-dest','s-depart','s-return','s-pax','s-triptype','s-car-loc'
     ];
+
+    // ---- TRAVEL SEARCH ----
+    function sVal(id) { return (document.getElementById(id)?.value || '').trim(); }
+
+    function parseDateParts(str) {
+      if (!str) return null;
+      const [y, m, d] = str.split('-');
+      if (!y || !m || !d) return null;
+      return { y, m, d, yy: y.slice(-2), skyScan: y.slice(-2) + m + d, iso: str };
+    }
+
+    function getSearchParams() {
+      return {
+        origin:  encodeURIComponent(sVal('s-origin')),
+        dest:    encodeURIComponent(sVal('s-dest')),
+        dep:     parseDateParts(sVal('s-depart')),
+        ret:     parseDateParts(sVal('s-return')),
+        pax:     Math.max(1, parseInt(sVal('s-pax')) || 1),
+        round:   sVal('s-triptype') !== 'oneway',
+        carLoc:  encodeURIComponent(sVal('s-car-loc') || sVal('s-dest'))
+      };
+    }
+
+    function buildFlightURL(site) {
+      const { origin, dest, dep, ret, pax, round } = getSearchParams();
+      const hasRound = round && ret;
+      switch (site) {
+        case 'google':
+          return `https://www.google.com/travel/flights?q=Flights+from+${origin}+to+${dest}`;
+        case 'skyscanner':
+          if (!dep) return null;
+          return hasRound
+            ? `https://www.skyscanner.com/transport/flights/${origin.toLowerCase()}/${dest.toLowerCase()}/${dep.skyScan}/${ret.skyScan}/?adults=${pax}`
+            : `https://www.skyscanner.com/transport/flights/${origin.toLowerCase()}/${dest.toLowerCase()}/${dep.skyScan}/?adults=${pax}`;
+        case 'kayak':
+          if (!dep) return null;
+          return hasRound
+            ? `https://www.kayak.com/flights/${origin}-${dest}/${dep.y}-${dep.m}-${dep.d}/${ret.y}-${ret.m}-${ret.d}/${pax}adults`
+            : `https://www.kayak.com/flights/${origin}-${dest}/${dep.y}-${dep.m}-${dep.d}/${pax}adults`;
+        case 'expedia':
+          if (dep && hasRound) {
+            return `https://www.expedia.com/Flights-Search?trip=roundtrip&leg1=from:${origin},to:${dest},departure:${dep.m}%2F${dep.d}%2F${dep.y}TANYT&leg2=from:${dest},to:${origin},departure:${ret.m}%2F${ret.d}%2F${ret.y}TANYT&passengers=adults:${pax}`;
+          } else if (dep) {
+            return `https://www.expedia.com/Flights-Search?trip=oneway&leg1=from:${origin},to:${dest},departure:${dep.m}%2F${dep.d}%2F${dep.y}TANYT&passengers=adults:${pax}`;
+          }
+          return `https://www.expedia.com/Flights-Search`;
+        case 'momondo':
+          if (!dep) return `https://www.momondo.com`;
+          return hasRound
+            ? `https://www.momondo.com/flight-search/${origin}-${dest}/${dep.y}-${dep.m}-${dep.d}/${ret.y}-${ret.m}-${ret.d}?adults=${pax}`
+            : `https://www.momondo.com/flight-search/${origin}-${dest}/${dep.y}-${dep.m}-${dep.d}?adults=${pax}`;
+        default: return null;
+      }
+    }
+
+    function buildCarURL(site) {
+      const { dep, ret, carLoc } = getSearchParams();
+      switch (site) {
+        case 'kayak':
+          return (dep && ret)
+            ? `https://www.kayak.com/cars/${carLoc}/${dep.y}-${dep.m}-${dep.d}/${ret.y}-${ret.m}-${ret.d}`
+            : `https://www.kayak.com/cars`;
+        case 'expedia':
+          return (dep && ret)
+            ? `https://www.expedia.com/Cars/search?locn=${carLoc}&date1=${dep.y}-${dep.m}-${dep.d}&date2=${ret.y}-${ret.m}-${ret.d}`
+            : `https://www.expedia.com/Cars`;
+        case 'enterprise': return `https://www.enterprise.com/en/car-rental.html`;
+        case 'hertz':      return `https://www.hertz.com/rentacar/reservation/`;
+        case 'budget':     return `https://www.budget.com/en/home`;
+        default: return null;
+      }
+    }
+
+    function buildHotelURL(site) {
+      const { dest, dep, ret, pax } = getSearchParams();
+      const rawDest = decodeURIComponent(dest);
+      switch (site) {
+        case 'booking':
+          if (dep && ret) {
+            return `https://www.booking.com/searchresults.html?ss=${dest}&checkin_year=${dep.y}&checkin_month=${parseInt(dep.m)}&checkin_monthday=${parseInt(dep.d)}&checkout_year=${ret.y}&checkout_month=${parseInt(ret.m)}&checkout_monthday=${parseInt(ret.d)}&group_adults=${pax}&no_rooms=1&order=price`;
+          }
+          return `https://www.booking.com/searchresults.html?ss=${dest}`;
+        case 'expedia':
+          if (dep && ret) {
+            return `https://www.expedia.com/Hotel-Search?destination=${dest}&startDate=${dep.m}%2F${dep.d}%2F${dep.y}&endDate=${ret.m}%2F${ret.d}%2F${ret.y}&adults=${pax}`;
+          }
+          return `https://www.expedia.com/Hotel-Search?destination=${dest}`;
+        case 'hotels':
+          if (dep && ret) {
+            return `https://www.hotels.com/search.do?q-destination=${dest}&q-check-in=${dep.iso}&q-check-out=${ret.iso}&q-rooms=1&q-room-0-adults=${pax}`;
+          }
+          return `https://www.hotels.com/search.do?q-destination=${dest}`;
+        case 'airbnb':
+          if (dep && ret) {
+            return `https://www.airbnb.com/s/${rawDest}/homes?checkin=${dep.iso}&checkout=${ret.iso}&adults=${pax}`;
+          }
+          return `https://www.airbnb.com/s/${rawDest}/homes`;
+        case 'trivago':
+          return `https://www.trivago.com/?aDateRange[arr]=${dep ? dep.iso : ''}&aDateRange[dep]=${ret ? ret.iso : ''}&iRoomType=7&aRooms[0][adults]=${pax}&aPois[0][searchId]=${dest}&aPois[0][type]=city`;
+        default: return null;
+      }
+    }
+
+    function openSearch(url) {
+      if (!url) return;
+      window.open(url, '_blank', 'noopener');
+    }
+
+    function handleSearchClick(action) {
+      if (action === 'flight-all') {
+        ['google','skyscanner','kayak','expedia','momondo'].forEach(s => openSearch(buildFlightURL(s)));
+      } else if (action.startsWith('flight-')) {
+        openSearch(buildFlightURL(action.replace('flight-', '')));
+      } else if (action === 'car-all') {
+        ['kayak','expedia','enterprise','hertz','budget'].forEach(s => openSearch(buildCarURL(s)));
+      } else if (action.startsWith('car-')) {
+        openSearch(buildCarURL(action.replace('car-', '')));
+      } else if (action === 'hotel-all') {
+        ['booking','expedia','hotels','airbnb','trivago'].forEach(s => openSearch(buildHotelURL(s)));
+      } else if (action.startsWith('hotel-')) {
+        openSearch(buildHotelURL(action.replace('hotel-', '')));
+      }
+    }
 
     // ---- PERSISTENCE ----
     function save() {
@@ -850,13 +1143,20 @@
         el.addEventListener('change', () => { recalc(); save(); });
       });
 
+      // Search buttons (event delegation)
+      document.querySelectorAll('[data-action]').forEach(btn => {
+        btn.addEventListener('click', () => handleSearchClick(btn.dataset.action));
+      });
+
       document.getElementById('btn-reset').addEventListener('click', () => {
         if (!confirm('Reset all figures? This will clear everything.')) return;
         localStorage.removeItem(STORAGE_KEY);
-        document.querySelectorAll('input[type="number"]').forEach(el => el.value = '');
+        document.querySelectorAll('input[type="number"], input[type="text"], input[type="date"]').forEach(el => el.value = '');
         document.getElementById('trip-days').value  = 7;
         document.getElementById('weeks-out').value  = 6;
+        document.getElementById('s-pax').value      = 1;
         document.getElementById('currency').value   = '$';
+        document.getElementById('s-triptype').value = 'round';
         recalc();
       });
     });
