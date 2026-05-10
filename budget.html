@@ -336,7 +336,11 @@
         </select>
       </div>
       <div class="setup-field">
-        <label>Weeks until trip</label>
+        <label>Travel date</label>
+        <input type="date" id="travel-date">
+      </div>
+      <div class="setup-field">
+        <label>Weeks until trip <span style="font-weight:400;opacity:0.65;">(auto)</span></label>
         <input type="number" id="weeks-out" min="1" max="52" step="1" value="6">
       </div>
       <div class="setup-field">
@@ -429,29 +433,29 @@
     <!-- HERO TOTAL -->
     <div class="hero-total">
       <div>
-        <div class="ht-label">Total you need for this trip</div>
+        <div class="ht-label">Total needed &mdash; today through last day of trip</div>
         <div class="ht-value" id="hero-grand">$0</div>
         <div class="breakdown-bar">
-          <div class="bb-seg bb-travel" id="bb-travel" style="width:0%"></div>
           <div class="bb-seg bb-home"   id="bb-home"   style="width:0%"></div>
-          <div class="bb-seg bb-trip"   id="bb-trip"   style="width:0%"></div>
           <div class="bb-seg bb-pretip" id="bb-pretip" style="width:0%"></div>
+          <div class="bb-seg bb-travel" id="bb-travel" style="width:0%"></div>
+          <div class="bb-seg bb-trip"   id="bb-trip"   style="width:0%"></div>
         </div>
       </div>
       <div class="ht-breakdown">
-        <div class="ht-item"><div class="hti-label">&#9632; Travel</div><div class="hti-val" id="hti-travel">$0</div></div>
         <div class="ht-item"><div class="hti-label">&#9632; Living</div><div class="hti-val" id="hti-home">$0</div></div>
-        <div class="ht-item"><div class="hti-label">&#9632; On trip</div><div class="hti-val" id="hti-trip">$0</div></div>
         <div class="ht-item"><div class="hti-label">&#9632; Pre-trip</div><div class="hti-val" id="hti-pretip">$0</div></div>
+        <div class="ht-item"><div class="hti-label">&#9632; Travel</div><div class="hti-val" id="hti-travel">$0</div></div>
+        <div class="ht-item"><div class="hti-label">&#9632; On trip</div><div class="hti-val" id="hti-trip">$0</div></div>
       </div>
     </div>
 
     <!-- SAVINGS PLAN -->
     <div class="savings-plan">
       <div class="sp-card" id="sp-save">
-        <div class="sp-label">Save each week</div>
+        <div class="sp-label">Need to set aside each week</div>
         <div class="sp-value" id="sp-weekly">$0 / wk</div>
-        <div class="sp-sub" id="sp-weekly-sub">from your weekly income</div>
+        <div class="sp-sub" id="sp-weekly-sub">on top of regular living costs</div>
       </div>
       <div class="sp-card" id="sp-status">
         <div class="sp-label">Achievable in <span id="sp-weeks">6</span> weeks?</div>
@@ -534,8 +538,8 @@
 
     <!-- TIMELINE -->
     <div class="card full-col" style="margin-top:1rem;">
-      <div class="card-title">&#128197; Week-by-Week Spending Plan</div>
-      <div class="card-sub">How your expenses land week by week</div>
+      <div class="card-title">&#128197; Week-by-Week Plan &mdash; Today Through Last Day of Trip</div>
+      <div class="card-sub">Every dollar, every week, from now until you're back home</div>
       <div class="timeline-grid" id="timeline"></div>
     </div>
 
@@ -556,7 +560,7 @@
   <script>
     const STORAGE_KEY = 'trip-budget-v4';
     const INPUT_IDS = [
-      'currency','weeks-out','trip-days','weekly-income','funds-available',
+      'currency','travel-date','weeks-out','trip-days','weekly-income','funds-available',
       't-flights','t-hotel-nights','t-hotel-rate','t-transport','t-insurance','t-visa','t-luggage','t-other',
       'm-rent','m-car','m-car-ins','m-utilities','m-subs','m-loan',
       'h-groceries','h-dining','h-gas','h-entertainment','h-personal','h-pet','h-other',
@@ -641,19 +645,19 @@
 
       // Hero total
       setText('hero-grand',  fmt(grandTotal));
-      setText('hti-travel',  fmt(travelTotal));
       setText('hti-home',    fmt(homeTotal));
-      setText('hti-trip',    fmt(tripTotal));
       setText('hti-pretip',  fmt(preTotal));
+      setText('hti-travel',  fmt(travelTotal));
+      setText('hti-trip',    fmt(tripTotal));
 
       // Breakdown bar
       if (grandTotal > 0) {
-        document.getElementById('bb-travel').style.width  = (travelTotal / grandTotal * 100).toFixed(1) + '%';
         document.getElementById('bb-home').style.width    = (homeTotal   / grandTotal * 100).toFixed(1) + '%';
-        document.getElementById('bb-trip').style.width    = (tripTotal   / grandTotal * 100).toFixed(1) + '%';
         document.getElementById('bb-pretip').style.width  = (preTotal    / grandTotal * 100).toFixed(1) + '%';
+        document.getElementById('bb-travel').style.width  = (travelTotal / grandTotal * 100).toFixed(1) + '%';
+        document.getElementById('bb-trip').style.width    = (tripTotal   / grandTotal * 100).toFixed(1) + '%';
       } else {
-        ['bb-travel','bb-home','bb-trip','bb-pretip'].forEach(id => document.getElementById(id).style.width = '0%');
+        ['bb-home','bb-pretip','bb-travel','bb-trip'].forEach(id => document.getElementById(id).style.width = '0%');
       }
 
       // Savings plan cards
@@ -672,7 +676,7 @@
         statusCard.className = 'sp-card';
         setText('sp-verdict', '—');
         setText('sp-verdict-sub', 'Enter your expenses to find out');
-        setText('sp-weekly-sub', 'from your weekly income');
+        setText('sp-weekly-sub', 'on top of regular living costs');
       } else if (weeklyIncome === 0) {
         saveCard.className = 'sp-card warn';
         statusCard.className = 'sp-card warn';
@@ -820,6 +824,7 @@
     // ---- FIELD METADATA (for CSV labels) ----
     const FIELD_META = {
       'currency':        ['Setup',          'Currency'],
+      'travel-date':     ['Setup',          'Travel date'],
       'weeks-out':       ['Setup',          'Weeks until trip'],
       'trip-days':       ['Setup',          'Trip length (days)'],
       'weekly-income':   ['Setup',          'Weekly income / savings rate'],
@@ -934,6 +939,22 @@
       document.querySelectorAll('[data-action]').forEach(btn => {
         btn.addEventListener('click', () => handleSearchClick(btn.dataset.action));
       });
+
+      // Auto-calculate weeks from travel date
+      function updateWeeksFromDate() {
+        const val = document.getElementById('travel-date').value;
+        if (!val) return;
+        const today  = new Date(); today.setHours(0,0,0,0);
+        const travel = new Date(val + 'T00:00:00');
+        const diffDays = Math.round((travel - today) / 86400000);
+        if (diffDays > 0) {
+          document.getElementById('weeks-out').value = Math.ceil(diffDays / 7);
+          recalc(); save();
+        }
+      }
+      document.getElementById('travel-date').addEventListener('change', updateWeeksFromDate);
+      updateWeeksFromDate();
+
       document.getElementById('btn-export').addEventListener('click', exportCSV);
 
       document.getElementById('btn-import').addEventListener('click', () => {
