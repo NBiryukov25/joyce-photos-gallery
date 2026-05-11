@@ -690,3 +690,55 @@ body {
   color: rgba(255,255,255,1);
   border-bottom-color: rgba(255,255,255,0.75);
 }
+
+/* ── IMMERSIVE BACKGROUND STORY PAGES ── */
+.story-immersive-bg {
+  position: fixed;
+  inset: 0;
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  z-index: -2;
+}
+.story-immersive-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 3, 1, 0.20);
+  z-index: -1;
+  pointer-events: none;
+}
+.story-immersive-header {
+  border-bottom-color: rgba(242, 235, 224, 0.18) !important;
+}
+.story-immersive-header .nav-brand,
+.story-immersive-header .nav-link {
+  color: rgba(242, 235, 224, 0.72);
+}
+.story-immersive-header .nav-brand:hover,
+.story-immersive-header .nav-link:hover,
+.story-immersive-header .nav-link.active {
+  color: rgba(242, 235, 224, 1);
+  border-bottom-color: rgba(242, 235, 224, 0.4);
+}
+.story-immersive-wrap {
+  position: relative;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 3em 2em 8em;
+  opacity: 0.72;
+}
+.story-immersive-wrap .back-link {
+  color: rgba(242, 235, 224, 0.6);
+  border-bottom-color: rgba(242, 235, 224, 0.2);
+}
+.story-immersive-wrap .back-link:hover {
+  color: rgba(242, 235, 224, 0.95);
+}
+.story-immersive-wrap .story-detail-tag { color: rgba(220, 170, 148, 0.9); }
+.story-immersive-wrap .story-detail-title,
+.story-immersive-wrap .story-detail-chapter,
+.story-immersive-wrap .story-detail-date { color: rgba(242, 235, 224, 0.88); }
+.story-immersive-wrap hr.gallery-divider { border-color: rgba(242, 235, 224, 0.18); }
+.story-immersive-wrap .story-detail-body { color: rgba(242, 235, 224, 0.92); }
+.story-immersive-wrap .story-detail-body p { margin-bottom: 1.8em; }
+.story-immersive-wrap .story-detail-body em { color: rgba(242, 235, 224, 0.75); }
