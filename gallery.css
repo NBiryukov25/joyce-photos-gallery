@@ -370,16 +370,18 @@ body {
 @media (max-width: 600px) { .stories-grid { grid-template-columns: 1fr; } }
 
 .story-card { display: flex; flex-direction: column; }
-.story-card-img-wrap { position: relative; overflow: hidden; border-radius: 1px; margin-bottom: 16px; }
+.story-card-img-wrap { position: relative; overflow: hidden; border-radius: 1px; margin-bottom: 16px; background: var(--surface); }
 .story-card-img {
   width: 100%;
-  height: 260px;
-  object-fit: cover;
+  height: auto;
+  max-height: 340px;
+  object-fit: contain;
   display: block;
-  transition: transform 0.5s ease, opacity 0.3s;
+  transition: opacity 0.3s;
   box-shadow: 0 3px 18px rgba(90, 50, 40, 0.09);
+  cursor: zoom-in;
 }
-.story-card:hover .story-card-img { transform: scale(1.03); opacity: 0.9; }
+.story-card:hover .story-card-img { opacity: 0.88; }
 .story-card-tag {
   font-family: 'Jost', sans-serif;
   font-size: 0.6em;

@@ -30,7 +30,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     // Collect all visible photo images (skip placeholders)
     const imgs = Array.from(
-      document.querySelectorAll('.photo-item img, .photo-grid img')
+      document.querySelectorAll('.photo-item img, .photo-grid img, .story-card-img')
     ).filter(function (el) {
       return el.offsetParent !== null && el.src;
     });
