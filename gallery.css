@@ -603,3 +603,26 @@ body {
 .story-detail-body p {
   margin-bottom: 1.6em;
 }
+.story-chapter-heading {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05em;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  color: var(--text-soft);
+  margin-top: 2.8em;
+  margin-bottom: 1.6em;
+  padding-top: 1.2em;
+  border-top: 1px solid var(--border);
+}
+.story-inline-img-wrap {
+  margin: 2.8em -2em;
+  overflow: hidden;
+}
+.story-inline-img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
