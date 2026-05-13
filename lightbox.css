@@ -85,20 +85,20 @@
 
 .lb-counter {
   position: fixed;
-  bottom: 1.6em;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 1.4em;
+  left: 1.6em;
   font-family: 'Jost', sans-serif;
-  font-size: 0.62em;
+  font-size: 0.58em;
   font-weight: 300;
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: rgba(255,255,255,0.35);
+  z-index: 1001;
 }
 
 .lb-caption {
   position: fixed;
-  bottom: 3.2em;
+  bottom: 4.6em;
   left: 50%;
   transform: translateX(-50%);
   max-width: 560px;
@@ -111,6 +111,47 @@
   line-height: 1.7;
   color: rgba(255,255,255,0.5);
   padding: 0 1em;
+}
+
+/* Action bar — download, share, heart */
+.lb-actions {
+  position: fixed;
+  bottom: 1em;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.9em;
+  align-items: center;
+  z-index: 1001;
+}
+.lb-action-btn {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  text-decoration: none;
+  color: rgba(255,255,255,0.55);
+}
+.lb-action-btn:hover {
+  background: rgba(255,255,255,0.16);
+  color: rgba(255,255,255,0.9);
+}
+.lb-action-btn svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+  pointer-events: none;
+}
+.lb-action-btn.hearted {
+  color: #e07878;
+  border-color: rgba(224,120,120,0.4);
+  background: rgba(224,120,120,0.1);
 }
 
 /* Make photo-item images show pointer */

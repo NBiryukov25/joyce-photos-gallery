@@ -495,9 +495,18 @@ body {
 .photo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 30px;
+  gap: 16px;
 }
-@media (max-width: 600px) { .photo-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) {
+  .photo-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin: 0 -2.4em;
+    padding: 0 2px;
+  }
+  .photo-grid .photo-item img { border-radius: 0; }
+  .photo-grid .photo-info { padding: 0 4px; }
+}
 .photo-item { display: flex; flex-direction: column; }
 .photo-item img {
   width: 100%;
