@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>· Sheryl Joyce</title>
+  <link rel="stylesheet" href="../gallery.css">
+  <style>
+    body { background: #080503; color: #f2ebe0; }
+    .pin-gate { display:flex; flex-direction:column; align-items:center;
+                justify-content:center; min-height:80vh; gap:1.2em; }
+    .pin-input { background:transparent; border:none; border-bottom:1px solid rgba(242,235,224,0.3);
+                 color:#f2ebe0; font-size:1.4em; text-align:center; letter-spacing:0.5em;
+                 width:6em; outline:none; padding:0.3em 0; }
+    .pin-hint  { font-family:'Jost',sans-serif; font-size:0.65em; letter-spacing:0.2em;
+                 text-transform:uppercase; color:rgba(242,235,224,0.35); }
+    .pin-error { color:rgba(220,120,100,0.8); font-size:0.7em; letter-spacing:0.1em; display:none; }
+    .video-section { display:none; max-width:860px; margin:0 auto; padding:3em 1.5em 6em; }
+    .video-wrap { position:relative; padding-bottom:56.25%; height:0; overflow:hidden;
+                  margin-bottom:2.5em; border-radius:2px; }
+    .video-wrap iframe { position:absolute; top:0; left:0; width:100%; height:100%; border:none; }
+  </style>
+</head>
+<body>
+
+  <div class="pin-gate" id="gate">
+    <p class="pin-hint">Enter to continue</p>
+    <input class="pin-input" id="pin" type="password" maxlength="4"
+           autocomplete="off" placeholder="·····" />
+    <p class="pin-error" id="err">Try again</p>
+  </div>
+
+  <div class="video-section" id="videos">
+
+    <!-- VIDEO 1 -->
+    <div class="video-wrap">
+      <iframe src="<https://drive.google.com/file/d/1T7scSXtsvXiGmygEF-xOthHGceI2Mb2R/preview>" allowfullscreen></iframe>
+    </div>
+
+    <!-- Add more videos by copying the video-wrap block above -->
+
+  </div>
+
+  <script>
+    const PIN = '0926';
+    document.getElementById('pin').addEventListener('input', function () {
+      if (this.value === PIN) {
+        document.getElementById('gate').style.display   = 'none';
+        document.getElementById('videos').style.display = 'block';
+        document.getElementById('err').style.display    = 'none';
+      } else if (this.value.length === PIN.length) {
+        document.getElementById('err').style.display = 'block';
+        this.value = '';
+      }
+    });
+  </script>
+
+</body>
+</html>
