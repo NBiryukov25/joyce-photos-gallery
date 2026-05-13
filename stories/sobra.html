@@ -87,13 +87,10 @@
     </div>
   </div>
 
-  <!-- ── AUDIO (hidden Drive preview iframe) ── -->
-  <iframe id="audio-frame"
-          src=""
-          allow="autoplay"
-          style="position:fixed;width:1px;height:1px;top:-2px;left:-2px;opacity:0;pointer-events:none;"
-          title="audio">
-  </iframe>
+  <!-- ── AUDIO ── -->
+  <audio id="bg-audio" loop>
+    <source src="../assets/audio/sobra.mp3" type="audio/mpeg">
+  </audio>
 
   <!-- discreet toggle, bottom-right corner -->
   <button class="audio-toggle" id="audio-btn" title="Toggle audio" aria-label="Toggle audio">
@@ -107,30 +104,23 @@
 
   <script>
     (function () {
-      var SRC     = 'https://drive.google.com/file/d/1SeZlTaRRwhsOCHMeeyTJotgHbSjcBJbU/preview';
-      var frame   = document.getElementById('audio-frame');
-      var btn     = document.getElementById('audio-btn');
-      var iconOn  = document.getElementById('icon-on');
-      var iconOff = document.getElementById('icon-off');
-      var playing = false;
+      var audio  = document.getElementById('bg-audio');
+      var btn    = document.getElementById('audio-btn');
+      var iOn    = document.getElementById('icon-on');
+      var iOff   = document.getElementById('icon-off');
+
+      function setPlaying(on) {
+        iOn.style.display  = on ? ''     : 'none';
+        iOff.style.display = on ? 'none' : '';
+      }
 
       function startAudio() {
-        frame.src = SRC;
-        playing   = true;
-        iconOn.style.display  = '';
-        iconOff.style.display = 'none';
+        audio.play().then(function () { setPlaying(true); }).catch(function () {});
       }
 
-      function stopAudio() {
-        frame.src = '';
-        playing   = false;
-        iconOn.style.display  = 'none';
-        iconOff.style.display = '';
-      }
-
-      // Start on first interaction (required by all modern browsers)
+      // Start on first interaction (all modern browsers require this)
       function onFirstInteraction() {
-        if (!playing) startAudio();
+        startAudio();
         document.removeEventListener('click',      onFirstInteraction);
         document.removeEventListener('touchstart', onFirstInteraction);
       }
@@ -139,7 +129,12 @@
 
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
-        playing ? stopAudio() : startAudio();
+        if (audio.paused) {
+          startAudio();
+        } else {
+          audio.pause();
+          setPlaying(false);
+        }
       });
     })();
   </script>
