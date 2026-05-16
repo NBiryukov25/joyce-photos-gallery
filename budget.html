@@ -140,34 +140,6 @@
     }
     .card-footer .footer-val { font-size: 1.05rem; font-weight: 700; color: var(--text); text-transform: none; letter-spacing: 0; }
 
-    /* TRIP EXPENSE TRACKER */
-    .tc-header {
-      display: flex; align-items: center; gap: 0.5rem;
-      padding-bottom: 0.4rem; border-bottom: 2px solid var(--border); margin-bottom: 0.5rem;
-    }
-    .tc-lbl-col { flex: 1; }
-    .tc-col-hd {
-      width: 92px; text-align: right; font-size: 0.65rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-soft);
-    }
-    .tc-col-hd.owe { color: var(--amber); }
-    .tc-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
-    .tc-row label { flex: 1; font-size: 0.8rem; color: var(--text); }
-    .tc-row input[type="number"] { width: 92px; }
-    .tc-diff { width: 92px; text-align: right; font-size: 0.8rem; font-weight: 600; color: var(--text-soft); }
-    .tc-footer-row {
-      display: flex; align-items: center; gap: 0.5rem;
-      border-top: 2px solid var(--border); margin-top: 0.6rem; padding-top: 0.65rem;
-    }
-    .tc-footer-lbl {
-      flex: 1; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.06em; color: var(--text-soft);
-    }
-    .tc-footer-val { width: 92px; text-align: right; font-size: 1rem; font-weight: 700; color: var(--text); }
-    @media (max-width: 600px) {
-      .tc-col-hd, .tc-row input[type="number"], .tc-diff, .tc-footer-val { width: 72px; font-size: 0.72rem; }
-    }
-
     /* HERO TOTAL */
     .hero-total {
       background: var(--accent);
@@ -188,7 +160,9 @@
     .hero-total .ht-value {
       font-size: 2.4rem; font-weight: 700; color: #fff; line-height: 1;
     }
-    .hero-total .ht-breakdown { display: flex; flex-wrap: wrap; gap: 0.85rem; }
+    .hero-total .ht-breakdown {
+      display: flex; flex-wrap: wrap; gap: 0.85rem;
+    }
     .ht-item { text-align: center; }
     .ht-item .hti-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.65); }
     .ht-item .hti-val   { font-size: 1rem; font-weight: 600; color: #fff; }
@@ -201,6 +175,7 @@
     .bb-seg { height: 100%; transition: width 0.4s ease; }
     .bb-travel  { background: #93c5fd; }
     .bb-home    { background: #6ee7b7; }
+    .bb-trip    { background: #fcd34d; }
     .bb-pretip  { background: #f9a8d4; }
 
     /* SAVINGS PLAN */
@@ -297,7 +272,21 @@
     .save-note { font-size: 0.73rem; color: var(--text-soft); opacity: 0; transition: opacity 0.3s; }
     .save-note.show { opacity: 1; }
 
-    /* CSV */
+    /* TRIP EXPENSES TRACKER */
+    .tc-header { display: flex; align-items: center; gap: 0.5rem; padding-bottom: 0.4rem; border-bottom: 2px solid var(--border); margin-bottom: 0.5rem; }
+    .tc-lbl-col { flex: 1; }
+    .tc-col-hd { width: 92px; text-align: right; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-soft); }
+    .tc-col-hd.owe { color: var(--amber); }
+    .tc-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .tc-row label { flex: 1; font-size: 0.8rem; color: var(--text); }
+    .tc-row input[type="number"] { width: 92px; }
+    .tc-diff { width: 92px; text-align: right; font-size: 0.8rem; font-weight: 600; color: var(--text-soft); }
+    .tc-footer-row { display: flex; align-items: center; gap: 0.5rem; border-top: 2px solid var(--border); margin-top: 0.6rem; padding-top: 0.65rem; }
+    .tc-footer-lbl { flex: 1; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-soft); }
+    .tc-footer-val { width: 92px; text-align: right; font-size: 1rem; font-weight: 700; color: var(--text); }
+    @media (max-width: 600px) { .tc-col-hd, .tc-row input[type="number"], .tc-diff, .tc-footer-val { width: 72px; font-size: 0.72rem; } }
+
+    /* CSV IMPORT / EXPORT */
     .data-bar {
       display: flex; align-items: center; gap: 0.6rem;
       flex-wrap: wrap; justify-content: center;
@@ -321,7 +310,10 @@
     .btn-csv.import { border-color: var(--accent); color: var(--accent); }
     .btn-csv.import:hover { background: var(--accent-lt); }
     #csv-file-input { display: none; }
-    .import-feedback { font-size: 0.75rem; color: var(--green); font-weight: 500; opacity: 0; transition: opacity 0.3s; }
+    .import-feedback {
+      font-size: 0.75rem; color: var(--green); font-weight: 500;
+      opacity: 0; transition: opacity 0.3s;
+    }
     .import-feedback.show { opacity: 1; }
     .import-feedback.err  { color: var(--red); }
   </style>
@@ -380,41 +372,41 @@
       </div>
     </div>
 
-    <!-- TRIP EXPENSES TRACKER (full width) -->
-    <div class="card" style="margin-bottom:1rem;">
-      <div class="card-title">&#9992; Trip Expenses &mdash; Paid vs. Projected</div>
-      <div class="card-sub">Enter what you&rsquo;ve already paid and your projected total &mdash; the <em>Still Owe</em> column updates automatically. The grand total uses your projected amounts.</div>
-      <div class="tc-header">
-        <span class="tc-lbl-col"></span>
-        <span class="tc-col-hd">Paid</span>
-        <span class="tc-col-hd">Projected</span>
-        <span class="tc-col-hd owe">Still Owe</span>
-      </div>
-      <div class="tc-row"><label>Airfare</label><input type="number" id="tc-airfare-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-airfare-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-airfare-diff">$0</span></div>
-      <div class="tc-row"><label>Rental car</label><input type="number" id="tc-car-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-car-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-car-diff">$0</span></div>
-      <div class="tc-row"><label>Gasoline</label><input type="number" id="tc-gas-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-gas-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-gas-diff">$0</span></div>
-      <div class="tc-row"><label>Parking &amp; tolls</label><input type="number" id="tc-parking-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-parking-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-parking-diff">$0</span></div>
-      <div class="tc-row"><label>Lodging</label><input type="number" id="tc-lodging-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-lodging-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-lodging-diff">$0</span></div>
-      <div class="tc-row"><label>Groceries / Airbnb supplies</label><input type="number" id="tc-groceries-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-groceries-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-groceries-diff">$0</span></div>
-      <div class="tc-row"><label>Restaurants &amp; takeout</label><input type="number" id="tc-restaurants-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-restaurants-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-restaurants-diff">$0</span></div>
-      <div class="tc-row"><label>Activities &amp; attractions</label><input type="number" id="tc-activities-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-activities-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-activities-diff">$0</span></div>
-      <div class="tc-row"><label>Souvenirs</label><input type="number" id="tc-souvenirs-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-souvenirs-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-souvenirs-diff">$0</span></div>
-      <div class="tc-row"><label>Emergency cushion</label><input type="number" id="tc-emergency-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-emergency-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-emergency-diff">$0</span></div>
-      <div class="tc-footer-row">
-        <span class="tc-footer-lbl">Trip totals</span>
-        <span class="tc-footer-val" id="tc-total-paid">$0</span>
-        <span class="tc-footer-val" id="tc-total-proj">$0</span>
-        <span class="tc-footer-val" id="tc-total-diff" style="color:var(--amber)">$0</span>
-      </div>
-    </div>
-
-    <!-- EXPENSE GRID: living + pre-trip -->
+    <!-- EXPENSE SECTIONS -->
     <div class="expense-grid">
 
-      <!-- LIVING EXPENSES -->
+      <!-- TRIP EXPENSES TRACKER (full-width) -->
+      <div class="card full-col" style="margin-bottom:0;">
+        <div class="card-title">&#9992; Trip Expenses &mdash; Paid vs. Projected</div>
+        <div class="card-sub">Enter what you've already paid and your projected total &mdash; the <em>Still Owe</em> column updates automatically. The grand total uses your projected amounts.</div>
+        <div class="tc-header">
+          <span class="tc-lbl-col"></span>
+          <span class="tc-col-hd">Paid</span>
+          <span class="tc-col-hd">Projected</span>
+          <span class="tc-col-hd owe">Still Owe</span>
+        </div>
+        <div class="tc-row"><label>Airfare</label><input type="number" id="tc-airfare-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-airfare-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-airfare-diff">$0</span></div>
+        <div class="tc-row"><label>Rental car</label><input type="number" id="tc-car-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-car-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-car-diff">$0</span></div>
+        <div class="tc-row"><label>Gasoline</label><input type="number" id="tc-gas-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-gas-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-gas-diff">$0</span></div>
+        <div class="tc-row"><label>Parking &amp; tolls</label><input type="number" id="tc-parking-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-parking-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-parking-diff">$0</span></div>
+        <div class="tc-row"><label>Lodging</label><input type="number" id="tc-lodging-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-lodging-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-lodging-diff">$0</span></div>
+        <div class="tc-row"><label>Groceries / Airbnb supplies</label><input type="number" id="tc-groceries-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-groceries-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-groceries-diff">$0</span></div>
+        <div class="tc-row"><label>Restaurants &amp; takeout</label><input type="number" id="tc-restaurants-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-restaurants-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-restaurants-diff">$0</span></div>
+        <div class="tc-row"><label>Activities &amp; attractions</label><input type="number" id="tc-activities-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-activities-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-activities-diff">$0</span></div>
+        <div class="tc-row"><label>Souvenirs</label><input type="number" id="tc-souvenirs-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-souvenirs-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-souvenirs-diff">$0</span></div>
+        <div class="tc-row"><label>Emergency cushion</label><input type="number" id="tc-emergency-paid" min="0" step="1" placeholder="0"><input type="number" id="tc-emergency-proj" min="0" step="1" placeholder="0"><span class="tc-diff" id="tc-emergency-diff">$0</span></div>
+        <div class="tc-footer-row">
+          <span class="tc-footer-lbl">Trip totals</span>
+          <span class="tc-footer-val" id="tc-total-paid">$0</span>
+          <span class="tc-footer-val" id="tc-total-proj">$0</span>
+          <span class="tc-footer-val" id="tc-total-diff" style="color:var(--amber)">$0</span>
+        </div>
+      </div>
+
+      <!-- LIVING EXPENSES: MONTHLY BILLS + WEEKLY SPENDING -->
       <div class="card">
         <div class="card-title">&#128181; Living Expenses &mdash; <span id="home-weeks-label2">6</span> Weeks</div>
-        <div class="card-sub">Enter monthly bills as your actual monthly amount &mdash; the app prorates them. Enter variable costs as weekly amounts.</div>
+        <div class="card-sub">Enter monthly bills as your actual monthly amount &mdash; the app prorates them for the period. Enter variable costs as weekly amounts.</div>
         <div class="section-sub-label">Monthly bills <span class="freq-note">(&times;&nbsp;<span id="months-label">1.4</span>&nbsp;months for this period)</span></div>
         <div class="f-row"><label>Rent / mortgage</label><input type="number" id="m-rent" min="0" step="1" placeholder="0/mo"><span class="f-total" id="mt-rent">$0</span></div>
         <div class="f-row"><label>Car payment</label><input type="number" id="m-car" min="0" step="1" placeholder="0/mo"><span class="f-total" id="mt-car">$0</span></div>
@@ -433,7 +425,7 @@
         <div class="card-footer"><span id="home-weeks-label">6</span>-week living total &nbsp;<span class="footer-val" id="home-total">$0</span></div>
       </div>
 
-      <!-- PRE-TRIP COSTS -->
+      <!-- PRE-TRIP ONE-OFFS -->
       <div class="card">
         <div class="card-title">&#129523; Pre-Trip Costs</div>
         <div class="card-sub">One-off expenses before you leave</div>
@@ -451,7 +443,7 @@
     <!-- HERO TOTAL -->
     <div class="hero-total">
       <div>
-        <div class="ht-label">Total needed &mdash; today through last day of trip</div>
+        <div class="ht-label">Total you need for this trip</div>
         <div class="ht-value" id="hero-grand">$0</div>
         <div class="breakdown-bar">
           <div class="bb-seg bb-home"   id="bb-home"   style="width:0%"></div>
@@ -460,19 +452,19 @@
         </div>
       </div>
       <div class="ht-breakdown">
-        <div class="ht-item"><div class="hti-label">&#9632; Living</div><div class="hti-val" id="hti-home">$0</div></div>
+        <div class="ht-item"><div class="hti-label">&#9632; Home</div><div class="hti-val" id="hti-home">$0</div></div>
         <div class="ht-item"><div class="hti-label">&#9632; Pre-trip</div><div class="hti-val" id="hti-pretip">$0</div></div>
         <div class="ht-item"><div class="hti-label">&#9632; Trip costs</div><div class="hti-val" id="hti-travel">$0</div></div>
-        <div class="ht-item"><div class="hti-label">Already paid</div><div class="hti-val" id="hti-paid">$0</div></div>
+        <div class="ht-item"><div class="hti-label">&#9992; Already paid</div><div class="hti-val" id="hti-paid">$0</div></div>
       </div>
     </div>
 
     <!-- SAVINGS PLAN -->
     <div class="savings-plan">
       <div class="sp-card" id="sp-save">
-        <div class="sp-label">Need to set aside each week</div>
+        <div class="sp-label">Save each week</div>
         <div class="sp-value" id="sp-weekly">$0 / wk</div>
-        <div class="sp-sub" id="sp-weekly-sub">on top of regular living costs</div>
+        <div class="sp-sub" id="sp-weekly-sub">from your weekly income</div>
       </div>
       <div class="sp-card" id="sp-status">
         <div class="sp-label">Achievable in <span id="sp-weeks">6</span> weeks?</div>
@@ -482,7 +474,7 @@
       <div class="sp-card">
         <div class="sp-label">Trip cost per day</div>
         <div class="sp-value" id="sp-daily">$0 / day</div>
-        <div class="sp-sub">based on projected trip total</div>
+        <div class="sp-sub" id="sp-daily-sub">based on <span id="sp-days-sub">6</span>-day trip</div>
       </div>
       <div class="sp-card">
         <div class="sp-label">Already saved</div>
@@ -499,10 +491,10 @@
     <!-- FIND DEALS -->
     <div class="card full-col search-panel">
       <div class="card-title">&#128269; Find the Best Deal</div>
-      <div class="card-sub">Enter your trip details, then open any search site pre-filled &mdash; prices found can be entered in the tracker above</div>
+      <div class="card-sub">Enter your trip details, then open any search site pre-filled &mdash; prices found can be entered in the expense sections above</div>
       <div class="search-fields">
-        <div class="sf-group"><label>From (city or airport code)</label><input type="text" id="s-origin" placeholder="e.g. RSW"></div>
-        <div class="sf-group"><label>To (city or airport code)</label><input type="text" id="s-dest" placeholder="e.g. BOS"></div>
+        <div class="sf-group"><label>From (city or airport code)</label><input type="text" id="s-origin" placeholder="e.g. LAX"></div>
+        <div class="sf-group"><label>To (city or airport code)</label><input type="text" id="s-dest" placeholder="e.g. JFK"></div>
         <div class="sf-group"><label>Departure date</label><input type="date" id="s-depart"></div>
         <div class="sf-group"><label>Return date</label><input type="date" id="s-return"></div>
         <div class="sf-group"><label>Adults</label><input type="number" id="s-pax" min="1" max="9" step="1" value="1"></div>
@@ -525,7 +517,7 @@
         <div class="search-cat-label">&#128663; Car Rental</div>
         <div class="car-extra">
           <label>Pickup location (leave blank to use destination):</label>
-          <input type="text" id="s-car-loc" placeholder="e.g. Fort Myers Airport">
+          <input type="text" id="s-car-loc" placeholder="e.g. JFK Airport">
         </div>
         <div class="search-btn-row">
           <button class="search-btn" data-action="car-kayak">Kayak Cars</button>
@@ -548,15 +540,15 @@
         </div>
       </div>
       <div class="search-hint">
-        <strong>Tip:</strong> RSW = Fort Myers, FMY = Fort Myers Executive, PGD = Punta Gorda, MIA = Miami, TPA = Tampa.
-        All searches open in a new tab &mdash; enter the prices you find in the tracker above.
+        <strong>Tip:</strong> Airport codes give the best results on Skyscanner and Kayak. Florida: RSW = Fort Myers, FMY = Fort Myers Executive, PGD = Punta Gorda, MIA = Miami, TPA = Tampa.
+        All searches open in a new tab &mdash; come back and enter the prices you find in the Trip Expenses tracker above.
       </div>
     </div>
 
     <!-- TIMELINE -->
-    <div class="card" style="margin-top:1rem;">
-      <div class="card-title">&#128197; Week-by-Week Plan &mdash; Today Through Last Day of Trip</div>
-      <div class="card-sub">Every dollar, every week, from now until you&rsquo;re back home</div>
+    <div class="card full-col" style="margin-top:1rem;">
+      <div class="card-title">&#128197; Week-by-Week Spending Plan</div>
+      <div class="card-sub">How your expenses land week by week</div>
       <div class="timeline-grid" id="timeline"></div>
     </div>
 
@@ -586,6 +578,7 @@
       's-origin','s-dest','s-depart','s-return','s-pax','s-triptype','s-car-loc'
     ];
 
+    // ---- PERSISTENCE ----
     function save() {
       const d = {};
       INPUT_IDS.forEach(id => { const el = document.getElementById(id); if (el) d[id] = el.value; });
@@ -602,6 +595,7 @@
       } catch(e) {}
     }
 
+    // ---- HELPERS ----
     function v(id)  { return parseFloat(document.getElementById(id)?.value) || 0; }
     function sym()  { return document.getElementById('currency')?.value || '$'; }
     function fmt(n) {
@@ -616,6 +610,7 @@
       el.style.color = diff > 0 ? 'var(--amber)' : diff < 0 ? 'var(--green)' : 'var(--text-soft)';
     }
 
+    // ---- RECALC ----
     function recalc() {
       const weeks = Math.max(1, v('weeks-out'));
       const days  = Math.max(1, v('trip-days'));
@@ -633,7 +628,7 @@
       setText('tc-total-proj', fmt(travelTotal));
       setDiff('tc-total-diff', travelTotal - travelPaid);
 
-      // Living — monthly bills prorated + weekly spending
+      // Home — monthly bills prorated over the period + weekly spending
       const months        = weeks / 4.333;
       const monthlyFields = ['m-rent','m-car','m-car-ins','m-utilities','m-subs','m-loan'];
       const weeklyHFields = ['h-groceries','h-dining','h-gas','h-entertainment','h-personal','h-pet','h-other'];
@@ -654,7 +649,7 @@
       const preTotal = v('p-shopping') + v('p-health') + v('p-docs') + v('p-currency') + v('p-comms') + v('p-other');
       setText('pretip-total', fmt(preTotal));
 
-      // Grand total (uses projected trip costs)
+      // Grand total
       const grandTotal   = travelTotal + homeTotal + preTotal;
       const alreadySaved = v('funds-available');
       const stillNeed    = Math.max(0, grandTotal - alreadySaved);
@@ -662,57 +657,70 @@
       const maxSaveable  = alreadySaved + weeklyIncome * weeks;
       const weeklySave   = weeks > 0 ? stillNeed / weeks : 0;
 
-      // Hero
+      // Hero total
       setText('hero-grand',  fmt(grandTotal));
       setText('hti-home',    fmt(homeTotal));
       setText('hti-pretip',  fmt(preTotal));
       setText('hti-travel',  fmt(travelTotal));
       setText('hti-paid',    fmt(travelPaid));
 
+      // Breakdown bar
       if (grandTotal > 0) {
-        document.getElementById('bb-home').style.width   = (homeTotal   / grandTotal * 100).toFixed(1) + '%';
-        document.getElementById('bb-pretip').style.width = (preTotal    / grandTotal * 100).toFixed(1) + '%';
-        document.getElementById('bb-travel').style.width = (travelTotal / grandTotal * 100).toFixed(1) + '%';
+        document.getElementById('bb-home').style.width    = (homeTotal    / grandTotal * 100).toFixed(1) + '%';
+        document.getElementById('bb-pretip').style.width  = (preTotal     / grandTotal * 100).toFixed(1) + '%';
+        document.getElementById('bb-travel').style.width  = (travelTotal  / grandTotal * 100).toFixed(1) + '%';
       } else {
         ['bb-home','bb-pretip','bb-travel'].forEach(id => document.getElementById(id).style.width = '0%');
       }
 
-      // Savings plan
+      // Savings plan cards
       setText('sp-weeks',      weeks);
       setText('sp-weekly',     fmt(weeklySave) + ' / wk');
       setText('sp-saved',      fmt(alreadySaved));
       setText('sp-still-need', fmt(stillNeed));
-      setText('sp-daily',      fmt(travelTotal / days) + ' / day');
+      setText('sp-days-sub',   days);
+      setText('sp-daily',      days > 0 ? fmt(travelTotal / days) + ' / day' : '$0 / day');
 
       const canAfford  = maxSaveable >= grandTotal;
       const saveCard   = document.getElementById('sp-save');
       const statusCard = document.getElementById('sp-status');
 
       if (grandTotal === 0) {
-        saveCard.className = 'sp-card'; statusCard.className = 'sp-card';
+        saveCard.className = 'sp-card';
+        statusCard.className = 'sp-card';
         setText('sp-verdict', '—');
         setText('sp-verdict-sub', 'Enter your expenses to find out');
-        setText('sp-weekly-sub', 'on top of regular living costs');
+        setText('sp-weekly-sub', 'from your weekly income');
       } else if (weeklyIncome === 0) {
-        saveCard.className = 'sp-card warn'; statusCard.className = 'sp-card warn';
+        saveCard.className = 'sp-card warn';
+        statusCard.className = 'sp-card warn';
         setText('sp-verdict', 'Add income rate');
         setText('sp-verdict-sub', 'Enter your weekly income above');
         setText('sp-weekly-sub', 'enter income rate above');
       } else if (canAfford) {
-        saveCard.className = 'sp-card ok'; statusCard.className = 'sp-card ok';
+        saveCard.className = 'sp-card ok';
+        statusCard.className = 'sp-card ok';
         setText('sp-verdict', 'Yes ✓');
-        setText('sp-verdict-sub', fmt(maxSaveable - grandTotal) + ' to spare');
-        const pct = weeklyIncome > 0 ? Math.round(weeklySave / weeklyIncome * 100) : 0;
-        setText('sp-weekly-sub', pct + '% of your weekly income');
+        const surplus = maxSaveable - grandTotal;
+        setText('sp-verdict-sub', fmt(surplus) + ' to spare');
+        const pctOfIncome = weeklyIncome > 0 ? Math.round(weeklySave / weeklyIncome * 100) : 0;
+        setText('sp-weekly-sub', pctOfIncome + '% of your weekly income');
       } else {
-        saveCard.className = 'sp-card bad'; statusCard.className = 'sp-card bad';
+        saveCard.className = 'sp-card bad';
+        statusCard.className = 'sp-card bad';
         setText('sp-verdict', 'Tight ⚠');
-        setText('sp-verdict-sub', fmt(grandTotal - maxSaveable) + ' short — review expenses');
+        const shortfall = grandTotal - maxSaveable;
+        setText('sp-verdict-sub', fmt(shortfall) + ' short — review expenses');
         setText('sp-weekly-sub', 'exceeds your weekly income');
       }
 
+      // Tip
       buildTip(grandTotal, weeklySave, weeklyIncome, canAfford, alreadySaved, stillNeed, weeks);
+
+      // Timeline
       buildTimeline(weeks, homeWeekly, travelTotal, preTotal);
+
+      // Countdown
       setText('countdown-badge', '⏳ ' + weeks + (weeks === 1 ? ' week' : ' weeks') + ' to go');
     }
 
@@ -725,7 +733,7 @@
       }
       if (weeklyIncome === 0) {
         box.className = 'tip-box';
-        box.textContent = `Your total comes to ${fmt(grandTotal)}. Add your weekly income or savings rate in Setup to see your savings plan.`;
+        box.textContent = `Your total comes to ${fmt(grandTotal)}. Add your weekly income or savings rate in Setup to see how many weeks it will take to save up.`;
         return;
       }
       if (canAfford) {
@@ -734,7 +742,7 @@
       } else {
         box.className = 'tip-box';
         const weeksNeeded = weeklyIncome > 0 ? Math.ceil(stillNeed / weeklyIncome) : '?';
-        box.textContent = `You need ${fmt(grandTotal)} total but can only save ${fmt(weeklyIncome * weeks + saved)} in ${weeks} weeks. At your current rate you’d need about ${weeksNeeded} weeks. Try reducing your projected trip costs to make it work.`;
+        box.textContent = `You need ${fmt(grandTotal)} total but can only save ${fmt(weeklyIncome * weeks + saved)} in ${weeks} weeks. At your current rate you'd need about ${weeksNeeded} weeks. Try reducing flights, hotel rate, or daily spending to make it work.`;
       }
     }
 
@@ -746,7 +754,7 @@
         const isTrip = w === weeks;
         let cost = homeWeekly;
         const details = [];
-        if (homeWeekly > 0) details.push('Living: ' + fmt(homeWeekly));
+        if (homeWeekly > 0) details.push('Home: ' + fmt(homeWeekly));
         if (w === 1 && preW1 > 0) { cost += preW1; details.push('Pre-trip: ' + fmt(preW1)); }
         if (w === 2 && preW2 > 0) { cost += preW2; details.push('Pre-trip: ' + fmt(preW2)); }
         if (isTrip && travelTotal > 0) { cost += travelTotal; details.push('Trip costs: ' + fmt(travelTotal)); }
@@ -823,11 +831,12 @@
       else if (action.startsWith('hotel-'))  openSearch(buildHotelURL(action.replace('hotel-','')));
     }
 
-    // CSV export
+    // ---- FIELD METADATA (for CSV labels) ----
     const TC_LABELS = {
-      airfare:'Airfare', car:'Rental car', gas:'Gasoline', parking:'Parking & tolls',
-      lodging:'Lodging', groceries:'Groceries/Airbnb supplies', restaurants:'Restaurants & takeout',
-      activities:'Activities & attractions', souvenirs:'Souvenirs', emergency:'Emergency cushion'
+      airfare: 'Airfare', car: 'Rental car', gas: 'Gasoline', parking: 'Parking & tolls',
+      lodging: 'Lodging', groceries: 'Groceries / Airbnb supplies',
+      restaurants: 'Restaurants & takeout', activities: 'Activities & attractions',
+      souvenirs: 'Souvenirs', emergency: 'Emergency cushion'
     };
     const FIELD_META = {
       'currency':        ['Setup',          'Currency'],
@@ -838,36 +847,37 @@
       'funds-available': ['Setup',          'Already saved'],
       ...Object.fromEntries(TC_ITEMS.flatMap(x => [
         ['tc-'+x+'-paid', ['Trip Expenses', TC_LABELS[x] + ' (paid)']],
-        ['tc-'+x+'-proj', ['Trip Expenses', TC_LABELS[x] + ' (projected)']]
+        ['tc-'+x+'-proj', ['Trip Expenses', TC_LABELS[x] + ' (projected)']],
       ])),
-      'm-rent':          ['Monthly Bills',  'Rent / mortgage'],
-      'm-car':           ['Monthly Bills',  'Car payment'],
-      'm-car-ins':       ['Monthly Bills',  'Car insurance'],
-      'm-utilities':     ['Monthly Bills',  'Utilities'],
-      'm-subs':          ['Monthly Bills',  'Subscriptions & internet'],
-      'm-loan':          ['Monthly Bills',  'Other monthly bills'],
-      'h-groceries':     ['Weekly Spending','Groceries & household supplies'],
-      'h-dining':        ['Weekly Spending','Dining out & takeout'],
-      'h-gas':           ['Weekly Spending','Gas / local transportation'],
-      'h-entertainment': ['Weekly Spending','Entertainment & recreation'],
-      'h-personal':      ['Weekly Spending','Personal care & clothing'],
-      'h-pet':           ['Weekly Spending','Pet care / house sitter'],
-      'h-other':         ['Weekly Spending','Other weekly expenses'],
-      'p-shopping':      ['Pre-Trip',       'Clothing & gear'],
-      'p-health':        ['Pre-Trip',       'Health prep'],
-      'p-docs':          ['Pre-Trip',       'Document fees'],
-      'p-currency':      ['Pre-Trip',       'Currency exchange'],
-      'p-comms':         ['Pre-Trip',       'SIM card / roaming'],
-      'p-other':         ['Pre-Trip',       'Other pre-trip costs'],
-      's-origin':        ['Search',         'From (origin)'],
-      's-dest':          ['Search',         'To (destination)'],
-      's-depart':        ['Search',         'Departure date'],
-      's-return':        ['Search',         'Return date'],
-      's-pax':           ['Search',         'Adults'],
-      's-triptype':      ['Search',         'Trip type'],
-      's-car-loc':       ['Search',         'Car pickup location'],
+      'm-rent':          ['Monthly Bills',   'Rent / mortgage'],
+      'm-car':           ['Monthly Bills',   'Car payment'],
+      'm-car-ins':       ['Monthly Bills',   'Car insurance'],
+      'm-utilities':     ['Monthly Bills',   'Utilities'],
+      'm-subs':          ['Monthly Bills',   'Subscriptions & internet'],
+      'm-loan':          ['Monthly Bills',   'Other monthly bills'],
+      'h-groceries':     ['Weekly Spending', 'Groceries & household supplies'],
+      'h-dining':        ['Weekly Spending', 'Dining out & takeout'],
+      'h-gas':           ['Weekly Spending', 'Gas / local transportation'],
+      'h-entertainment': ['Weekly Spending', 'Entertainment & recreation'],
+      'h-personal':      ['Weekly Spending', 'Personal care & clothing'],
+      'h-pet':           ['Weekly Spending', 'Pet care / house sitter'],
+      'h-other':         ['Weekly Spending', 'Other weekly expenses'],
+      'p-shopping':      ['Pre-Trip',        'Clothing & gear'],
+      'p-health':        ['Pre-Trip',        'Health prep'],
+      'p-docs':          ['Pre-Trip',        'Document fees'],
+      'p-currency':      ['Pre-Trip',        'Currency exchange'],
+      'p-comms':         ['Pre-Trip',        'SIM card / roaming'],
+      'p-other':         ['Pre-Trip',        'Other pre-trip costs'],
+      's-origin':        ['Search',          'From (origin)'],
+      's-dest':          ['Search',          'To (destination)'],
+      's-depart':        ['Search',          'Departure date'],
+      's-return':        ['Search',          'Return date'],
+      's-pax':           ['Search',          'Adults'],
+      's-triptype':      ['Search',          'Trip type'],
+      's-car-loc':       ['Search',          'Car pickup location'],
     };
 
+    // ---- EXPORT CSV ----
     function exportCSV() {
       const today = new Date().toISOString().slice(0, 10);
       const rows  = [['ID', 'Category', 'Label', 'Value']];
@@ -875,17 +885,22 @@
         const el   = document.getElementById(id);
         const meta = FIELD_META[id] || ['Other', id];
         const raw  = el ? el.value : '';
-        rows.push([id, meta[0], '"' + meta[1] + '"', '"' + String(raw).replace(/"/g,'""') + '"']);
+        const val  = '"' + String(raw).replace(/"/g, '""') + '"';
+        rows.push([id, meta[0], '"' + meta[1] + '"', val]);
       });
       const csv  = rows.map(r => r.join(',')).join('\r\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
-      a.href = url; a.download = `trip-budget-${today}.csv`;
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a); URL.revokeObjectURL(url);
+      a.href     = url;
+      a.download = `trip-budget-${today}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
+    // ---- IMPORT CSV ----
     function importCSV(file) {
       const fb = document.getElementById('import-feedback');
       const reader = new FileReader();
@@ -894,21 +909,25 @@
           const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
           let imported = 0;
           for (let i = 1; i < lines.length; i++) {
+            // Parse CSV row: id,category,"label","value"
             const cols = lines[i].match(/^([^,]+),([^,]+),(?:"[^"]*"|[^,]*),("(?:[^"]|"")*"|[^,]*)$/);
             if (!cols) continue;
             const id  = cols[1].trim();
             let   val = cols[3].trim();
-            if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1,-1).replace(/""/g,'"');
+            if (val.startsWith('"') && val.endsWith('"')) {
+              val = val.slice(1, -1).replace(/""/g, '"');
+            }
             const el = document.getElementById(id);
             if (el) { el.value = val; imported++; }
           }
-          recalc(); save();
+          recalc();
+          save();
           fb.textContent = '✓ ' + imported + ' fields imported';
           fb.className = 'import-feedback show';
           clearTimeout(fb._t);
           fb._t = setTimeout(() => fb.classList.remove('show'), 3000);
         } catch(err) {
-          fb.textContent = '✗ Could not read file';
+          fb.textContent = '✗ Could not read file — was it exported from this app?';
           fb.className = 'import-feedback show err';
           clearTimeout(fb._t);
           fb._t = setTimeout(() => fb.classList.remove('show'), 4000);
@@ -917,6 +936,7 @@
       reader.readAsText(file);
     }
 
+    // ---- WIRE UP ----
     document.addEventListener('DOMContentLoaded', () => {
       load();
       recalc();
@@ -927,7 +947,7 @@
       document.querySelectorAll('[data-action]').forEach(btn => {
         btn.addEventListener('click', () => handleSearchClick(btn.dataset.action));
       });
-
+      // Auto-calculate weeks from travel date
       function updateWeeksFromDate() {
         const val = document.getElementById('travel-date').value;
         if (!val) return;
@@ -943,11 +963,15 @@
       updateWeeksFromDate();
 
       document.getElementById('btn-export').addEventListener('click', exportCSV);
-      document.getElementById('btn-import').addEventListener('click', () => document.getElementById('csv-file-input').click());
+
+      document.getElementById('btn-import').addEventListener('click', () => {
+        document.getElementById('csv-file-input').click();
+      });
       document.getElementById('csv-file-input').addEventListener('change', e => {
         const file = e.target.files[0];
         if (file) { importCSV(file); e.target.value = ''; }
       });
+
       document.getElementById('btn-reset').addEventListener('click', () => {
         if (!confirm('Reset all figures? This will clear everything.')) return;
         localStorage.removeItem(STORAGE_KEY);
@@ -958,6 +982,7 @@
         document.getElementById('currency').value   = '$';
         document.getElementById('s-triptype').value = 'round';
         recalc();
+        save();
       });
     });
   </script>
