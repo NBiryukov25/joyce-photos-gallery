@@ -1,0 +1,11 @@
+title:    My Story Title
+tag:      Fiction
+date:     May 2026
+cover_id: PASTE_DRIVE_FILE_ID_HERE
+excerpt:  One or two sentences that appear on the stories page as a teaser. Keep it intriguing.
+---
+First paragraph of the story goes here. Each paragraph is separated by a blank line below.
+
+Second paragraph here. No need for HTML — just plain text. The script wraps each paragraph in <p> tags automatically.
+
+Third paragraph here. Keep going until the story is complete.
