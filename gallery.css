@@ -554,16 +554,13 @@ body {
 /* ── STORY DETAIL PAGE ── */
 .story-detail-cover {
   width: 100%;
-  max-height: 480px;
-  overflow: hidden;
   margin-bottom: 0;
 }
 .story-detail-cover-img {
   width: 100%;
-  max-height: 480px;
-  object-fit: cover;
-  object-position: center top;
+  height: auto;
   display: block;
+  cursor: pointer;
 }
 .story-detail-wrap {
   max-width: 720px;
@@ -628,14 +625,12 @@ body {
 }
 .story-inline-img-wrap {
   margin: 2.8em -2em;
-  overflow: hidden;
 }
 .story-inline-img {
   width: 100%;
-  max-height: 420px;
-  object-fit: cover;
-  object-position: center;
+  height: auto;
   display: block;
+  cursor: pointer;
 }
 .story-author-band {
   position: relative;
