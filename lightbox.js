@@ -46,7 +46,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     const imgs = Array.from(
-      document.querySelectorAll('.photo-item img, .photo-grid img, .story-card-img')
+      document.querySelectorAll('.photo-item img, .photo-grid img, .story-card-img, .story-detail-cover-img, .story-inline-img')
     ).filter(function (el) {
       return el.offsetParent !== null && el.src;
     });
