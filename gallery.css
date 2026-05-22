@@ -22,7 +22,7 @@
 /* ---- BACKGROUND ---- */
 html {
   background-color: var(--cream);
-  background-image: url('https://github.com/NBiryukov25/joyce-photos-gallery/blob/main/assets_clean/Joyce_ready.jpg');
+  background-image: url('https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets_clean/Joyce_ready.jpg');
   background-size: cover;
   background-position: center top;
   background-attachment: fixed;
