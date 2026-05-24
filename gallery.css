@@ -23,7 +23,7 @@
 html {
   background-color: var(--cream);
   background-image: url('https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Joyce_Cover_01.png');
-  background-size: auto 80vh;
+  background-size: 22% auto;
   background-position: right top;
   background-attachment: fixed;
   background-repeat: no-repeat;
