@@ -198,8 +198,13 @@ body {
   color: var(--rose);
   margin-bottom: 1.4em;
   margin-top: 2.6em;
-  padding-bottom: 0.6em;
-  border-bottom: 1px solid var(--border);
+  padding: 0.5em 1em;
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
 }
 
 .gallery-row {
@@ -207,7 +212,7 @@ body {
   flex-direction: row;
   overflow-x: auto;
   gap: 24px;
-  padding: 0 0 16px 0;
+  padding: 12px 0 20px 0;
   margin-bottom: 1em;
   scrollbar-width: thin;
   scrollbar-color: var(--blush) transparent;
@@ -223,6 +228,18 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(90, 50, 40, 0.10);
+  transition: box-shadow 0.35s ease, transform 0.35s ease;
+}
+.gallery-item:hover {
+  box-shadow: 0 14px 40px rgba(90, 50, 40, 0.16);
+  transform: translateY(-3px);
 }
 @media (max-width: 600px) { .gallery-item { width: 68vw; } }
 
@@ -232,13 +249,12 @@ body {
   height: 310px;
   object-fit: cover;
   display: block;
-  border-radius: 1px;
+  border-radius: 0;
   transition: opacity 0.35s ease, transform 0.45s ease;
-  box-shadow: 0 4px 22px rgba(90, 50, 40, 0.09);
 }
 .gallery-item a:hover img { opacity: 0.87; transform: scale(1.012); }
 
-.gallery-caption { margin-top: 13px; padding: 0 2px; width: 100%; }
+.gallery-caption { margin-top: 0; padding: 12px 14px 14px; width: 100%; }
 .gallery-caption-title {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: 0.94em;
