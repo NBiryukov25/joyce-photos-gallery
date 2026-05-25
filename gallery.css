@@ -562,17 +562,31 @@ h1, h2, .hero-name, .page-hero-title {
   .photo-grid .photo-item img { border-radius: 0; }
   .photo-grid .photo-info { padding: 0 4px; }
 }
-.photo-item { display: flex; flex-direction: column; }
+.photo-item {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(90, 50, 40, 0.10);
+  transition: box-shadow 0.35s ease, transform 0.35s ease;
+}
+.photo-item:hover {
+  box-shadow: 0 14px 40px rgba(90, 50, 40, 0.16);
+  transform: translateY(-3px);
+}
 .photo-item img {
   width: 100%;
   display: block;
-  border-radius: 1px;
-  box-shadow: 0 3px 18px rgba(90, 50, 40, 0.09);
-  transition: opacity 0.3s;
+  border-radius: 0;
+  transition: opacity 0.35s ease, transform 0.45s ease;
   object-fit: cover;
 }
-.photo-item img:hover { opacity: 0.89; }
-.photo-info { margin-top: 11px; padding: 0 2px; }
+.photo-item img:hover { opacity: 0.87; transform: scale(1.012); }
+.photo-info { padding: 12px 14px 14px; }
 .photo-title {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: 0.88em;
