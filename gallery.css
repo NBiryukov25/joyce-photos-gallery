@@ -620,6 +620,36 @@ h1, h2, .hero-name, .page-hero-title {
   padding: 2em 0;
 }
 
+/* ── LOVE LETTERS ── */
+.love-letters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 3em;
+}
+.love-letter-img {
+  width: 100%;
+  display: block;
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(90, 50, 40, 0.12);
+  cursor: zoom-in;
+  transition: opacity 0.3s ease, transform 0.35s ease, box-shadow 0.35s ease;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.love-letter-img:hover {
+  opacity: 0.92;
+  transform: scale(1.012);
+  box-shadow: 0 8px 32px rgba(90, 50, 40, 0.18);
+}
+@media (max-width: 600px) {
+  .love-letters-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+}
+
 /* ── STORY DETAIL PAGE ── */
 .story-detail-cover {
   width: 100%;
