@@ -23,12 +23,25 @@
 html {
   background-color: var(--cream);
   background-image:
-    linear-gradient(rgba(250, 247, 244, 0.87), rgba(250, 247, 244, 0.87)),
+    linear-gradient(rgba(250, 247, 244, 0.88), rgba(250, 247, 244, 0.88)),
     url('https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Joyce_Cover_01.png');
-  background-size: cover, auto 85vh;
-  background-position: center, center center;
-  background-attachment: fixed, fixed;
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
   background-repeat: no-repeat;
+}
+html::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 85% 80% at 50% 38%,
+    transparent 25%,
+    rgba(250, 247, 244, 0.55) 60%,
+    var(--cream) 88%
+  );
+  z-index: 0;
+  pointer-events: none;
 }
 
 body {
