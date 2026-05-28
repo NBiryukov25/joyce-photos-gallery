@@ -27,10 +27,11 @@ html {
       rgba(250, 247, 244, 0.78),
       rgba(250, 247, 244, 0.85)
     ),
+    url('https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Joyce_Cover_01.png'),
     url('https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Joyce_Cover_01.png');
-  background-size: 140% auto;
-  background-position: center 15%;
-  background-attachment: fixed;
+  background-size: cover, 50% auto, 50% auto;
+  background-position: center, left top, right top;
+  background-attachment: fixed, fixed, fixed;
   background-repeat: no-repeat;
 }
 html::before {
@@ -622,31 +623,38 @@ h1, h2, .hero-name, .page-hero-title {
 
 /* ── LOVE LETTERS ── */
 .love-letters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 22px;
   margin-bottom: 3em;
+  padding: 1em 0.25em 1.5em;
+  align-items: flex-start;
 }
 .love-letter-img {
-  width: 100%;
-  display: block;
-  border-radius: 6px;
-  box-shadow: 0 4px 20px rgba(90, 50, 40, 0.12);
+  width: 108px;
+  height: 148px;
+  flex-shrink: 0;
+  object-fit: cover;
+  padding: 7px 7px 26px;
+  background: #fff;
+  border-radius: 1px;
+  box-shadow: 2px 3px 10px rgba(90, 50, 40, 0.18), 0 6px 22px rgba(90, 50, 40, 0.10);
   cursor: zoom-in;
-  transition: opacity 0.3s ease, transform 0.35s ease, box-shadow 0.35s ease;
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  position: relative;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
+.love-letter-img:nth-child(3n+1) { transform: rotate(-2.2deg); }
+.love-letter-img:nth-child(3n+2) { transform: rotate(1.5deg); }
+.love-letter-img:nth-child(3n)   { transform: rotate(-0.7deg); }
 .love-letter-img:hover {
-  opacity: 0.92;
-  transform: scale(1.012);
-  box-shadow: 0 8px 32px rgba(90, 50, 40, 0.18);
+  transform: rotate(0deg) scale(1.12) !important;
+  box-shadow: 4px 8px 24px rgba(90, 50, 40, 0.30);
+  z-index: 10;
 }
 @media (max-width: 600px) {
-  .love-letters-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+  .love-letter-img {
+    width: 90px;
+    height: 124px;
   }
 }
 
