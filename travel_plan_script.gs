@@ -148,7 +148,7 @@ function buildDashboard(ss) {
     .setValue('GOAL & COUNTDOWN')
     .setBackground(C.DASH_LABEL).setFontColor(C.DASH_TEXT)
     .setFontSize(FS.SECTION).setFontWeight('bold')
-    .setHorizontalAlignment('left').setPaddings(0,0,0,8);
+    .setHorizontalAlignment('left');
   sh.setRowHeight(2, 28);
 
   // Rows 3-7: countdown data
