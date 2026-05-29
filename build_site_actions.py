@@ -247,8 +247,16 @@ def main():
     for g in published:
         slug = slugify(g.get("Gallery Title", "gallery"))
         gallery_photos = photos_by_gallery.get(g.get("Gallery Title","").strip(), [])
-        page_html = build_portfolio_page(g, gallery_photos)
         out_path = os.path.join(GALLERIES_DIR, f"{slug}.html")
+        # If the sheet has no photos for this gallery but the HTML file already
+        # contains a manually-built photo grid, leave it alone.
+        if not gallery_photos and os.path.exists(out_path):
+            with open(out_path, encoding="utf-8") as fh:
+                existing = fh.read()
+            if "photo-grid" in existing or "photo-item" in existing:
+                print(f"Skipping {out_path} — manual photo content preserved.")
+                continue
+        page_html = build_portfolio_page(g, gallery_photos)
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(page_html)
         print(f"Written: {out_path} ({len(gallery_photos)} photos)")
