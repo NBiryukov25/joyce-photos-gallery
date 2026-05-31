@@ -234,13 +234,19 @@ def main():
         if gallery_name:
             photos_by_gallery[gallery_name].append(p)
 
-    # --- Build main index.html ---
-    by_series = defaultdict(list)
-    for g in published:
-        by_series[g.get("Series","Uncategorized")].append(g)
+    # --- Build index.html as a redirect to gallery.html ---
+    redirect_html = (
+        '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
+        '  <meta charset="UTF-8">\n'
+        '  <meta http-equiv="refresh" content="0; url=gallery.html">\n'
+        '  <title>Sheryl Joyce</title>\n'
+        '</head>\n<body>\n'
+        '  <p><a href="gallery.html">Click here if you are not redirected.</a></p>\n'
+        '</body>\n</html>\n'
+    )
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write(build_html(by_series, photos_by_gallery=photos_by_gallery))
-    print(f"Written: {OUTPUT_FILE}")
+        f.write(redirect_html)
+    print(f"Written: {OUTPUT_FILE} (redirect to gallery.html)")
 
     # --- Build individual gallery pages ---
     os.makedirs(GALLERIES_DIR, exist_ok=True)
