@@ -617,6 +617,41 @@ h1, h2, .hero-name, .page-hero-title {
   padding: 2em 0;
 }
 
+/* ── MASONRY LAYOUT ── */
+.photo-grid.masonry {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-auto-rows: auto;
+  grid-auto-flow: dense;
+  gap: 16px;
+}
+.photo-grid.masonry .photo-item {
+  grid-column: span 1;
+  grid-row: span 1;
+}
+.photo-grid.masonry .photo-item:nth-child(3n + 1) {
+  grid-row: span 2;
+}
+.photo-grid.masonry .photo-item img {
+  height: 100%;
+}
+@media (max-width: 768px) {
+  .photo-grid.masonry {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+  .photo-grid.masonry .photo-item:nth-child(3n + 1) {
+    grid-row: span 1;
+  }
+}
+@media (max-width: 600px) {
+  .photo-grid.masonry {
+    grid-template-columns: 1fr 1fr;
+  }
+  .photo-grid.masonry .photo-item:nth-child(3n + 1) {
+    grid-row: span 1;
+  }
+}
+
 /* ── LOVE LETTERS ── */
 .love-letters-grid {
   display: flex;
