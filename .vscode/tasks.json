@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "archive-imgs",
+			"type": "shell",
+			"command": "cd 'c:/Users/richa/GitHub/joyce-photos-gallery'; mkdir archive -ErrorAction SilentlyContinue; Move-Item 'IMG_5745.PNG','IMG_5746.PNG','IMG_5747.PNG','IMG_5748.PNG' archive/; Get-ChildItem archive",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "move-sweetheart-14",
+			"type": "shell",
+			"command": "cd 'c:/Users/richa/GitHub/joyce-photos-gallery'; Move-Item 'assets/Sheryl-Joyce-Sweetheart/Sweetheart (14).PNG' 'assets/Softness-in-Surrender/'; Get-ChildItem 'assets/Softness-in-Surrender' | Where-Object { $_.Name -like '*Sweetheart*' }",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

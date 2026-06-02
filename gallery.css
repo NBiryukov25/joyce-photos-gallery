@@ -690,6 +690,117 @@ h1, h2, .hero-name, .page-hero-title {
 }
 
 /* ── STORY DETAIL PAGE ── */
+.story-feature-wrap {
+  max-width: 920px;
+}
+.story-feature-subtitle {
+  font-family: 'Jost', sans-serif;
+  font-size: 0.88em;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--text-soft);
+  max-width: 700px;
+  margin-bottom: 1.4em;
+}
+.story-feature-article {
+  display: grid;
+  gap: 1.2em;
+}
+.story-feature-block {
+  max-width: 720px;
+}
+.story-photo-panel,
+.story-media-panel,
+.story-final-photo {
+  margin: 0.4em 0 0.8em;
+}
+.story-photo-panel img,
+.story-media-panel img,
+.story-final-photo img {
+  width: 100%;
+  display: block;
+  border-radius: 18px;
+  box-shadow: 0 18px 40px rgba(90, 50, 40, 0.12);
+}
+.story-photo-grid-two {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.story-photo-card,
+.story-strip-card {
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 14px 36px rgba(90, 50, 40, 0.10);
+}
+.story-photo-card img,
+.story-strip-card img {
+  width: 100%;
+  display: block;
+  height: 320px;
+  object-fit: cover;
+}
+.story-photo-card figcaption,
+.story-strip-card figcaption {
+  font-family: 'Jost', sans-serif;
+  font-size: 0.72em;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  padding: 0.75em 0.9em 0.95em;
+}
+.story-video-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.15), rgba(255,255,255,0.06));
+  box-shadow: 0 18px 40px rgba(90, 50, 40, 0.12);
+}
+.story-video-frame img { min-height: 260px; object-fit: cover; }
+.story-media-label {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.66em;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: #fff;
+  background: rgba(31,26,24,0.55);
+  padding: 0.35em 0.5em;
+  border-radius: 999px;
+}
+.story-feature-caption,
+.story-photo-caption,
+.story-final-note {
+  font-family: 'Jost', sans-serif;
+  font-size: 0.78em;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--text-soft);
+  padding: 0.55em 0.2em 0;
+}
+.story-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.story-final-photo img {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.story-final-note {
+  text-align: center;
+  font-style: italic;
+  padding-top: 0.45em;
+}
+@media (max-width: 900px) {
+  .story-photo-grid-two,
+  .story-strip { grid-template-columns: 1fr; }
+}
 .story-detail-cover {
   width: 100%;
   margin-bottom: 0;
