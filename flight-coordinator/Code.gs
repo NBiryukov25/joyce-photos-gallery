@@ -150,7 +150,6 @@ function buildFlightDataSheet(ss) {
   sh.getRange(totalRow,18).setValue('').setBackground('#EF9A9A').setFontWeight('bold').setNumberFormat('"$"#,##0.00');
   sh.setRowHeight(totalRow,30);
 
-  // Freeze top 4 rows only (no column freeze — avoids conflict with merged cells)
   sh.setFrozenRows(4);
   sh.getRange('B4:I'+totalRow).setBorder(true,true,true,true,true,true,'#9FA8DA',SpreadsheetApp.BorderStyle.SOLID);
   sh.getRange('K4:R'+totalRow).setBorder(true,true,true,true,true,true,'#FFCDD2',SpreadsheetApp.BorderStyle.SOLID);
@@ -228,7 +227,6 @@ function buildTimelineSheet(ss) {
   });
 
   sh.setFrozenRows(3);
-  sh.setFrozenColumns(2);
 }
 
 function buildSummarySheet(ss) {
@@ -283,5 +281,4 @@ function buildSummarySheet(ss) {
   });
 
   sh.setFrozenRows(3);
-  sh.setFrozenColumns(1);
 }
