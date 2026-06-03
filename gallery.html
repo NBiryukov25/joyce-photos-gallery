@@ -75,7 +75,20 @@
       text-transform: uppercase; cursor: pointer;
     }
     .od-enter:hover { background: #7d5245; }
-  </style>
+/* Force opening popup slideshow images to show full photo */
+#opening-popup .od-slides-wrap .od-slide img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  display: block !important;
+}
+
+#opening-popup .od-slides-wrap {
+  background: #1a1410 !important;
+}
+
+        </style>
 </head>
 <body>
   <header class="site-header">
