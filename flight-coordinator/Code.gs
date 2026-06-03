@@ -5,7 +5,6 @@
 
 function createFlightCoordinator() {
   const ss = SpreadsheetApp.create('✈ Flight Coordinator');
-  SpreadsheetApp.setActiveSpreadsheet(ss);
 
   buildFlightDataSheet(ss);
   buildTimelineSheet(ss);
@@ -17,8 +16,7 @@ function createFlightCoordinator() {
   ss.setActiveSheet(ss.getSheetByName('✈ Flight Options'));
 
   const url = ss.getUrl();
-  SpreadsheetApp.getUi().alert('Spreadsheet created!\n\n' + url);
-  Logger.log('Spreadsheet URL: ' + url);
+  Logger.log('SUCCESS! Open your spreadsheet here: ' + url);
 }
 
 function buildFlightDataSheet(ss) {
