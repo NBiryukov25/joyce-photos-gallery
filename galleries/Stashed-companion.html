@@ -7,120 +7,168 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../gallery.css">
-  <link rel="stylesheet" href="../lightbox.css">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #060404; color: #f7f1ee; font-family: 'Cormorant Garamond', serif; overflow: hidden; }
+    body { display: flex; align-items: stretch; justify-content: center; }
+    .slideshow-shell { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+    .topbar { position: absolute; z-index: 20; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; background: rgba(10, 8, 6, 0.45); }
+    .topbar h1 { margin: 0; font-size: 1.2rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 400; }
+    .topbar a { color: #f7f1ee; text-decoration: none; font-size: 0.9rem; letter-spacing: 0.12em; }
+    .topbar-actions { display: flex; align-items: center; gap: 0.65rem; }
+    .topbar-button { appearance: none; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.08); color: #f7f1ee; padding: 0.55rem 0.9rem; border-radius: 999px; font-size: 0.82rem; letter-spacing: 0.12em; cursor: pointer; transition: background 0.2s ease, border-color 0.2s ease; }
+    .topbar-button:hover { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.55); }
+    .slide-frame { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #080606; }
+    .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.6s ease; display: flex; align-items: center; justify-content: center; }
+    .slide.active { opacity: 1; }
+    .slide img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+    .controls, .footer { position: absolute; z-index: 20; width: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    .controls { top: 50%; transform: translateY(-50%); gap: 1rem; }
+    .control { pointer-events: all; width: 3.2rem; height: 3.2rem; border: 1px solid rgba(255,255,255,0.55); border-radius: 50%; background: rgba(10, 8, 6, 0.45); color: #f7f1ee; font-size: 1.75rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s ease; }
+    .control:hover { background: rgba(255,255,255,0.12); }
+    .footer { bottom: 1.2rem; justify-content: space-between; padding: 0 1.5rem; font-size: 0.9rem; letter-spacing: 0.12em; color: rgba(247,241,238,0.8); }
+    .slide-number { font-family: 'Jost', sans-serif; }
+    .caption { position: absolute; left: 1.5rem; bottom: 4.5rem; max-width: 55vw; background: rgba(5, 4, 3, 0.55); padding: 0.95rem 1.1rem; border-radius: 4px; backdrop-filter: blur(6px); font-size: 0.96rem; line-height: 1.6; }
+    @media (max-width: 768px) {
+      .topbar { padding: 0.8rem 1rem; }
+      .control { width: 2.8rem; height: 2.8rem; font-size: 1.4rem; }
+      .caption { bottom: 4rem; max-width: 80vw; font-size: 0.88rem; }
+    }
+  </style>
 </head>
 <body>
-  <header class="site-header">
-    <div class="site-nav">
-      <a href="../gallery.html" class="nav-brand">Sheryl Joyce</a>
-      <nav class="nav-links">
-        <a href="../gallery.html" class="nav-link active">Galleries</a>
-        <a href="../stories.html" class="nav-link">Stories</a>
-      </nav>
-    </div>
-  </header>
-
-  <a class="back-link" href="../gallery.html">← Back to Galleries</a>
-
-  <div class="portfolio-title">Stashed Companion</div>
-  <div class="portfolio-subtitle">Series I — Back Seat Summer</div>
-  <p class="portfolio-caption">A quiet roadside gallery built around warmth, stillness, and the feeling of an unhurried afternoon.</p>
-  <p class="portfolio-meta">Digital, 2024 · Natural Window Light</p>
-
-  <hr class="portfolio-divider">
-
-  <div class="photo-grid">
-
-    <div class="photo-item">
-      <img src="../assets/Stashed-companion/Stashed_companion.PNG" alt="I">
-      <div class="photo-info">
-        <p class="photo-title">I</p>
-        <p class="photo-caption">A quiet smile in the back seat, where the journey matters more than the destination.</p>
+  <div class="slideshow-shell">
+    <div class="topbar">
+      <h1>Stashed Companion</h1>
+      <div class="topbar-actions">
+        <button class="topbar-button" id="autoplay-btn" type="button">Auto 7s OFF</button>
+        <button class="topbar-button" id="fullscreen-btn" type="button">Fullscreen</button>
+        <a href="../gallery.html">← Back to Galleries</a>
       </div>
     </div>
-
-    <div class="photo-item">
-      <img src="../assets/Stashed-companion/Stashed_companion.JPG" alt="II">
-      <div class="photo-info">
-        <p class="photo-title">II</p>
-        <p class="photo-caption">Framed by the open door and summer light, she turns a passing moment into something personal.</p>
-      </div>
+    <div class="slide-frame" id="slide-frame"></div>
+    <div class="controls">
+      <button class="control" id="prev-btn" aria-label="Previous slide">‹</button>
+      <button class="control" id="next-btn" aria-label="Next slide">›</button>
     </div>
-
-    <div class="photo-item">
-      <img src="../assets/Stashed-companion/Stashed_companion%202.PNG" alt="III">
-      <div class="photo-info">
-        <p class="photo-title">III</p>
-        <p class="photo-caption">A relaxed pose and a playful expression transform an ordinary car ride into a memorable pause.</p>
-      </div>
+    <div class="caption" id="caption"></div>
+    <div class="footer">
+      <span class="slide-number" id="slide-number">1 / 1</span>
+      <span class="slide-meta">Digital, 2024 · Full Screen Slideshow</span>
     </div>
-
-    <div class="photo-item">
-      <img src="../assets/Stashed-companion/Stashed_companion%202.JPG" alt="IV">
-      <div class="photo-info">
-        <p class="photo-title">IV</p>
-        <p class="photo-caption">Stretching out comfortably, she lets the afternoon settle into its own quiet rhythm.</p>
-      </div>
-    </div>
-
-    <div class="photo-item">
-      <img src="../assets/Stashed-companion/Stashed_companion%203.PNG" alt="V">
-      <div class="photo-info">
-        <p class="photo-title">V</p>
-        <p class="photo-caption">A familiar glance, soft and steady, held against the green blur beyond the window.</p>
-      </div>
-    </div>
-
-    <div class="photo-item">
-      <img src="../assets/Stashed-companion/Stashed_companion%204.PNG" alt="VI">
-      <div class="photo-info">
-        <p class="photo-title">VI</p>
-        <p class="photo-caption">Morning light through the trees, a fleeting frame suspended between adventure and comfort.</p>
-      </div>
-    </div>
-
-    <div class="photo-item">
-      <img src="../assets/Stashed-companion/Stashed_companion%205.PNG" alt="VII">
-      <div class="photo-info">
-        <p class="photo-title">VII</p>
-        <p class="photo-caption">Relaxed and unguarded, she turns an ordinary seat into a place worth remembering.</p>
-      </div>
-    </div>
-
-    <div class="photo-item">
-      <img src="../assets/Stashed-companion/Stashed_companion%206.PNG" alt="VIII">
-      <div class="photo-info">
-        <p class="photo-title">VIII</p>
-        <p class="photo-caption">A warm glance and a calm presence, framed by summer greenery beyond the window.</p>
-      </div>
-    </div>
-
-    <div class="photo-item">
-      <img src="../assets/Stashed-companion/Stashed_companion%208.PNG" alt="IX">
-      <div class="photo-info">
-        <p class="photo-title">IX</p>
-        <p class="photo-caption">Sunlight and shadow play across the cabin as the afternoon drifts by.</p>
-      </div>
-    </div>
-
-    <div class="photo-item">
-      <img src="../assets/Stashed-companion/Stashed_companion%2010.PNG" alt="X">
-      <div class="photo-info">
-        <p class="photo-title">X</p>
-        <p class="photo-caption">The scenery changes outside the window, but the mood remains effortlessly calm.</p>
-      </div>
-    </div>
-
-    <div class="photo-item">
-      <img src="../assets/Stashed-companion/Stashed_companion%2011.PNG" alt="XI">
-      <div class="photo-info">
-        <p class="photo-title">XI</p>
-        <p class="photo-caption">The last frame carries the same warmth that began the journey.</p>
-      </div>
-    </div>
-
   </div>
-  <script src="../lightbox.js"></script>
+
+  <script>
+    (function () {
+      var filenames = [
+        'Stashed_companion.PNG',
+        'Stashed_companion.JPG',
+        'Stashed_companion 2.PNG',
+        'Stashed_companion 2.JPG',
+        'Stashed_companion 3.PNG',
+        'Stashed_companion 4.PNG',
+        'Stashed_companion 5.PNG',
+        'Stashed_companion 6.PNG',
+        'Stashed_companion 7.PNG',
+        'Stashed_companion 8.PNG',
+        'Stashed_companion 9.PNG',
+        'Stashed_companion 10.PNG',
+        'Stashed_companion 11.PNG'
+      ];
+      var captions = filenames.map(function (name, index) {
+        return 'Slide ' + (index + 1) + ' of ' + filenames.length + ' — Stashed Companion';
+      });
+
+      var frame = document.getElementById('slide-frame');
+      var captionEl = document.getElementById('caption');
+      var numberEl = document.getElementById('slide-number');
+      var current = 0;
+      var autoplayTimer = null;
+      var slides = [];
+
+      filenames.forEach(function (filename, index) {
+        var slide = document.createElement('div');
+        slide.className = 'slide' + (index === 0 ? ' active' : '');
+        var img = document.createElement('img');
+        img.src = '../assets/Stashed-companion/' + encodeURIComponent(filename);
+        img.alt = 'Stashed Companion ' + (index + 1);
+        slide.appendChild(img);
+        frame.appendChild(slide);
+        slides.push(slide);
+      });
+
+      function updateSlide(index) {
+        slides[current].classList.remove('active');
+        current = (index + slides.length) % slides.length;
+        slides[current].classList.add('active');
+        captionEl.textContent = captions[current];
+        numberEl.textContent = (current + 1) + ' / ' + slides.length;
+      }
+
+      function advanceSlide(index) {
+        updateSlide(index);
+        if (autoplayTimer) {
+          stopAutoplay();
+          startAutoplay();
+        }
+      }
+
+      document.getElementById('prev-btn').addEventListener('click', function () { advanceSlide(current - 1); });
+      document.getElementById('next-btn').addEventListener('click', function () { advanceSlide(current + 1); });
+
+      function toggleAutoplay() {
+        if (autoplayTimer) {
+          stopAutoplay();
+        } else {
+          startAutoplay();
+        }
+      }
+
+      function startAutoplay() {
+        if (autoplayTimer) { return; }
+        autoplayBtn.textContent = 'Auto 7s ON';
+        autoplayTimer = setInterval(function () { advanceSlide(current + 1); }, 7000);
+      }
+
+      function stopAutoplay() {
+        if (!autoplayTimer) { return; }
+        clearInterval(autoplayTimer);
+        autoplayTimer = null;
+        autoplayBtn.textContent = 'Auto 7s OFF';
+      }
+
+      function enterFullscreen() {
+        var shell = document.querySelector('.slideshow-shell');
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+          return;
+        }
+        if (shell.requestFullscreen) {
+          shell.requestFullscreen();
+        } else if (shell.webkitRequestFullscreen) {
+          shell.webkitRequestFullscreen();
+        }
+      }
+
+      function updateFullscreenButton() {
+        fullscreenBtn.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
+      }
+
+      var autoplayBtn = document.getElementById('autoplay-btn');
+      var fullscreenBtn = document.getElementById('fullscreen-btn');
+      autoplayBtn.addEventListener('click', toggleAutoplay);
+      fullscreenBtn.addEventListener('click', enterFullscreen);
+      document.addEventListener('fullscreenchange', updateFullscreenButton);
+      document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+
+      window.addEventListener('keydown', function (event) {
+        if (event.key === 'ArrowLeft') { advanceSlide(current - 1); }
+        if (event.key === 'ArrowRight') { advanceSlide(current + 1); }
+        if (event.key === 'f' || event.key === 'F') { enterFullscreen(); }
+      });
+
+      updateSlide(0);
+    })();
+  </script>
 </body>
 </html>
