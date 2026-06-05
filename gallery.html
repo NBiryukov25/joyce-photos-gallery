@@ -9,108 +9,199 @@
   <link rel="stylesheet" href="gallery.css">
    <style>
 
-    /* ── Opening Popup ── */
-        
+    /* ── Opening Popup — modern compact version ── */
+
     .od-overlay {
-      position: fixed; inset: 0;
-      background: rgba(10, 7, 5, 0.87);
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 7, 5, 0.82);
       z-index: 9000;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: 1em;
       animation: odFade 0.7s ease;
     }
-    .od-overlay.od-hidden { display: none; }
-    @keyframes odFade { from { opacity: 0; } to { opacity: 1; } }
+
+    .od-overlay.od-hidden {
+      display: none;
+    }
+
+    @keyframes odFade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
     .od-modal {
       background: #faf7f4;
-      border-radius: 3px;
-      width: 100%; max-width: 640px;
-      max-height: 92vh;
+      border-radius: 14px;
+      width: min(92vw, 420px);
+      max-height: 86vh;
       overflow-y: auto;
       position: relative;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
     }
-    .od-header { padding: 2em 2.5em 0; text-align: center; }
+
+    .od-header {
+      padding: 1.3em 1.6em 0;
+      text-align: center;
+    }
+
     .od-close {
-      position: absolute; top: 1em; right: 1.2em;
-      background: none; border: none;
-      font-size: 1.15em; color: #c4a89e; cursor: pointer; line-height: 1;
+      position: absolute;
+      top: 0.8em;
+      right: 0.9em;
+      background: rgba(255, 255, 255, 0.55);
+      border: none;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      font-size: 0.9em;
+      color: #8f6b60;
+      cursor: pointer;
+      line-height: 1;
     }
-    .od-close:hover { color: #1f1a18; }
+
+    .od-close:hover {
+      color: #1f1a18;
+      background: rgba(255, 255, 255, 0.9);
+    }
+
     .od-title {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 1.9em; font-weight: 300;
-      letter-spacing: 0.05em; color: #1f1a18; margin: 0;
+      font-size: 1.35em;
+      font-weight: 300;
+      letter-spacing: 0.06em;
+      color: #1f1a18;
+      margin: 0;
     }
-    .od-rule { width: 36px; height: 1px; background: #a87060; border: none; margin: 0.8em auto 0; }
+
+    .od-rule {
+      width: 32px;
+      height: 1px;
+      background: #a87060;
+      border: none;
+      margin: 0.65em auto 0;
+    }
+
     .od-slides-wrap {
-      position: relative; width: 100%; aspect-ratio: 3/2;
-      overflow: hidden; background: #1a1410; margin-top: 1.3em;
+      position: relative;
+      width: calc(100% - 32px);
+      margin: 1em auto 0;
+      aspect-ratio: 4 / 5;
+      overflow: hidden;
+      background: #1a1410;
+      border-radius: 10px;
     }
-    .od-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1s ease; }
-    .od-slide.active { opacity: 1; }
-    .od-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .od-progress { height: 2px; background: #ede5e1; overflow: hidden; }
-    .od-bar { height: 100%; background: #a87060; width: 0; }
-    .od-dots { display: flex; justify-content: center; gap: 5px; padding: 0.85em 0 0; }
+
+    .od-slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    .od-slide.active {
+      opacity: 1;
+    }
+
+    .od-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover !important;
+      object-position: center center;
+      display: block;
+      transform-origin: center center;
+    }
+
+    .od-slide.active img {
+      animation: odSlowZoom 8s ease-in-out forwards;
+    }
+
+    @keyframes odSlowZoom {
+      0% {
+        transform: scale(1.10);
+      }
+
+      100% {
+        transform: scale(1.45);
+      }
+    }
+
+    .od-progress {
+      width: calc(100% - 32px);
+      height: 2px;
+      background: #ede5e1;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+
+    .od-bar {
+      height: 100%;
+      background: #a87060;
+      width: 0;
+    }
+
+    .od-dots {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      padding: 0.7em 0 0;
+    }
+
     .od-dot {
-      width: 5px; height: 5px; border-radius: 50%;
-      background: #ddd0ca; cursor: pointer;
-      border: none; padding: 0; transition: background 0.3s;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #ddd0ca;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+      transition: background 0.3s;
     }
-    .od-dot.active { background: #a87060; }
+
+    .od-dot.active {
+      background: #a87060;
+    }
+
     .od-message {
-      padding: 1.3em 2.5em 0;
+      padding: 1.1em 1.6em 0;
       font-family: 'Cormorant Garamond', serif;
-      font-size: 1.02em; line-height: 1.78; color: #3a2e2a;
+      font-size: 0.98em;
+      line-height: 1.65;
+      color: #3a2e2a;
     }
-    .od-message p { margin-bottom: 0.8em; }
-    .od-message p:last-child { margin-bottom: 0; }
-    .od-footer { padding: 1.6em 2.5em 2em; text-align: center; }
+
+    .od-message p {
+      margin-bottom: 0.8em;
+    }
+
+    .od-message p:last-child {
+      margin-bottom: 0;
+    }
+
+    .od-footer {
+      padding: 1.1em 1.5em 1.4em;
+      text-align: center;
+    }
+
     .od-enter {
-      display: inline-block; padding: 0.7em 3.2em;
-      background: #a87060; color: #fff;
-      border: none; border-radius: 3px;
+      display: inline-block;
+      padding: 0.65em 2.2em;
+      background: #a87060;
+      color: #fff;
+      border: none;
+      border-radius: 999px;
       font-family: 'Jost', sans-serif;
-      font-size: 0.75em; letter-spacing: 0.2em;
-      text-transform: uppercase; cursor: pointer;
+      font-size: 0.68em;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
     }
-    .od-enter:hover { background: #7d5245; }
-/* Force opening popup slideshow images to show full photo */
-#opening-popup .od-slides-wrap .od-slide img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: contain !important;
-  object-position: center center !important;
-  display: block !important;
-}
 
-#opening-popup .od-slides-wrap {
-  background: #1a1410 !important;
-}
-
-#opening-popup .od-slide img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain !important;
-  object-position: center center;
-  display: block;
-}
-
-#opening-popup .od-slide.active img {
-  animation: odSlowZoom 8s ease-in-out forwards;
-}
-
-@keyframes odSlowZoom {
-  0% {
-    transform: scale(1);
-  }
-
-  100% {
-    transform: scale(1.08);
-  }
-}
-     
-
+    .od-enter:hover {
+      background: #7d5245;
+    }
 
         </style>
 </head>
@@ -346,18 +437,9 @@
         <button class="od-dot" onclick="odGo(12)"></button>
       </div>
 
-      <!-- ↓ YOUR MESSAGE — replace the paragraph text below with your own words ↓ -->
+     <!-- ↓ YOUR MESSAGE — replace the paragraph text below with your own words ↓ -->
       <div class="od-message">
-        <p>**Kumusta, travelers! Welcome to our humble paradise in the heart of the province.**</p>
-        <p>I'm the owner of this villa, and I'm opening our doors—and our hearts—to you. But let me be clear: when you book a stay here, you aren't just renting a roof over your head. You're booking the ultimate **Filipino Girlfriend Experience**.</p>
-         <p>Take a look at the photos. That's my wife, and for the duration of your stay, she is yours. She's the soul of this home, and she's ready to make you feel like the most important man in the world.</<p>My wife is the highlight of this package. She's warm, attentive, and knows exactly how to take care of a man. </p>
-
-<p>This is about slowing down. Imagine spending your days lounging by the water with her by your side. She'll apply sunscreen on your back, hold your hand as you wade into the cool river, and laugh with you as you try to catch fish with the locals. In the evenings, she'll give you a relaxing *hilot* massage to ease all your stress away, followed by a quiet dinner under the stars. </p>
-
-<p>She's here to be your companion, your caretaker, and your lover in every sense of the word. No judgments, no rush—just pure, unadulterated relaxation and affection. </p>
-     
-      
-      
+       <p>She offers herself completely—**mind, soul, and body**—and each serves its purpose in your satisfaction.</p><p>With her **mind**, she becomes whatever you need her to be. She'll listen for hours to your stories, your frustrations, your darkest thoughts, absorbing them without judgment. She knows when to speak and when silence is the greater gift. She'll study your preferences, anticipate your desires before you voice them, and reshape her own thoughts to mirror whatever brings you pleasure. Her intelligence bends entirely toward understanding how to make you feel powerful.</p><p>With her **soul**, she surrenders the parts of herself that most people guard fiercely. Her dignity becomes yours to dismantle at your leisure. Her pride is negotiable, her boundaries flexible, her self-respect a luxury she can't afford to cling to. She'll look at you with genuine reverence while accepting treatment that would break most women, and she'll mean every moment of her submission because she understands what you're providing in return.</p><p>With her **body**, she offers the complete spectrum of physical devotion. Soft touches when you crave gentleness, willing endurance when you crave something more strenuous. She accepts that her comfort is secondary to your desires, that her pain can be your entertainment, that her body exists in that space to be used, displayed, tested, or simply admired as your possession. Every mark, every strain, every moment of physical sacrifice is her way of showing gratitude.</p><p>Together, these three elements create something rare—a person who has made peace with her purpose and finds genuine fulfillment in your satisfaction, no matter the cost to herself.</p>
       </div>
       
       <!-- ↑ END MESSAGE ↑ -->
