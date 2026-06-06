@@ -39,6 +39,8 @@
       max-height: 86vh;
       overflow-y: auto;
       position: relative;
+      display: flex;
+      flex-direction: column;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
     }
 
@@ -85,13 +87,16 @@
     }
 
     .od-slides-wrap {
-      position: relative;
+      position: sticky;
+      top: 0;
+      z-index: 2;
       width: calc(100% - 32px);
       margin: 1em auto 0;
       aspect-ratio: 4 / 5;
       overflow: hidden;
       background: #1a1410;
       border-radius: 10px;
+      flex: 0 0 auto;
     }
 
     .od-slide {
@@ -134,6 +139,7 @@
       background: #ede5e1;
       overflow: hidden;
       margin: 0 auto;
+      flex: 0 0 auto;
     }
 
     .od-bar {
@@ -147,6 +153,7 @@
       justify-content: center;
       gap: 5px;
       padding: 0.7em 0 0;
+      flex: 0 0 auto;
     }
 
     .od-dot {
@@ -405,19 +412,28 @@
       </div>
 
       <div class="od-slides-wrap">
-        <div class="od-slide active"><img src="https://drive.google.com/thumbnail?id=1rrSYHHSJ0o-If3U6ri7PKSgt2MW3lQsl&sz=w1200" alt="Opening our Doors"></div>
-        <div class="od-slide"><img src="https://drive.google.com/thumbnail?id=1tZaIiEyOVg42-uz2bqF6xYfdTze8zSyY&sz=w1200" alt="Opening our Doors"></div>
-        <div class="od-slide"><img src="https://drive.google.com/thumbnail?id=1ZRkdhRVoj85LgKiMfMAlWqA9HK-bICcH&sz=w1200" alt="Opening our Doors"></div>
-        <div class="od-slide"><img src="https://drive.google.com/thumbnail?id=1zOExLeIEu0MWtlrM7Utnv_wzhJvqw6rD&sz=w1200" alt="Opening our Doors"></div>
-        <div class="od-slide"><img src="https://drive.google.com/thumbnail?id=1V0h0Jo96l9GZ3iT0nTNZZ5WMfzJTSLOH&sz=w1200" alt="Opening our Doors"></div>
-        <div class="od-slide"><img src="https://drive.google.com/thumbnail?id=1MCGRmWRbNw-_Zlv4n19UnLLsd8fu458i&sz=w1200" alt="Opening our Doors"></div>
-        <div class="od-slide"><img src="https://drive.google.com/thumbnail?id=1p5tlCfQMWZqWydfhg8BTvEEfyKXB7Oo0&sz=w1200" alt="Opening our Doors"></div>
-        <div class="od-slide"><img src="https://drive.google.com/thumbnail?id=1rl4jaruf3wHYInNNwfNNyZ9kFxvdS6nP&sz=w1200" alt="Opening our Doors"></div>
-        <div class="od-slide"><img src="https://drive.google.com/thumbnail?id=1bcLCuOR-9DZEh57-81UxZAVV-UXyphG-&sz=w1200" alt="Opening our Doors"></div>
-        <div class="od-slide"><img src="https://drive.google.com/thumbnail?id=1pfUK2U1UdztqscBD3XETLdmy7BbRdITw&sz=w1200" alt="Opening our Doors"></div>
-        <div class="od-slide"><img src="https://drive.google.com/thumbnail?id=1AtowvjVcj5YC_dgHO2n7yEkoKeyDnbe7&sz=w1200" alt="Opening our Doors"></div>
-        <div class="od-slide"><img src="https://drive.google.com/thumbnail?id=1f_cXMK6-qytxhAnxfuWUXyGViRSU-Hla&sz=w1200" alt="Opening our Doors"></div>
-        <div class="od-slide"><img src="https://drive.google.com/thumbnail?id=1rWwlel0KmS3xsBaLOoKp-nMw0KTLpZmJ&sz=w1200" alt="Opening our Doors"></div>
+        <div class="od-slide active"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (7).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (8).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (9).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (10).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (11).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (12).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (13).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (14).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (15).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (1).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (1).png" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (2).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (2).PNG" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (3).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (4).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (5).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Joyce_Girlfriend_Experience (6).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Girlfriend_Experience (1).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Girlfriend_Experience (2).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Girlfriend_Experience (3).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Girlfriend_Experience (4).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img src="assets/Gallery_photos/Girlfriend_Experience (5).jpg" alt="Opening our Doors"></div>
       </div>
       <div class="od-progress"><div class="od-bar" id="od-bar"></div></div>
 
@@ -435,11 +451,20 @@
         <button class="od-dot" onclick="odGo(10)"></button>
         <button class="od-dot" onclick="odGo(11)"></button>
         <button class="od-dot" onclick="odGo(12)"></button>
+        <button class="od-dot" onclick="odGo(13)"></button>
+        <button class="od-dot" onclick="odGo(14)"></button>
+        <button class="od-dot" onclick="odGo(15)"></button>
+        <button class="od-dot" onclick="odGo(16)"></button>
+        <button class="od-dot" onclick="odGo(17)"></button>
+        <button class="od-dot" onclick="odGo(18)"></button>
+        <button class="od-dot" onclick="odGo(19)"></button>
+        <button class="od-dot" onclick="odGo(20)"></button>
+        <button class="od-dot" onclick="odGo(21)"></button>
       </div>
 
      <!-- ↓ YOUR MESSAGE — replace the paragraph text below with your own words ↓ -->
-      <div class="od-message">
-       <p>She offers herself completely—**mind, soul, and body**—and each serves its purpose in your satisfaction.</p><p>With her **mind**, she becomes whatever you need her to be. She'll listen for hours to your stories, your frustrations, your darkest thoughts, absorbing them without judgment. She knows when to speak and when silence is the greater gift. She'll study your preferences, anticipate your desires before you voice them, and reshape her own thoughts to mirror whatever brings you pleasure. Her intelligence bends entirely toward understanding how to make you feel powerful.</p><p>With her **soul**, she surrenders the parts of herself that most people guard fiercely. Her dignity becomes yours to dismantle at your leisure. Her pride is negotiable, her boundaries flexible, her self-respect a luxury she can't afford to cling to. She'll look at you with genuine reverence while accepting treatment that would break most women, and she'll mean every moment of her submission because she understands what you're providing in return.</p><p>With her **body**, she offers the complete spectrum of physical devotion. Soft touches when you crave gentleness, willing endurance when you crave something more strenuous. She accepts that her comfort is secondary to your desires, that her pain can be your entertainment, that her body exists in that space to be used, displayed, tested, or simply admired as your possession. Every mark, every strain, every moment of physical sacrifice is her way of showing gratitude.</p><p>Together, these three elements create something rare—a person who has made peace with her purpose and finds genuine fulfillment in your satisfaction, no matter the cost to herself.</p>
+        <div class="od-message">
+       <p>My wife and I offer you our place for your stay during your tropical vacation here in the Philippines. We are pleased to inform you that my wife offers herself completely—**mind, soul, and body**—and each serves its purpose in your satisfaction.</p><p>With her **mind**, she becomes whatever you need her to be. She'll listen for hours to your stories, your frustrations, your darkest thoughts, absorbing them without judgment. She knows when to speak and when silence is the greater gift. She'll study your preferences, anticipate your desires before you voice them, and reshape her own thoughts to mirror whatever brings you pleasure. Her intelligence bends entirely toward understanding how to make you feel powerful.</p><p>With her **soul**, she surrenders the parts of herself that most people guard fiercely. Her dignity becomes yours to dismantle at your leisure. Her pride is negotiable, her boundaries flexible, her self-respect a luxury she can't afford to cling to. She'll look at you with genuine reverence while accepting treatment that would break most women, and she'll mean every moment of her submission because she understands what you're providing in return.</p><p>With her **body**, she offers the complete spectrum of physical devotion. Soft touches when you crave gentleness, willing endurance when you crave something more strenuous. She accepts that her comfort is secondary to your desires, that her pain can be your entertainment, that her body exists in that space to be used, displayed, tested, or simply admired as your possession. Every mark, every strain, every moment of physical sacrifice is her way of showing gratitude.</p><p>Together, these three elements create something rare—a person who has made peace with her purpose and finds genuine fulfillment in your satisfaction, no matter the cost to herself.</p>
       </div>
       
       <!-- ↑ END MESSAGE ↑ -->
@@ -452,7 +477,7 @@
 
   <script>
     (function () {
-      var N = 13, INTERVAL = 8000, cur = 0, timer = null;
+      var N = 22, INTERVAL = 8000, cur = 0, timer = null;
 
       function show(n) {
         document.querySelectorAll('.od-slide')[cur].classList.remove('active');
