@@ -9,41 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../gallery.css">
   <link rel="stylesheet" href="../lightbox.css">
-  <style>
-    .joyce-note {
-      max-width: 720px;
-      margin: 0 0 2.8em 0;
-      padding: 1.6em 2em;
-      border-left: 2px solid var(--blush);
-      background: rgba(245, 236, 232, 0.35);
-    }
-    .joyce-note p {
-      font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 1em;
-      font-weight: 300;
-      font-style: italic;
-      line-height: 1.85;
-      color: var(--text-soft);
-    }
-    .joyce-note p + p { margin-top: 0.8em; }
-    .photo-item .photo-img-placeholder {
-      width: 100%;
-      aspect-ratio: 3/4;
-      background: var(--blush-light);
-      border-radius: 1px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .photo-item .photo-img-placeholder span {
-      font-family: 'Jost', sans-serif;
-      font-size: 0.62em;
-      font-weight: 300;
-      letter-spacing: 0.14em;
-      color: var(--blush);
-      text-transform: uppercase;
-    }
-  </style>
 </head>
 <body>
   <header class="site-header">
@@ -61,15 +26,12 @@
   <div class="portfolio-title">After the Bell</div>
   <div class="portfolio-subtitle">You came over after work… and she's already waiting for you.</div>
 
-  <div class="joyce-note">
-    <p>The apartment is warm. The day is finally over. And she's been here the whole time — patient, soft, present — saving the best version of the evening just for you.</p>
-  </div>
-
+  <p class="portfolio-caption">The apartment is warm. The day is finally over. And she's been here the whole time — patient, soft, present — saving the best version of the evening just for you.</p>
   <p class="portfolio-meta">Digital, 2024 · Available Light</p>
 
   <hr class="portfolio-divider">
 
-  <div class="photo-grid">
+  <div class="photo-grid masonry">
 
     <div class="photo-item">
       <img src="https://drive.google.com/thumbnail?id=1jwsy45mhQsICVT3MrSQW8H_mbTaYpXYq&sz=w2000" alt="After the Bell I" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
