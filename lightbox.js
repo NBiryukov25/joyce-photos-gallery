@@ -46,7 +46,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     const imgs = Array.from(
-      document.querySelectorAll('.photo-item img, .photo-grid img, .story-card-img, .story-detail-cover-img, .story-inline-img, .love-letter-img')
+      document.querySelectorAll('.photo-item img, .photo-grid img, .bento-item img, .story-card-img, .story-detail-cover-img, .story-inline-img, .love-letter-img')
     ).filter(function (el) {
       return el.offsetParent !== null && el.src;
     });
@@ -69,9 +69,9 @@
     const hearted = {};
 
     function getCaptionFor(idx) {
-      const item = imgs[idx].closest('.photo-item');
+      const item = imgs[idx].closest('.photo-item, .bento-item');
       if (!item) return '';
-      const p = item.querySelector('.photo-caption');
+      const p = item.querySelector('.photo-caption, figcaption');
       return p ? p.textContent.trim() : '';
     }
 
