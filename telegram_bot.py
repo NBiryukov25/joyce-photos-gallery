@@ -12,6 +12,7 @@ Optional env vars:
   GITHUB_BRANCH            — defaults to main
 """
 
+import asyncio
 import base64
 import os
 import re
@@ -234,7 +235,7 @@ async def photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         context.user_data["use_original"] = False
 
     status = await update.message.reply_text("Loading galleries...")
-    galleries = _existing_galleries()
+    galleries = await asyncio.to_thread(_existing_galleries)
     await status.delete()
 
     keyboard = [[InlineKeyboardButton(g, callback_data=f"g:{g}")] for g in galleries]
@@ -296,13 +297,13 @@ async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     photo_bytes = tmp_path.read_bytes()
     tmp_path.unlink(missing_ok=True)
 
-    filename = _next_filename(gallery, use_orig, orig_name)
+    filename = await asyncio.to_thread(_next_filename, gallery, use_orig, orig_name)
     photo_rel = f"assets/{gallery}/{filename}"
 
     await status.edit_text(f"Uploading {filename} to GitHub...")
 
     # Upload photo
-    ok, err = _gh_put_file(photo_rel, photo_bytes, f"Add {filename} to {gallery}")
+    ok, err = await asyncio.to_thread(_gh_put_file, photo_rel, photo_bytes, f"Add {filename} to {gallery}")
     if not ok:
         await status.edit_text(f"Photo upload failed: {err}")
         return ConversationHandler.END
@@ -311,18 +312,18 @@ async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     # Update or create the gallery HTML
     html_rel = _html_rel_path(gallery)
-    current_html, html_sha = _gh_get_file(html_rel)
+    current_html, html_sha = await asyncio.to_thread(_gh_get_file, html_rel)
 
     if current_html is not None:
         new_html = _updated_gallery_html(current_html, filename, caption)
     else:
-        template_bytes, _ = _gh_get_file("galleries/_template-gallery.html")
+        template_bytes, _ = await asyncio.to_thread(_gh_get_file, "galleries/_template-gallery.html")
         if not template_bytes:
             await status.edit_text("Could not find gallery template.")
             return ConversationHandler.END
         new_html = _new_gallery_html(template_bytes, gallery, filename, caption)
 
-    ok, err = _gh_put_file(html_rel, new_html, f"Update {gallery} — add {filename}", sha=html_sha)
+    ok, err = await asyncio.to_thread(_gh_put_file, html_rel, new_html, f"Update {gallery} — add {filename}", html_sha)
     if ok:
         await status.edit_text(
             f"{filename} added to {gallery}.\n\n"
