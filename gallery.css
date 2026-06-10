@@ -653,6 +653,12 @@ h1, h2, .hero-name, .page-hero-title {
 }
 
 /* ── LOVE LETTERS ── */
+.photo-grid {
+  columns: 3 200px;
+  column-gap: 1rem;
+  margin-bottom: 4em;
+}
+
 .love-letters-grid {
   display: flex;
   flex-wrap: wrap;
