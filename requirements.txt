@@ -1,4 +1,5 @@
 python-telegram-bot>=20.0
 httpx>=0.27
+Pillow>=10.0
 pyairtable>=2.0
 requests>=2.28
