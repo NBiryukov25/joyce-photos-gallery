@@ -12,15 +12,15 @@ Optional env vars:
   GITHUB_BRANCH            — defaults to main
 """
 
-import asyncio
 import base64
 import os
 import re
 import logging
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
-import requests
+import httpx
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -48,7 +48,6 @@ ALLOWED_USER_ID = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
 
 CHOOSING_GALLERY, NAMING_GALLERY, ADDING_CAPTION = range(3)
 
-# Galleries that map to a top-level page instead of galleries/<name>.html
 SPECIAL_HTML: dict[str, str] = {
     "Joyce-and-Friends": "friends.html",
 }
@@ -56,29 +55,28 @@ SPECIAL_HTML: dict[str, str] = {
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# GitHub API helpers
-# ---------------------------------------------------------------------------
-
 _GH_API = "https://api.github.com"
+_GH_HEADERS = {
+    "Authorization": f"token {GITHUB_TOKEN}",
+    "Accept": "application/vnd.github.v3+json",
+}
+
+# ---------------------------------------------------------------------------
+# async GitHub API helpers
+# ---------------------------------------------------------------------------
 
 
-def _gh_headers() -> dict:
-    return {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-
-
-def _gh_get_file(rel_path: str) -> tuple[bytes | None, str | None]:
-    """Return (content_bytes, sha) or (None, None) if not found."""
+async def _gh_get_file(rel_path: str) -> tuple[bytes | None, str | None]:
     url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/{rel_path}"
-    r = requests.get(url, headers=_gh_headers(), params={"ref": GITHUB_BRANCH}, timeout=15)
+    async with httpx.AsyncClient(timeout=30) as client:
+        r = await client.get(url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
     if r.status_code == 200:
         data = r.json()
         return base64.b64decode(data["content"]), data["sha"]
     return None, None
 
 
-def _gh_put_file(rel_path: str, content: bytes, message: str, sha: str | None = None) -> tuple[bool, str]:
-    """Create or update a file in the GitHub repo."""
+async def _gh_put_file(rel_path: str, content: bytes, message: str, sha: str | None = None) -> tuple[bool, str]:
     if not GITHUB_TOKEN:
         return False, "GITHUB_TOKEN not set in Railway Variables"
     url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/{rel_path}"
@@ -89,19 +87,11 @@ def _gh_put_file(rel_path: str, content: bytes, message: str, sha: str | None = 
     }
     if sha:
         body["sha"] = sha
-    r = requests.put(url, json=body, headers=_gh_headers(), timeout=30)
+    async with httpx.AsyncClient(timeout=60) as client:
+        r = await client.put(url, json=body, headers=_GH_HEADERS)
     if r.status_code in (200, 201):
         return True, ""
     return False, r.json().get("message", f"HTTP {r.status_code}")
-
-
-def _gh_list_dir(rel_path: str) -> list[dict]:
-    """List files in a GitHub directory."""
-    url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/{rel_path}"
-    r = requests.get(url, headers=_gh_headers(), params={"ref": GITHUB_BRANCH}, timeout=15)
-    if r.status_code == 200 and isinstance(r.json(), list):
-        return r.json()
-    return []
 
 
 # ---------------------------------------------------------------------------
@@ -109,14 +99,11 @@ def _gh_list_dir(rel_path: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 _SKIP_DIRS = {"videos", "audio", "Gallery_photos"}
-_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
-
-
 _ASSETS_DIR = Path(__file__).parent.resolve() / "assets"
+_GALLERIES_DIR = Path(__file__).parent.resolve() / "galleries"
 
 
 def _existing_galleries() -> list[str]:
-    """List gallery folders from local filesystem (fast)."""
     if not _ASSETS_DIR.exists():
         return []
     return sorted(
@@ -125,10 +112,9 @@ def _existing_galleries() -> list[str]:
     )
 
 
-def _next_filename(use_original: bool, original_name: str) -> str:
+def _make_filename(use_original: bool, original_name: str) -> str:
     if use_original:
         return original_name
-    from datetime import datetime
     return f"photo-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.jpg"
 
 
@@ -149,16 +135,16 @@ def _insert_into_js_array(text: str, var_name: str, value: str) -> str:
     return re.sub(pattern, replacer, text)
 
 
-def _updated_gallery_html(current_html: bytes, filename: str, caption: str) -> bytes:
-    text = current_html.decode("utf-8")
+def _updated_html(current: bytes, filename: str, caption: str) -> bytes:
+    text = current.decode("utf-8")
     text = _insert_into_js_array(text, "filenames", filename)
     if re.search(r"var captions\s*=\s*\[", text):
         text = _insert_into_js_array(text, "captions", caption)
     return text.encode("utf-8")
 
 
-def _new_gallery_html(template_bytes: bytes, gallery: str, filename: str, caption: str) -> bytes:
-    text = template_bytes.decode("utf-8")
+def _new_gallery_html(template: bytes, gallery: str, filename: str, caption: str) -> bytes:
+    text = template.decode("utf-8")
     title = gallery.replace("-", " ").title()
     text = text.replace("GALLERY TITLE", title)
     text = text.replace("ASSET-FOLDER-NAME", gallery)
@@ -177,9 +163,7 @@ def _new_gallery_html(template_bytes: bytes, gallery: str, filename: str, captio
 
 
 def _html_rel_path(gallery: str) -> str:
-    if gallery in SPECIAL_HTML:
-        return SPECIAL_HTML[gallery]
-    return f"galleries/{gallery.lower()}.html"
+    return SPECIAL_HTML.get(gallery) or f"galleries/{gallery.lower()}.html"
 
 
 # ---------------------------------------------------------------------------
@@ -236,7 +220,6 @@ async def photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         context.user_data["use_original"] = False
 
     galleries = _existing_galleries()
-
     keyboard = [[InlineKeyboardButton(g, callback_data=f"g:{g}")] for g in galleries]
     keyboard.append([InlineKeyboardButton("+ New Gallery", callback_data="g:__new__")])
 
@@ -280,15 +263,14 @@ async def caption_skipped(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    gallery  = context.user_data["gallery"]
-    caption  = context.user_data.get("caption", "")
-    file_id  = context.user_data["file_id"]
-    use_orig = context.user_data.get("use_original", False)
+    gallery   = context.user_data["gallery"]
+    caption   = context.user_data.get("caption", "")
+    file_id   = context.user_data["file_id"]
+    use_orig  = context.user_data.get("use_original", False)
     orig_name = context.user_data.get("original_name", "photo.jpg")
 
     status = await update.message.reply_text("Downloading photo...")
 
-    # Download from Telegram to a temp file
     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
         tmp_path = Path(tmp.name)
     tg_file = await context.bot.get_file(file_id)
@@ -296,42 +278,38 @@ async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     photo_bytes = tmp_path.read_bytes()
     tmp_path.unlink(missing_ok=True)
 
-    filename = _next_filename(use_orig, orig_name)
+    filename  = _make_filename(use_orig, orig_name)
     photo_rel = f"assets/{gallery}/{filename}"
 
-    await status.edit_text(f"Uploading {filename} to GitHub...")
+    await status.edit_text(f"Uploading to GitHub...")
 
-    # Upload photo
-    ok, err = await asyncio.to_thread(_gh_put_file, photo_rel, photo_bytes, f"Add {filename} to {gallery}")
+    ok, err = await _gh_put_file(photo_rel, photo_bytes, f"Add {filename} to {gallery}")
     if not ok:
-        await status.edit_text(f"Photo upload failed: {err}")
+        await status.edit_text(f"Upload failed: {err}")
         return ConversationHandler.END
 
     await status.edit_text("Updating gallery page...")
 
-    # Update or create the gallery HTML
     html_rel = _html_rel_path(gallery)
-    current_html, html_sha = await asyncio.to_thread(_gh_get_file, html_rel)
+    current_html, html_sha = await _gh_get_file(html_rel)
 
     if current_html is not None:
-        new_html = _updated_gallery_html(current_html, filename, caption)
+        new_html = _updated_html(current_html, filename, caption)
     else:
-        template_bytes, _ = await asyncio.to_thread(_gh_get_file, "galleries/_template-gallery.html")
-        if not template_bytes:
+        template, _ = await _gh_get_file("galleries/_template-gallery.html")
+        if not template:
             await status.edit_text("Could not find gallery template.")
             return ConversationHandler.END
-        new_html = _new_gallery_html(template_bytes, gallery, filename, caption)
+        new_html = _new_gallery_html(template, gallery, filename, caption)
 
-    ok, err = await asyncio.to_thread(_gh_put_file, html_rel, new_html, f"Update {gallery} — add {filename}", html_sha)
+    ok, err = await _gh_put_file(html_rel, new_html, f"Update {gallery} — add {filename}", sha=html_sha)
     if ok:
         await status.edit_text(
             f"{filename} added to {gallery}.\n\n"
-            "GitHub Actions will rebuild the site shortly."
+            "Site will rebuild via GitHub Actions shortly."
         )
     else:
-        await status.edit_text(
-            f"Photo uploaded but HTML update failed: {err}"
-        )
+        await status.edit_text(f"Photo uploaded but page update failed: {err}")
 
     return ConversationHandler.END
 
