@@ -125,13 +125,11 @@ def _existing_galleries() -> list[str]:
     )
 
 
-def _next_filename(gallery: str, use_original: bool, original_name: str) -> str:
+def _next_filename(use_original: bool, original_name: str) -> str:
     if use_original:
         return original_name
-    # Use GitHub to count existing photos so numbering is always correct
-    files = _gh_list_dir(f"assets/{gallery}")
-    images = [f for f in files if Path(f["name"]).suffix.lower() in _IMAGE_EXTS and not f["name"].startswith(".")]
-    return f"photo-{len(images) + 1:02d}.jpg"
+    from datetime import datetime
+    return f"photo-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.jpg"
 
 
 def _safe_js(value: str) -> str:
@@ -298,7 +296,7 @@ async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     photo_bytes = tmp_path.read_bytes()
     tmp_path.unlink(missing_ok=True)
 
-    filename = await asyncio.to_thread(_next_filename, gallery, use_orig, orig_name)
+    filename = _next_filename(use_orig, orig_name)
     photo_rel = f"assets/{gallery}/{filename}"
 
     await status.edit_text(f"Uploading {filename} to GitHub...")
