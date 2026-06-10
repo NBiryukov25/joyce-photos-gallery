@@ -36,6 +36,11 @@ ALLOWED_USER_ID = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
 
 CHOOSING_GALLERY, NAMING_GALLERY, ADDING_CAPTION = range(3)
 
+# Galleries whose photos live in a top-level page rather than galleries/<name>.html
+SPECIAL_GALLERY_PAGES: dict[str, Path] = {
+    "Joyce-and-Friends": REPO_DIR / "friends.html",
+}
+
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -258,7 +263,7 @@ async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     await status.edit_text(f"Saved {filename}. Updating gallery HTML...")
 
-    gallery_html = GALLERIES_DIR / f"{gallery.lower()}.html"
+    gallery_html = SPECIAL_GALLERY_PAGES.get(gallery) or GALLERIES_DIR / f"{gallery.lower()}.html"
     if gallery_html.exists():
         _add_photo_to_gallery_html(gallery_html, filename, caption)
     else:
