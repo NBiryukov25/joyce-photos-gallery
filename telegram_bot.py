@@ -112,20 +112,23 @@ _SKIP_DIRS = {"videos", "audio", "Gallery_photos"}
 _IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
 
+_ASSETS_DIR = Path(__file__).parent.resolve() / "assets"
+
+
 def _existing_galleries() -> list[str]:
-    """List gallery folders from GitHub."""
-    items = _gh_list_dir("assets")
+    """List gallery folders from local filesystem (fast)."""
+    if not _ASSETS_DIR.exists():
+        return []
     return sorted(
-        item["name"] for item in items
-        if item["type"] == "dir"
-        and not item["name"].startswith(".")
-        and item["name"] not in _SKIP_DIRS
+        d.name for d in _ASSETS_DIR.iterdir()
+        if d.is_dir() and not d.name.startswith(".") and d.name not in _SKIP_DIRS
     )
 
 
 def _next_filename(gallery: str, use_original: bool, original_name: str) -> str:
     if use_original:
         return original_name
+    # Use GitHub to count existing photos so numbering is always correct
     files = _gh_list_dir(f"assets/{gallery}")
     images = [f for f in files if Path(f["name"]).suffix.lower() in _IMAGE_EXTS and not f["name"].startswith(".")]
     return f"photo-{len(images) + 1:02d}.jpg"
@@ -234,9 +237,7 @@ async def photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         context.user_data["file_id"] = update.message.photo[-1].file_id
         context.user_data["use_original"] = False
 
-    status = await update.message.reply_text("Loading galleries...")
-    galleries = await asyncio.to_thread(_existing_galleries)
-    await status.delete()
+    galleries = _existing_galleries()
 
     keyboard = [[InlineKeyboardButton(g, callback_data=f"g:{g}")] for g in galleries]
     keyboard.append([InlineKeyboardButton("+ New Gallery", callback_data="g:__new__")])
