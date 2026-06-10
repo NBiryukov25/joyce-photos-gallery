@@ -31,7 +31,11 @@ REPO_DIR = Path(__file__).parent.resolve()
 ASSETS_DIR = REPO_DIR / "assets"
 GALLERIES_DIR = REPO_DIR / "galleries"
 
-BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+if not BOT_TOKEN:
+    print("TELEGRAM_BOT_TOKEN is not set. Add it in Railway → Variables, then redeploy.")
+    raise SystemExit(0)
+
 ALLOWED_USER_ID = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
 
 CHOOSING_GALLERY, NAMING_GALLERY, ADDING_CAPTION = range(3)
