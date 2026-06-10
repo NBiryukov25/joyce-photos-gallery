@@ -13,6 +13,7 @@ Optional env vars:
 """
 
 import base64
+import io
 import os
 import re
 import logging
@@ -21,6 +22,7 @@ from datetime import datetime
 from pathlib import Path
 
 import httpx
+from PIL import Image
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -110,6 +112,19 @@ def _existing_galleries() -> list[str]:
         d.name for d in _ASSETS_DIR.iterdir()
         if d.is_dir() and not d.name.startswith(".") and d.name not in _SKIP_DIRS
     )
+
+
+def _compress_photo(data: bytes, max_dimension: int = 1920, quality: int = 82) -> bytes:
+    img = Image.open(io.BytesIO(data))
+    if img.mode not in ("RGB", "L"):
+        img = img.convert("RGB")
+    w, h = img.size
+    if max(w, h) > max_dimension:
+        scale = max_dimension / max(w, h)
+        img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=quality, optimize=True)
+    return buf.getvalue()
 
 
 def _make_filename(use_original: bool, original_name: str) -> str:
@@ -275,7 +290,7 @@ async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         tmp_path = Path(tmp.name)
     tg_file = await context.bot.get_file(file_id)
     await tg_file.download_to_drive(str(tmp_path))
-    photo_bytes = tmp_path.read_bytes()
+    photo_bytes = _compress_photo(tmp_path.read_bytes())
     tmp_path.unlink(missing_ok=True)
 
     filename  = _make_filename(use_orig, orig_name)
