@@ -89,11 +89,21 @@ async def _gh_put_file(rel_path: str, content: bytes, message: str, sha: str | N
     }
     if sha:
         body["sha"] = sha
-    async with httpx.AsyncClient(timeout=60) as client:
-        r = await client.put(url, json=body, headers=_GH_HEADERS)
-    if r.status_code in (200, 201):
-        return True, ""
-    return False, r.json().get("message", f"HTTP {r.status_code}")
+    timeout = httpx.Timeout(connect=10.0, write=30.0, read=30.0, pool=5.0)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.put(url, json=body, headers=_GH_HEADERS)
+        if r.status_code in (200, 201):
+            return True, ""
+        try:
+            msg = r.json().get("message", f"HTTP {r.status_code}")
+        except Exception:
+            msg = f"HTTP {r.status_code}"
+        return False, msg
+    except httpx.TimeoutException as e:
+        return False, f"Timed out contacting GitHub ({e.__class__.__name__})"
+    except Exception as e:
+        return False, f"Network error: {e}"
 
 
 # ---------------------------------------------------------------------------
@@ -114,7 +124,7 @@ def _existing_galleries() -> list[str]:
     )
 
 
-def _compress_photo(data: bytes, max_dimension: int = 1920, quality: int = 82) -> bytes:
+def _compress_photo(data: bytes, max_dimension: int = 1600, quality: int = 78) -> bytes:
     img = Image.open(io.BytesIO(data))
     if img.mode not in ("RGB", "L"):
         img = img.convert("RGB")
@@ -290,13 +300,18 @@ async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         tmp_path = Path(tmp.name)
     tg_file = await context.bot.get_file(file_id)
     await tg_file.download_to_drive(str(tmp_path))
-    photo_bytes = _compress_photo(tmp_path.read_bytes())
+    raw_bytes = tmp_path.read_bytes()
     tmp_path.unlink(missing_ok=True)
+
+    await status.edit_text("Compressing photo...")
+    photo_bytes = _compress_photo(raw_bytes)
+    kb = len(photo_bytes) // 1024
+    logger.info("Compressed photo: %d KB (was %d KB)", kb, len(raw_bytes) // 1024)
 
     filename  = _make_filename(use_orig, orig_name)
     photo_rel = f"assets/{gallery}/{filename}"
 
-    await status.edit_text(f"Uploading to GitHub...")
+    await status.edit_text(f"Uploading to GitHub ({kb} KB)...")
 
     ok, err = await _gh_put_file(photo_rel, photo_bytes, f"Add {filename} to {gallery}")
     if not ok:
