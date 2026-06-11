@@ -12,6 +12,7 @@ Optional env vars:
   GITHUB_BRANCH            — defaults to main
 """
 
+import asyncio
 import base64
 import io
 import os
@@ -294,6 +295,18 @@ async def caption_skipped(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    try:
+        return await _finalize_inner(update, context)
+    except Exception as exc:
+        logger.exception("Unhandled error in _finalize")
+        try:
+            await update.message.reply_text(f"Error: {exc}")
+        except Exception:
+            pass
+        return ConversationHandler.END
+
+
+async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     gallery   = context.user_data["gallery"]
     caption   = context.user_data.get("caption", "")
     file_id   = context.user_data["file_id"]
@@ -305,7 +318,7 @@ async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
         tmp_path = Path(tmp.name)
     tg_file = await context.bot.get_file(file_id)
-    await tg_file.download_to_drive(str(tmp_path))
+    await asyncio.wait_for(tg_file.download_to_drive(str(tmp_path)), timeout=30)
     raw_bytes = tmp_path.read_bytes()
     tmp_path.unlink(missing_ok=True)
 
