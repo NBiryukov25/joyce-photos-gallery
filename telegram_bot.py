@@ -44,6 +44,12 @@ if not BOT_TOKEN:
     raise SystemExit(0)
 
 GITHUB_TOKEN  = os.environ.get("GITHUB_TOKEN", "")
+# Extract just the token if someone accidentally pasted label text around it
+_tok_match = re.search(r"(github_pat_\S+|ghp_\S+|ghs_\S+)", GITHUB_TOKEN)
+if _tok_match:
+    GITHUB_TOKEN = _tok_match.group(1)
+else:
+    GITHUB_TOKEN = GITHUB_TOKEN.strip()
 GITHUB_REPO   = os.environ.get("GITHUB_REPO", "NBiryukov25/joyce-photos-gallery")
 GITHUB_BRANCH = os.environ.get("GITHUB_BRANCH", "main")
 ALLOWED_USER_ID = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
