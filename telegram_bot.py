@@ -55,6 +55,9 @@ GITHUB_REPO   = os.environ.get("GITHUB_REPO", "NBiryukov25/joyce-photos-gallery"
 GITHUB_BRANCH = os.environ.get("GITHUB_BRANCH", "main")
 ALLOWED_USER_ID = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
 
+_repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
+GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
+
 CHOOSING_GALLERY, NAMING_GALLERY, ADDING_CAPTION = range(3)
 
 SPECIAL_HTML: dict[str, str] = {
@@ -118,17 +121,24 @@ async def _gh_put_file(rel_path: str, content: bytes, message: str, sha: str | N
 # ---------------------------------------------------------------------------
 
 _SKIP_DIRS = {"videos", "audio", "Gallery_photos"}
-_ASSETS_DIR = Path(__file__).parent.resolve() / "assets"
-_GALLERIES_DIR = Path(__file__).parent.resolve() / "galleries"
 
 
-def _existing_galleries() -> list[str]:
-    if not _ASSETS_DIR.exists():
-        return []
-    return sorted(
-        d.name for d in _ASSETS_DIR.iterdir()
-        if d.is_dir() and not d.name.startswith(".") and d.name not in _SKIP_DIRS
-    )
+async def _existing_galleries() -> list[str]:
+    url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/assets"
+    timeout = httpx.Timeout(connect=10.0, read=15.0, write=10.0, pool=5.0)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.get(url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
+        if r.status_code == 200:
+            return sorted(
+                item["name"] for item in r.json()
+                if item["type"] == "dir"
+                and not item["name"].startswith(".")
+                and item["name"] not in _SKIP_DIRS
+            )
+    except Exception:
+        pass
+    return []
 
 
 def _compress_photo(data: bytes, max_dimension: int = 1600, quality: int = 78) -> bytes:
@@ -225,7 +235,7 @@ async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def cmd_galleries(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
-    galleries = _existing_galleries()
+    galleries = await _existing_galleries()
     if galleries:
         lines = "\n".join(f"• {g}" for g in galleries)
         await update.message.reply_text(f"Galleries:\n{lines}")
@@ -251,7 +261,7 @@ async def photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         context.user_data["file_id"] = update.message.photo[-1].file_id
         context.user_data["use_original"] = False
 
-    galleries = _existing_galleries()
+    galleries = await _existing_galleries()
     keyboard = [[InlineKeyboardButton(g, callback_data=f"g:{g}")] for g in galleries]
     keyboard.append([InlineKeyboardButton("+ New Gallery", callback_data="g:__new__")])
 
@@ -353,9 +363,11 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     ok, err = await _gh_put_file(html_rel, new_html, f"Update {gallery} — add {filename}", sha=html_sha)
     if ok:
+        gallery_url = f"{GITHUB_PAGES_URL}/{html_rel}"
         await status.edit_text(
-            f"{filename} added to {gallery}.\n\n"
-            "Site will rebuild via GitHub Actions shortly."
+            f"✓ {filename} added to {gallery}.\n\n"
+            f"Gallery: {gallery_url}\n\n"
+            "(Site rebuilds in ~30 seconds)"
         )
     else:
         await status.edit_text(f"Photo uploaded but page update failed: {err}")
