@@ -3,43 +3,107 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Sheryl Joyce — Joyce & Friends. Candid moments, shared light.">
-  <title>Joyce &amp; Friends · Sheryl Joyce</title>
+  <meta name="description" content="Sheryl Joyce — Joyce & Nicole. International lovers.">
+  <title>Joyce & Nicole · Sheryl Joyce</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="gallery.css">
   <link rel="stylesheet" href="lightbox.css">
   <style>
-    .friends-grid {
-      columns: 3 200px;
-      column-gap: 1rem;
-      margin-bottom: 4em;
+    :root {
+      --text-soft: #888;
+      --accent: #c9a96e;
     }
 
-    .friends-photo {
+    .story-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    .story-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .story-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2.5rem;
+      font-weight: 300;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .story-caption {
+      font-family: 'Jost', sans-serif;
+      font-size: 1rem;
+      font-weight: 300;
+      line-height: 1.8;
+      color: var(--text-soft);
+      max-width: 700px;
+      margin: 0 auto 2rem;
+      text-align: center;
+    }
+
+    .story-caption strong {
+      color: #333;
+      font-weight: 400;
+    }
+
+    .story-tags {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 300;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-top: 1.5rem;
+    }
+
+    .photo-grid {
+      columns: 2 300px;
+      column-gap: 1.5rem;
+      margin-bottom: 4rem;
+    }
+
+    .photo-item {
+      break-inside: avoid;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .photo-item img {
       width: 100%;
       display: block;
-      margin-bottom: 1rem;
-      break-inside: avoid;
-      border-radius: 2px;
+      border-radius: 4px;
       cursor: zoom-in;
-      transition: opacity 0.22s ease;
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
-    .friends-photo:hover {
-      opacity: 0.82;
+    .photo-item img:hover {
+      opacity: 0.9;
+      transform: scale(1.01);
     }
 
-    .friends-empty {
+    .photo-label {
       font-family: 'Jost', sans-serif;
-      font-size: 0.75em;
+      font-size: 0.7rem;
       font-weight: 300;
-      letter-spacing: 0.28em;
+      letter-spacing: 0.15em;
       text-transform: uppercase;
       color: var(--text-soft);
-      padding: 4em 0;
+      margin-top: 0.5rem;
       text-align: center;
+    }
+
+    @media (max-width: 768px) {
+      .photo-grid {
+        columns: 1;
+      }
+      .story-title {
+        font-size: 1.8rem;
+      }
     }
   </style>
 </head>
@@ -58,48 +122,58 @@
 
   <section class="page-hero">
     <p class="page-hero-overline">Collection</p>
-    <h1 class="page-hero-title">Joyce &amp; Friends</h1>
-    <p class="page-hero-subtitle">Candid moments &nbsp;·&nbsp; Shared light</p>
+    <h1 class="page-hero-title">Joyce & Nicole</h1>
+    <p class="page-hero-subtitle">International lovers · Raw & unapologetic</p>
   </section>
 
   <hr class="gallery-divider">
 
-  <div class="stories-section-label">All Photos</div>
+  <div class="story-container">
+    
+    <div class="story-header">
+      <p class="story-caption">
+        <strong>Joyce (Filipino, right) & Nicole (blonde, left)</strong> 🌏🔥 International lovers who spent years living straight lives until they realized what they really craved was each other. Now we're done pretending. We're diving headfirst into brand new territory—hands sliding under waistbands, mouths mapping every curve, skin on skin, learning exactly how good it feels to finally stop following the old script. Raw, hungry, and completely unapologetic. 💋🖤
+      </p>
+      <div class="story-tags">#InternationalLovers #ExploringNewTerritory #OnceHeteroNowObsessed</div>
+    </div>
 
-  <div class="photo-grid" id="friends-grid"></div>
+    <div class="photo-grid">
+      
+      <div class="photo-item">
+        <img src="assets/Joyce-and-Friends/joyce-nicole-01.jpg" alt="Joyce and Nicole lying together" data-caption="Joyce & Nicole">
+        <div class="photo-label">Intimate Moments</div>
+      </div>
 
-  <script>
-    var filenames = [
-        'photo-20260612-023428.jpg',
-        'photo-20260612-024353.jpg',
-        'photo-20260612-025035.jpg',
-        'photo-20260612-025107.jpg',
-      ];
+      <div class="photo-item">
+        <img src="assets/Joyce-and-Friends/joyce-nicole-02.jpg" alt="Joyce and Nicole kissing" data-caption="Joyce & Nicole">
+        <div class="photo-label">The Kiss</div>
+      </div>
 
-    var folder = 'assets/Joyce-and-Friends/';
+      <div class="photo-item">
+        <img src="assets/Joyce-and-Friends/joyce-nicole-03.jpg" alt="Joyce and Nicole together" data-caption="Joyce & Nicole">
+        <div class="photo-label">Together</div>
+      </div>
 
-    (function () {
-      var grid = document.getElementById('friends-grid');
+      <div class="photo-item">
+        <img src="assets/Joyce-and-Friends/joyce-nicole-04.jpg" alt="Nicole" data-caption="Nicole">
+        <div class="photo-label">Nicole</div>
+      </div>
 
-      if (!filenames.length) {
-        var empty = document.createElement('p');
-        empty.className = 'friends-empty';
-        empty.textContent = 'No photos yet.';
-        grid.appendChild(empty);
-        return;
-      }
+    </div>
 
-      filenames.forEach(function (name) {
-        var img = document.createElement('img');
-        img.src = folder + encodeURIComponent(name);
-        img.alt = 'Joyce & Friends';
-        img.className = 'friends-photo';
-        grid.appendChild(img);
-      });
-    })();
-  </script>
+  </div>
 
   <script src="lightbox.js"></script>
+  <script>
+    // Initialize lightbox for all gallery images
+    document.querySelectorAll('.photo-item img').forEach(img => {
+      img.addEventListener('click', function() {
+        if (typeof openLightbox === 'function') {
+          openLightbox(this.src, this.getAttribute('data-caption'));
+        }
+      });
+    });
+  </script>
 
 </body>
 </html>
