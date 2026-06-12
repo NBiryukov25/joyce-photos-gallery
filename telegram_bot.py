@@ -164,6 +164,11 @@ def _safe_js(value: str) -> str:
     return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
+def _safe_html(value: str) -> str:
+    return (value.replace("&", "&amp;").replace("<", "&lt;")
+            .replace(">", "&gt;").replace('"', "&quot;"))
+
+
 def _insert_into_js_array(text: str, var_name: str, value: str) -> str:
     pattern = rf"(var {re.escape(var_name)}\s*=\s*\[)([\s\S]*?)(\];)"
 
@@ -177,11 +182,32 @@ def _insert_into_js_array(text: str, var_name: str, value: str) -> str:
     return re.sub(pattern, replacer, text)
 
 
-def _updated_html(current: bytes, filename: str, caption: str) -> bytes:
+def _updated_html(current: bytes, gallery: str, filename: str, caption: str) -> bytes:
     text = current.decode("utf-8")
-    text = _insert_into_js_array(text, "filenames", filename)
-    if re.search(r"var captions\s*=\s*\[", text):
-        text = _insert_into_js_array(text, "captions", caption)
+
+    if re.search(r"var filenames\s*=\s*\[", text):
+        # Slideshow gallery: update JS arrays
+        text = _insert_into_js_array(text, "filenames", filename)
+        if re.search(r"var captions\s*=\s*\[", text):
+            text = _insert_into_js_array(text, "captions", caption)
+    elif re.search(r'class="photo-grid"', text):
+        # Photo-grid gallery (e.g. friends.html): append a photo-item div
+        asset_path = f"assets/{gallery}/{filename}"
+        label = _safe_html(caption if caption else filename)
+        new_item = (
+            f'\n      <div class="photo-item">\n'
+            f'        <img src="{asset_path}" alt="{_safe_html(caption or "Photo")}"'
+            f' data-caption="{_safe_html(caption)}">\n'
+            f'        <div class="photo-label">{label}</div>\n'
+            f'      </div>'
+        )
+        text = re.sub(
+            r'(\n\n    </div>\n\n  </div>)',
+            new_item + r'\1',
+            text,
+            count=1,
+        )
+
     return text.encode("utf-8")
 
 
@@ -353,7 +379,7 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     current_html, html_sha = await _gh_get_file(html_rel)
 
     if current_html is not None:
-        new_html = _updated_html(current_html, filename, caption)
+        new_html = _updated_html(current_html, gallery, filename, caption)
     else:
         template, _ = await _gh_get_file("galleries/_template-gallery.html")
         if not template:
