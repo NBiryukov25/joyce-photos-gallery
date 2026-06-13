@@ -58,11 +58,9 @@ ALLOWED_USER_ID = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
-CHOOSING_GALLERY, NAMING_GALLERY, ADDING_CAPTION = range(3)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION = range(5)
 
-SPECIAL_HTML: dict[str, str] = {
-    "Joyce-and-Friends": "friends.html",
-}
+SPECIAL_HTML: dict[str, str] = {}
 
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -120,7 +118,7 @@ async def _gh_put_file(rel_path: str, content: bytes, message: str, sha: str | N
 # gallery helpers
 # ---------------------------------------------------------------------------
 
-_SKIP_DIRS = {"videos", "audio", "Gallery_photos"}
+_SKIP_DIRS = {"videos", "audio", "Gallery_photos", "Joyce-and-Friends"}
 
 
 async def _existing_galleries() -> list[str]:
@@ -234,6 +232,24 @@ def _html_rel_path(gallery: str) -> str:
     return SPECIAL_HTML.get(gallery) or f"galleries/{gallery.lower()}.html"
 
 
+def _update_friends_index(friends_html: bytes, gallery: str, filename: str) -> bytes:
+    text = friends_html.decode("utf-8")
+    html_path = _html_rel_path(gallery)
+    if html_path in text:
+        return friends_html  # card already present
+    name = gallery.replace("Friends-", "").replace("-", " ").title()
+    img_src = f"assets/{gallery}/{filename}"
+    card = (
+        f'<div class="gallery-item">'
+        f'<a href="{html_path}"><img src="{img_src}" alt="{_safe_html(name)}"></a>'
+        f'<div class="gallery-caption">'
+        f'<p class="gallery-caption-title">{_safe_html(name)}</p>'
+        f'<a class="gallery-view-link" href="{html_path}">View gallery →</a>'
+        f'</div></div>\n'
+    )
+    return text.replace('<!-- friend-gallery-insert -->', card + '<!-- friend-gallery-insert -->').encode("utf-8")
+
+
 # ---------------------------------------------------------------------------
 # authorization
 # ---------------------------------------------------------------------------
@@ -288,7 +304,9 @@ async def photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         context.user_data["use_original"] = False
 
     galleries = await _existing_galleries()
-    keyboard = [[InlineKeyboardButton(g, callback_data=f"g:{g}")] for g in galleries]
+    regular = [g for g in galleries if not g.startswith("Friends-")]
+    keyboard = [[InlineKeyboardButton(g, callback_data=f"g:{g}")] for g in regular]
+    keyboard.append([InlineKeyboardButton("Friends →", callback_data="g:__friends__")])
     keyboard.append([InlineKeyboardButton("+ New Gallery", callback_data="g:__new__")])
 
     await update.message.reply_text(
@@ -307,8 +325,41 @@ async def gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await query.edit_message_text("New gallery name? (e.g. Paris-Summer)")
         return NAMING_GALLERY
 
+    if choice == "__friends__":
+        all_galleries = await _existing_galleries()
+        friend_galleries = [g for g in all_galleries if g.startswith("Friends-")]
+        keyboard = [[InlineKeyboardButton(
+            g.replace("Friends-", "").replace("-", " "),
+            callback_data=f"f:{g}"
+        )] for g in friend_galleries]
+        keyboard.append([InlineKeyboardButton("+ New Friend Gallery", callback_data="f:__new__")])
+        await query.edit_message_text("Which friend gallery?", reply_markup=InlineKeyboardMarkup(keyboard))
+        return CHOOSING_FRIEND_GALLERY
+
     context.user_data["gallery"] = choice
     await query.edit_message_text(f"Adding to {choice}.\n\nCaption? (or /skip)")
+    return ADDING_CAPTION
+
+
+async def friend_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    choice = query.data[2:]  # strips "f:"
+    if choice == "__new__":
+        await query.edit_message_text("Name this friend group (e.g. Nicole, Maria):")
+        return NAMING_FRIEND_GALLERY
+    context.user_data["gallery"] = choice
+    name = choice.replace("Friends-", "").replace("-", " ").title()
+    await query.edit_message_text(f"Adding to {name}.\n\nCaption? (or /skip)")
+    return ADDING_CAPTION
+
+
+async def friend_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    raw = update.message.text.strip()
+    name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "Friend"
+    gallery = f"Friends-{name}"
+    context.user_data["gallery"] = gallery
+    await update.message.reply_text(f"New friend gallery: {name.replace('-', ' ')}\n\nCaption? (or /skip)")
     return ADDING_CAPTION
 
 
@@ -388,15 +439,29 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         new_html = _new_gallery_html(template, gallery, filename, caption)
 
     ok, err = await _gh_put_file(html_rel, new_html, f"Update {gallery} — add {filename}", sha=html_sha)
-    if ok:
-        gallery_url = f"{GITHUB_PAGES_URL}/{html_rel}"
-        await status.edit_text(
-            f"✓ {filename} added to {gallery}.\n\n"
-            f"Gallery: {gallery_url}\n\n"
-            "(Site rebuilds in ~30 seconds)"
-        )
-    else:
+    if not ok:
         await status.edit_text(f"Photo uploaded but page update failed: {err}")
+        return ConversationHandler.END
+
+    # New friend gallery → add a card to friends.html index
+    if gallery.startswith("Friends-") and html_sha is None:
+        friends_html, friends_sha = await _gh_get_file("friends.html")
+        if friends_html:
+            updated_friends = _update_friends_index(friends_html, gallery, filename)
+            if updated_friends != friends_html:
+                await _gh_put_file(
+                    "friends.html", updated_friends,
+                    f"Add {gallery} gallery card to friends page",
+                    sha=friends_sha,
+                )
+
+    gallery_url = f"{GITHUB_PAGES_URL}/{html_rel}"
+    display = gallery.replace("Friends-", "").replace("-", " ") if gallery.startswith("Friends-") else gallery
+    await status.edit_text(
+        f"✓ {filename} added to {display}.\n\n"
+        f"Gallery: {gallery_url}\n\n"
+        "(Site rebuilds in ~30 seconds)"
+    )
 
     return ConversationHandler.END
 
@@ -417,9 +482,11 @@ def main() -> None:
     conv = ConversationHandler(
         entry_points=[MessageHandler(filters.PHOTO | filters.Document.IMAGE, photo_received)],
         states={
-            CHOOSING_GALLERY: [CallbackQueryHandler(gallery_chosen, pattern=r"^g:")],
-            NAMING_GALLERY:   [MessageHandler(filters.TEXT & ~filters.COMMAND, gallery_named)],
-            ADDING_CAPTION:   [
+            CHOOSING_GALLERY:        [CallbackQueryHandler(gallery_chosen, pattern=r"^g:")],
+            NAMING_GALLERY:          [MessageHandler(filters.TEXT & ~filters.COMMAND, gallery_named)],
+            CHOOSING_FRIEND_GALLERY: [CallbackQueryHandler(friend_gallery_chosen, pattern=r"^f:")],
+            NAMING_FRIEND_GALLERY:   [MessageHandler(filters.TEXT & ~filters.COMMAND, friend_gallery_named)],
+            ADDING_CAPTION:          [
                 CommandHandler("skip", caption_skipped),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, caption_received),
             ],
