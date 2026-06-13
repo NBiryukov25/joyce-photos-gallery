@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Budget" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <title>Budget Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1a2e;
+      --surface: #16213e;
+      --card: #0f3460;
+      --green: #4ade80;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --border: rgba(255,255,255,0.1);
+      --radius: 14px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bot: env(safe-area-inset-bottom, 0px);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      padding-bottom: calc(var(--safe-bot) + 80px);
+    }
+
+    header {
+      background: var(--surface);
+      padding: calc(var(--safe-top) + 16px) 20px 16px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.3px; }
+    header p { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    .summary {
+      margin: 16px;
+      background: linear-gradient(135deg, #0f3460, #16213e);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .balance-label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+    .balance-amount {
+      font-size: 2.8rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin: 4px 0 16px;
+      transition: color 0.3s;
+    }
+
+    .balance-amount.positive { color: var(--green); }
+    .balance-amount.negative { color: var(--red); }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+    }
+
+    .summary-item { text-align: center; flex: 1; }
+    .summary-item .label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .summary-item .value { font-size: 1rem; font-weight: 700; margin-top: 2px; }
+    .summary-item .value.green { color: var(--green); }
+    .summary-item .value.red { color: var(--red); }
+
+    .divider { width: 1px; background: var(--border); margin: 0 8px; }
+
+    .section { margin: 0 16px 16px; }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+    }
+
+    .add-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .entries { display: flex; flex-direction: column; gap: 8px; }
+
+    .entry {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .entry-name { font-size: 0.95rem; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .entry-note { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+    .entry-amount { font-size: 1rem; font-weight: 700; flex-shrink: 0; }
+    .entry-amount.green { color: var(--green); }
+    .entry-amount.red { color: var(--red); }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 8px;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+    }
+    .delete-btn:active { background: rgba(255,255,255,0.08); }
+
+    .empty { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 16px; }
+
+    /* Modal */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: #1e2a3a;
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      padding: 20px 20px calc(var(--safe-bot) + 24px);
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .overlay.open .modal { transform: translateY(0); }
+
+    .modal-handle {
+      width: 40px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+
+    .modal h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; }
+
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+
+    .field input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    .field input:focus { border-color: rgba(255,255,255,0.3); }
+
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+    .btn-cancel, .btn-save {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-cancel { background: var(--surface); color: var(--text); }
+    .btn-save { background: var(--green); color: #111; }
+    .btn-save:active { opacity: 0.85; }
+
+    .cash-on-hand-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .cash-on-hand-input span { color: var(--muted); font-size: 1.1rem; font-weight: 700; }
+    .cash-on-hand-input input {
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 1.4rem;
+      font-weight: 700;
+      font-family: inherit;
+      width: 100%;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .reset-btn {
+      display: block;
+      margin: 8px auto 0;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Budget Tracker</h1>
+  <p>Tap + to add items • Data saved on device</p>
+</header>
+
+<!-- Summary -->
+<div class="summary">
+  <div class="balance-label">Money Available</div>
+  <div class="balance-amount" id="balance">$0.00</div>
+  <div class="summary-row">
+    <div class="summary-item">
+      <div class="label">Cash on Hand</div>
+      <div class="value green" id="sum-cash">$0</div>
+    </div>
+    <div class="divider"></div>
+    <div class="summary-item">
+      <div class="label">Income</div>
+      <div class="value green" id="sum-income">$0</div>
+    </div>
+    <div class="divider"></div>
+    <div class="summary-item">
+      <div class="label">Expenses</div>
+      <div class="value red" id="sum-expenses">$0</div>
+    </div>
+  </div>
+</div>
+
+<!-- Cash on Hand -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">Cash on Hand</span>
+  </div>
+  <div class="cash-on-hand-input">
+    <span>$</span>
+    <input type="number" id="cash-input" inputmode="decimal" placeholder="0.00" />
+  </div>
+</div>
+
+<!-- Income -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">Income</span>
+    <button class="add-btn" onclick="openModal('income')">+ Add</button>
+  </div>
+  <div class="entries" id="income-list"></div>
+</div>
+
+<!-- Expenses -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">Projected Expenses</span>
+    <button class="add-btn" onclick="openModal('expense')">+ Add</button>
+  </div>
+  <div class="entries" id="expense-list"></div>
+</div>
+
+<button class="reset-btn" onclick="confirmReset()">Reset All</button>
+
+<!-- Modal -->
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modal-title">Add Item</h2>
+    <div class="field">
+      <label>Name / Description</label>
+      <input type="text" id="modal-name" placeholder="e.g. Paycheck, Rent…" />
+    </div>
+    <div class="field">
+      <label>Amount ($)</label>
+      <input type="number" id="modal-amount" inputmode="decimal" placeholder="0.00" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveEntry()">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentType = null;
+
+  // --- State ---
+  function load() {
+    return JSON.parse(localStorage.getItem('budget_data') || '{"cash":0,"income":[],"expenses":[]}');
+  }
+  function save(data) {
+    localStorage.setItem('budget_data', JSON.stringify(data));
+  }
+
+  // --- Render ---
+  function fmt(n) {
+    return '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function render() {
+    const data = load();
+    const cash = parseFloat(data.cash) || 0;
+    const totalIncome = data.income.reduce((s, e) => s + e.amount, 0);
+    const totalExpenses = data.expenses.reduce((s, e) => s + e.amount, 0);
+    const balance = cash + totalIncome - totalExpenses;
+
+    const balEl = document.getElementById('balance');
+    balEl.textContent = (balance < 0 ? '-' : '') + fmt(balance);
+    balEl.className = 'balance-amount ' + (balance < 0 ? 'negative' : 'positive');
+
+    document.getElementById('sum-cash').textContent = fmt(cash);
+    document.getElementById('sum-income').textContent = fmt(totalIncome);
+    document.getElementById('sum-expenses').textContent = fmt(totalExpenses);
+    document.getElementById('cash-input').value = cash || '';
+
+    renderList('income-list', data.income, 'income', 'green');
+    renderList('expense-list', data.expenses, 'expense', 'red');
+  }
+
+  function renderList(containerId, items, type, colorClass) {
+    const el = document.getElementById(containerId);
+    if (!items.length) {
+      el.innerHTML = '<div class="empty">None added yet</div>';
+      return;
+    }
+    el.innerHTML = items.map((item, i) => `
+      <div class="entry">
+        <div>
+          <div class="entry-name">${escHtml(item.name)}</div>
+        </div>
+        <div class="entry-amount ${colorClass}">${fmt(item.amount)}</div>
+        <button class="delete-btn" onclick="deleteEntry('${type}', ${i})">&#x2715;</button>
+      </div>
+    `).join('');
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // --- Cash on Hand ---
+  document.getElementById('cash-input').addEventListener('input', function() {
+    const data = load();
+    data.cash = parseFloat(this.value) || 0;
+    save(data);
+    render();
+  });
+
+  // --- Modal ---
+  function openModal(type) {
+    currentType = type;
+    document.getElementById('modal-title').textContent = type === 'income' ? 'Add Income' : 'Add Expense';
+    document.getElementById('modal-name').value = '';
+    document.getElementById('modal-amount').value = '';
+    document.getElementById('overlay').classList.add('open');
+    setTimeout(() => document.getElementById('modal-name').focus(), 250);
+  }
+
+  function closeModal() {
+    document.getElementById('overlay').classList.remove('open');
+    currentType = null;
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('overlay')) closeModal();
+  }
+
+  function saveEntry() {
+    const name = document.getElementById('modal-name').value.trim();
+    const amount = parseFloat(document.getElementById('modal-amount').value);
+    if (!name) { document.getElementById('modal-name').focus(); return; }
+    if (!amount || amount <= 0) { document.getElementById('modal-amount').focus(); return; }
+
+    const data = load();
+    const entry = { name, amount };
+    if (currentType === 'income') data.income.push(entry);
+    else data.expenses.push(entry);
+    save(data);
+    render();
+    closeModal();
+  }
+
+  // --- Delete ---
+  function deleteEntry(type, index) {
+    const data = load();
+    if (type === 'income') data.income.splice(index, 1);
+    else data.expenses.splice(index, 1);
+    save(data);
+    render();
+  }
+
+  // --- Reset ---
+  function confirmReset() {
+    if (confirm('Clear all data and start over?')) {
+      localStorage.removeItem('budget_data');
+      render();
+    }
+  }
+
+  // --- Enter key in modal ---
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && document.getElementById('overlay').classList.contains('open')) {
+      saveEntry();
+    }
+  });
+
+  // --- Init ---
+  render();
+</script>
+</body>
+</html>
