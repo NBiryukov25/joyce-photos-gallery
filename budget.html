@@ -17,7 +17,6 @@
       --card: #0f3460;
       --green: #4ade80;
       --red: #f87171;
-      --yellow: #fbbf24;
       --text: #f1f5f9;
       --muted: #94a3b8;
       --border: rgba(255,255,255,0.1);
@@ -31,20 +30,64 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100dvh;
-      padding-bottom: calc(var(--safe-bot) + 80px);
+      padding-bottom: calc(var(--safe-bot) + 90px);
     }
 
     header {
       background: var(--surface);
-      padding: calc(var(--safe-top) + 16px) 20px 16px;
+      padding: calc(var(--safe-top) + 16px) 20px 14px;
       border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
       z-index: 100;
     }
 
-    header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.3px; }
-    header p { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    header h1 { font-size: 1.25rem; font-weight: 700; }
+
+    .backup-bar {
+      background: #0d2137;
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .backup-bar span { font-size: 0.72rem; color: var(--muted); flex: 1; }
+    .backup-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .backup-btn:active { opacity: 0.7; }
+
+    .toast {
+      position: fixed;
+      bottom: calc(var(--safe-bot) + 100px);
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1e3a1e;
+      border: 1px solid var(--green);
+      color: var(--green);
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 300;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     .summary {
       margin: 16px;
@@ -55,7 +98,6 @@
     }
 
     .balance-label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-
     .balance-amount {
       font-size: 2.8rem;
       font-weight: 800;
@@ -63,38 +105,20 @@
       margin: 4px 0 16px;
       transition: color 0.3s;
     }
-
     .balance-amount.positive { color: var(--green); }
     .balance-amount.negative { color: var(--red); }
 
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 8px;
-    }
-
+    .summary-row { display: flex; justify-content: space-between; margin-top: 8px; }
     .summary-item { text-align: center; flex: 1; }
     .summary-item .label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
     .summary-item .value { font-size: 1rem; font-weight: 700; margin-top: 2px; }
     .summary-item .value.green { color: var(--green); }
     .summary-item .value.red { color: var(--red); }
-
     .divider { width: 1px; background: var(--border); margin: 0 8px; }
 
     .section { margin: 0 16px 16px; }
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .section-title {
-      font-size: 0.85rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--muted);
-    }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .section-title { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
 
     .add-btn {
       background: var(--card);
@@ -105,11 +129,11 @@
       font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
+      font-family: inherit;
       -webkit-tap-highlight-color: transparent;
     }
 
     .entries { display: flex; flex-direction: column; gap: 8px; }
-
     .entry {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -120,13 +144,10 @@
       align-items: center;
       gap: 10px;
     }
-
     .entry-name { font-size: 0.95rem; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .entry-note { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
     .entry-amount { font-size: 1rem; font-weight: 700; flex-shrink: 0; }
     .entry-amount.green { color: var(--green); }
     .entry-amount.red { color: var(--red); }
-
     .delete-btn {
       background: none;
       border: none;
@@ -135,79 +156,12 @@
       cursor: pointer;
       padding: 4px 6px;
       border-radius: 8px;
-      -webkit-tap-highlight-color: transparent;
       flex-shrink: 0;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
     }
     .delete-btn:active { background: rgba(255,255,255,0.08); }
-
     .empty { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 16px; }
-
-    /* Modal */
-    .overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(4px);
-      z-index: 200;
-      display: flex;
-      align-items: flex-end;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s;
-    }
-    .overlay.open { opacity: 1; pointer-events: all; }
-
-    .modal {
-      background: #1e2a3a;
-      border-radius: 20px 20px 0 0;
-      width: 100%;
-      padding: 20px 20px calc(var(--safe-bot) + 24px);
-      transform: translateY(100%);
-      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .overlay.open .modal { transform: translateY(0); }
-
-    .modal-handle {
-      width: 40px; height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      margin: 0 auto 20px;
-    }
-
-    .modal h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; }
-
-    .field { margin-bottom: 16px; }
-    .field label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
-
-    .field input {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 14px;
-      color: var(--text);
-      font-size: 1rem;
-      font-family: inherit;
-      outline: none;
-      -webkit-appearance: none;
-    }
-    .field input:focus { border-color: rgba(255,255,255,0.3); }
-
-    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-
-    .btn-cancel, .btn-save {
-      flex: 1;
-      padding: 14px;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      font-family: inherit;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn-cancel { background: var(--surface); color: var(--text); }
-    .btn-save { background: var(--green); color: #111; }
-    .btn-save:active { opacity: 0.85; }
 
     .cash-on-hand-input {
       background: var(--surface);
@@ -243,16 +197,69 @@
       cursor: pointer;
       font-family: inherit;
     }
+
+    /* Modal */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: #1e2a3a;
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      padding: 20px 20px calc(var(--safe-bot) + 24px);
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .overlay.open .modal { transform: translateY(0); }
+    .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+    .modal h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+    .field input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    .field input:focus { border-color: rgba(255,255,255,0.3); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-cancel, .btn-save {
+      flex: 1; padding: 14px; border-radius: 12px;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      border: none; font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-cancel { background: var(--surface); color: var(--text); }
+    .btn-save { background: var(--green); color: #111; }
+    .btn-save:active { opacity: 0.85; }
   </style>
 </head>
 <body>
 
 <header>
   <h1>Budget Tracker</h1>
-  <p>Tap + to add items • Data saved on device</p>
 </header>
 
-<!-- Summary -->
+<div class="backup-bar">
+  <span>Tap to copy a backup link — paste it in Notes to never lose data</span>
+  <button class="backup-btn" onclick="copyBackupLink()">Copy Link</button>
+</div>
+
 <div class="summary">
   <div class="balance-label">Money Available</div>
   <div class="balance-amount" id="balance">$0.00</div>
@@ -274,7 +281,6 @@
   </div>
 </div>
 
-<!-- Cash on Hand -->
 <div class="section">
   <div class="section-header">
     <span class="section-title">Cash on Hand</span>
@@ -285,7 +291,6 @@
   </div>
 </div>
 
-<!-- Income -->
 <div class="section">
   <div class="section-header">
     <span class="section-title">Income</span>
@@ -294,7 +299,6 @@
   <div class="entries" id="income-list"></div>
 </div>
 
-<!-- Expenses -->
 <div class="section">
   <div class="section-header">
     <span class="section-title">Projected Expenses</span>
@@ -305,7 +309,8 @@
 
 <button class="reset-btn" onclick="confirmReset()">Reset All</button>
 
-<!-- Modal -->
+<div class="toast" id="toast"></div>
+
 <div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -328,12 +333,59 @@
 <script>
   let currentType = null;
 
-  // --- State ---
-  function load() {
-    return JSON.parse(localStorage.getItem('budget_data') || '{"cash":0,"income":[],"expenses":[]}');
+  // --- Storage: localStorage + URL hash as backup ---
+  function encode(data) {
+    try { return btoa(unescape(encodeURIComponent(JSON.stringify(data)))); } catch(e) { return ''; }
   }
+  function decode(str) {
+    try { return JSON.parse(decodeURIComponent(escape(atob(str)))); } catch(e) { return null; }
+  }
+
+  function load() {
+    // URL hash takes priority (restoring from backup link)
+    const hash = location.hash.slice(1);
+    if (hash) {
+      const data = decode(hash);
+      if (data && (data.income || data.expenses)) {
+        try { localStorage.setItem('budget_data', JSON.stringify(data)); } catch(e) {}
+        return data;
+      }
+    }
+    try {
+      const stored = localStorage.getItem('budget_data');
+      if (stored) return JSON.parse(stored);
+    } catch(e) {}
+    return { cash: 0, income: [], expenses: [] };
+  }
+
   function save(data) {
-    localStorage.setItem('budget_data', JSON.stringify(data));
+    try { localStorage.setItem('budget_data', JSON.stringify(data)); } catch(e) {}
+    const encoded = encode(data);
+    if (encoded) history.replaceState(null, '', '#' + encoded);
+  }
+
+  // --- Backup ---
+  function copyBackupLink() {
+    const url = location.href;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => showToast('Backup link copied! Paste it in Notes.'));
+    } else {
+      const el = document.createElement('textarea');
+      el.value = url;
+      el.style.cssText = 'position:fixed;top:-9999px';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      showToast('Backup link copied! Paste it in Notes.');
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
   }
 
   // --- Render ---
@@ -369,17 +421,15 @@
     }
     el.innerHTML = items.map((item, i) => `
       <div class="entry">
-        <div>
-          <div class="entry-name">${escHtml(item.name)}</div>
-        </div>
+        <div class="entry-name">${escHtml(item.name)}</div>
         <div class="entry-amount ${colorClass}">${fmt(item.amount)}</div>
         <button class="delete-btn" onclick="deleteEntry('${type}', ${i})">&#x2715;</button>
       </div>
     `).join('');
   }
 
-  function escHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   // --- Cash on Hand ---
@@ -414,7 +464,6 @@
     const amount = parseFloat(document.getElementById('modal-amount').value);
     if (!name) { document.getElementById('modal-name').focus(); return; }
     if (!amount || amount <= 0) { document.getElementById('modal-amount').focus(); return; }
-
     const data = load();
     const entry = { name, amount };
     if (currentType === 'income') data.income.push(entry);
@@ -424,7 +473,6 @@
     closeModal();
   }
 
-  // --- Delete ---
   function deleteEntry(type, index) {
     const data = load();
     if (type === 'income') data.income.splice(index, 1);
@@ -433,22 +481,18 @@
     render();
   }
 
-  // --- Reset ---
   function confirmReset() {
     if (confirm('Clear all data and start over?')) {
-      localStorage.removeItem('budget_data');
+      try { localStorage.removeItem('budget_data'); } catch(e) {}
+      history.replaceState(null, '', location.pathname);
       render();
     }
   }
 
-  // --- Enter key in modal ---
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && document.getElementById('overlay').classList.contains('open')) {
-      saveEntry();
-    }
+    if (e.key === 'Enter' && document.getElementById('overlay').classList.contains('open')) saveEntry();
   });
 
-  // --- Init ---
   render();
 </script>
 </body>
