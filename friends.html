@@ -10,38 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="gallery.css">
   <link rel="stylesheet" href="lightbox.css">
-  <style>
-    .friends-grid {
-      columns: 3 200px;
-      column-gap: 1rem;
-      margin-bottom: 4em;
-    }
-
-    .friends-photo {
-      width: 100%;
-      display: block;
-      margin-bottom: 1rem;
-      break-inside: avoid;
-      border-radius: 2px;
-      cursor: zoom-in;
-      transition: opacity 0.22s ease;
-    }
-
-    .friends-photo:hover {
-      opacity: 0.82;
-    }
-
-    .friends-empty {
-      font-family: 'Jost', sans-serif;
-      font-size: 0.75em;
-      font-weight: 300;
-      letter-spacing: 0.28em;
-      text-transform: uppercase;
-      color: var(--text-soft);
-      padding: 4em 0;
-      text-align: center;
-    }
-  </style>
 </head>
 <body>
 
@@ -64,36 +32,9 @@
 
   <hr class="gallery-divider">
 
-  <div class="stories-section-label">All Photos</div>
-
-  <div class="photo-grid" id="friends-grid"></div>
-
-  <script>
-    var filenames = [
-    ];
-
-    var folder = 'assets/Joyce-and-Friends/';
-
-    (function () {
-      var grid = document.getElementById('friends-grid');
-
-      if (!filenames.length) {
-        var empty = document.createElement('p');
-        empty.className = 'friends-empty';
-        empty.textContent = 'No photos yet.';
-        grid.appendChild(empty);
-        return;
-      }
-
-      filenames.forEach(function (name) {
-        var img = document.createElement('img');
-        img.src = folder + encodeURIComponent(name);
-        img.alt = 'Joyce & Friends';
-        img.className = 'friends-photo';
-        grid.appendChild(img);
-      });
-    })();
-  </script>
+  <div class="gallery-row" id="friend-galleries"><div class="gallery-item"><a href="galleries/susan-and-joyce.html"><img src="assets/Susan-and-Joyce/photo-20260612-172207.jpg" alt="Susan &amp; Joyce"></a><div class="gallery-caption"><p class="gallery-caption-title">Susan &amp; Joyce</p><a class="gallery-view-link" href="galleries/susan-and-joyce.html">View gallery →</a></div></div>
+<div class="gallery-item"><a href="galleries/friends-spreading-her-wings.html"><img src="assets/Joyce-and-Friends/photo-20260612-023428.jpg" alt="Spreading Her Wings"></a><div class="gallery-caption"><p class="gallery-caption-title">Spreading Her Wings</p><a class="gallery-view-link" href="galleries/friends-spreading-her-wings.html">View gallery →</a></div></div>
+<!-- friend-gallery-insert --></div>
 
   <script src="lightbox.js"></script>
 
