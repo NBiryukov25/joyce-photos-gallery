@@ -467,8 +467,8 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await status.edit_text(f"Photo uploaded but page update failed: {err}")
         return ConversationHandler.END
 
-    # New friend gallery → add a card to friends.html index
-    if gallery.startswith("Friends-") and html_sha is None:
+    # New gallery → add a card to friends.html index
+    if html_sha is None:
         friends_html, friends_sha = await _gh_get_file("friends.html")
         if friends_html:
             updated_friends = _update_friends_index(friends_html, gallery, filename)
