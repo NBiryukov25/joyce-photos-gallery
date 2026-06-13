@@ -232,6 +232,30 @@ def _html_rel_path(gallery: str) -> str:
     return SPECIAL_HTML.get(gallery) or f"galleries/{gallery.lower()}.html"
 
 
+def _update_gallery_index(gallery_html: bytes, gallery: str, filename: str) -> bytes:
+    text = gallery_html.decode("utf-8")
+    html_path = _html_rel_path(gallery)
+    if html_path in text:
+        return gallery_html  # already linked
+    name = gallery.replace("-", " ").title()
+    img_src = f"assets/{gallery}/{filename}"
+    card = (
+        f'<div class="gallery-item">'
+        f'<a href="{html_path}"><img src="{img_src}" alt="{_safe_html(name)}"></a>'
+        f'<div class="gallery-caption">'
+        f'<p class="gallery-caption-title">{_safe_html(name)}</p>'
+        f'<a class="gallery-view-link" href="{html_path}">View full series →</a>'
+        f'</div></div>\n'
+    )
+    updated = text.replace('<!-- new-gallery-insert -->', card + '<!-- new-gallery-insert -->')
+    # Show the section label once there's content
+    updated = updated.replace(
+        'id="new-galleries-label" style="display:none"',
+        'id="new-galleries-label"',
+    )
+    return updated.encode("utf-8")
+
+
 def _update_friends_index(friends_html: bytes, gallery: str, filename: str) -> bytes:
     text = friends_html.decode("utf-8")
     html_path = _html_rel_path(gallery)
@@ -442,6 +466,18 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not ok:
         await status.edit_text(f"Photo uploaded but page update failed: {err}")
         return ConversationHandler.END
+
+    # New regular gallery → add a card to gallery.html
+    if not gallery.startswith("Friends-") and html_sha is None:
+        main_html, main_sha = await _gh_get_file("gallery.html")
+        if main_html:
+            updated_main = _update_gallery_index(main_html, gallery, filename)
+            if updated_main != main_html:
+                await _gh_put_file(
+                    "gallery.html", updated_main,
+                    f"Add {gallery} to gallery index",
+                    sha=main_sha,
+                )
 
     # New friend gallery → add a card to friends.html index
     if gallery.startswith("Friends-") and html_sha is None:
