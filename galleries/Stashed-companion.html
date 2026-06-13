@@ -11,7 +11,109 @@
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; background: #060404; color: #f7f1ee; font-family: 'Cormorant Garamond', serif; overflow: hidden; }
     body { display: flex; align-items: stretch; justify-content: center; }
-    .slideshow-shell { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+    .slideshow-shell { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #060404; }
+
+    /* ===========================
+       CINEMATIC YOUTUBE INTRO
+       Change only YOUTUBE_ID in the script below.
+       =========================== */
+    .intro-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 1.2s ease, visibility 1.2s ease;
+    }
+    .intro-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .intro-start {
+      position: relative;
+      z-index: 105;
+      max-width: 88vw;
+      text-align: center;
+      padding: 2rem;
+    }
+    .intro-start h2 {
+      margin: 0 0 0.7rem;
+      font-size: clamp(2rem, 6vw, 5rem);
+      font-weight: 300;
+      letter-spacing: 0.06em;
+    }
+    .intro-start p {
+      margin: 0 auto 1.4rem;
+      max-width: 34rem;
+      color: rgba(247,241,238,0.78);
+      font-family: 'Jost', sans-serif;
+      font-size: 0.95rem;
+      letter-spacing: 0.08em;
+      line-height: 1.8;
+      text-transform: uppercase;
+    }
+    .intro-button, .skip-intro {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.5);
+      background: rgba(255,255,255,0.08);
+      color: #f7f1ee;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+    .intro-button {
+      padding: 0.85rem 1.35rem;
+      font-family: 'Jost', sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .intro-button:hover, .skip-intro:hover {
+      background: rgba(255,255,255,0.16);
+      border-color: rgba(255,255,255,0.85);
+      transform: translateY(-1px);
+    }
+    .intro-video-wrap {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.9s ease;
+    }
+    .intro-overlay.playing .intro-start {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.7s ease;
+    }
+    .intro-overlay.playing .intro-video-wrap {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .intro-video-wrap iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #000;
+    }
+    .skip-intro {
+      position: absolute;
+      right: 1.2rem;
+      bottom: 1.2rem;
+      z-index: 110;
+      padding: 0.65rem 1rem;
+      font-family: 'Jost', sans-serif;
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
     .topbar { position: absolute; z-index: 20; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; background: rgba(10, 8, 6, 0.45); }
     .topbar h1 { margin: 0; font-size: 1.2rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 400; }
     .topbar a { color: #f7f1ee; text-decoration: none; font-size: 0.9rem; letter-spacing: 0.12em; }
@@ -32,14 +134,30 @@
     .slide-number { font-family: 'Jost', sans-serif; }
     .caption { position: absolute; left: 1.5rem; bottom: 4.5rem; max-width: 55vw; background: rgba(5, 4, 3, 0.55); padding: 0.95rem 1.1rem; border-radius: 4px; backdrop-filter: blur(6px); font-size: 0.96rem; line-height: 1.6; }
     @media (max-width: 768px) {
-      .topbar { padding: 0.8rem 1rem; }
+      .topbar { padding: 0.8rem 1rem; flex-direction: column; gap: 0.65rem; align-items: flex-start; }
+      .topbar-actions { flex-wrap: wrap; }
       .control { width: 2.8rem; height: 2.8rem; font-size: 1.4rem; }
       .caption { bottom: 4rem; max-width: 80vw; font-size: 0.88rem; }
+      .skip-intro { right: 0.8rem; bottom: 0.8rem; }
     }
   </style>
 </head>
 <body>
   <div class="slideshow-shell">
+    <div class="intro-overlay" id="intro-overlay">
+      <div class="intro-start" id="intro-start">
+        <h2>Stashed Companion</h2>
+        <p>A cinematic opening before the gallery begins.</p>
+        <button class="intro-button" id="begin-intro-btn" type="button">Begin Journey</button>
+      </div>
+
+      <div class="intro-video-wrap" id="intro-video-wrap" aria-label="Intro video">
+        <!-- YouTube iframe is inserted safely by JavaScript after the visitor clicks Begin Journey. -->
+      </div>
+
+      <button class="skip-intro" id="skip-intro-btn" type="button">Skip Intro</button>
+    </div>
+
     <div class="topbar">
       <h1>Stashed Companion</h1>
       <div class="topbar-actions">
@@ -62,6 +180,26 @@
 
   <script>
     (function () {
+      /* =====================================================
+         SAFE EDIT AREA
+
+         Your original YouTube share link was:
+         https://youtu.be/_0Ttq63oAm4?si=ZNhBnD5J-TiMwUit
+
+         The only part the page needs is the YouTube video ID.
+         For that link, the ID is: _0Ttq63oAm4
+
+         To change the intro video later, replace only this value.
+         Do not paste the whole YouTube URL here.
+         ===================================================== */
+      var YOUTUBE_ID = '_0Ttq63oAm4';
+
+      // Photo folder path. Keep this exactly as-is if your assets folder is unchanged.
+      var IMAGE_BASE_PATH = '../assets/Stashed-companion/';
+
+      // Back link path. Keep this exactly as-is if this page sits one folder below gallery.html.
+      var BACK_TO_GALLERIES_PATH = '../gallery.html';
+
       var filenames = [
         'Stashed_companion.PNG',
         'Stashed_companion.JPG',
@@ -77,6 +215,7 @@
         'Stashed_companion 10.PNG',
         'Stashed_companion 11.PNG'
       ];
+
       var captions = filenames.map(function (name, index) {
         return 'Slide ' + (index + 1) + ' of ' + filenames.length + ' — Stashed Companion';
       });
@@ -88,18 +227,23 @@
       var autoplayTimer = null;
       var slides = [];
 
+      document.querySelector('.topbar a').setAttribute('href', BACK_TO_GALLERIES_PATH);
+
       filenames.forEach(function (filename, index) {
         var slide = document.createElement('div');
         slide.className = 'slide' + (index === 0 ? ' active' : '');
+
         var img = document.createElement('img');
-        img.src = '../assets/Stashed-companion/' + encodeURIComponent(filename);
+        img.src = IMAGE_BASE_PATH + encodeURIComponent(filename);
         img.alt = 'Stashed Companion ' + (index + 1);
+
         slide.appendChild(img);
         frame.appendChild(slide);
         slides.push(slide);
       });
 
       function updateSlide(index) {
+        if (!slides.length) { return; }
         slides[current].classList.remove('active');
         current = (index + slides.length) % slides.length;
         slides[current].classList.add('active');
@@ -167,7 +311,74 @@
         if (event.key === 'ArrowLeft') { advanceSlide(current - 1); }
         if (event.key === 'ArrowRight') { advanceSlide(current + 1); }
         if (event.key === 'f' || event.key === 'F') { enterFullscreen(); }
+        if (event.key === 'Escape') { finishIntro(); }
       });
+
+      /* =====================================================
+         YOUTUBE INTRO LOGIC
+
+         This does not rely on the share-token part of your link.
+         It uses the stable YouTube ID only.
+
+         Note: YouTube does not reliably allow a normal website to detect
+         when a video ends unless the YouTube Player API is loaded. To avoid
+         broken behavior, this version includes a clear Skip Intro button.
+         ===================================================== */
+      var introOverlay = document.getElementById('intro-overlay');
+      var introVideoWrap = document.getElementById('intro-video-wrap');
+      var beginIntroBtn = document.getElementById('begin-intro-btn');
+      var skipIntroBtn = document.getElementById('skip-intro-btn');
+      var youtubeIframe = null;
+
+      function buildYouTubeEmbedUrl(videoId) {
+        var cleanId = String(videoId || '').trim();
+        if (!cleanId) { return ''; }
+
+        // Only allow normal YouTube ID characters. This prevents accidental broken URLs.
+        cleanId = cleanId.replace(/[^a-zA-Z0-9_-]/g, '');
+
+        return 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(cleanId) +
+          '?autoplay=1' +
+          '&rel=0' +
+          '&modestbranding=1' +
+          '&playsinline=1';
+      }
+
+      function startIntroVideo() {
+        var embedUrl = buildYouTubeEmbedUrl(YOUTUBE_ID);
+
+        if (!embedUrl) {
+          finishIntro();
+          return;
+        }
+
+        if (!youtubeIframe) {
+          youtubeIframe = document.createElement('iframe');
+          youtubeIframe.setAttribute('title', 'Stashed Companion Intro Video');
+          youtubeIframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+          youtubeIframe.setAttribute('allowfullscreen', '');
+          youtubeIframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+          youtubeIframe.src = embedUrl;
+          introVideoWrap.appendChild(youtubeIframe);
+        }
+
+        introOverlay.classList.add('playing');
+      }
+
+      function finishIntro() {
+        introOverlay.classList.add('hidden');
+
+        // Stop the YouTube video after the fade by removing the iframe.
+        window.setTimeout(function () {
+          if (youtubeIframe && youtubeIframe.parentNode) {
+            youtubeIframe.parentNode.removeChild(youtubeIframe);
+          }
+          youtubeIframe = null;
+        }, 1200);
+      }
+
+      beginIntroBtn.addEventListener('click', startIntroVideo);
+      skipIntroBtn.addEventListener('click', finishIntro);
 
       updateSlide(0);
     })();
