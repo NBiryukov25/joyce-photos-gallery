@@ -58,7 +58,7 @@ ALLOWED_USER_ID = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE = range(6)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE = range(8)
 
 SPECIAL_HTML: dict[str, str] = {}
 
@@ -112,6 +112,45 @@ async def _gh_put_file(rel_path: str, content: bytes, message: str, sha: str | N
         return False, f"Timed out contacting GitHub ({e.__class__.__name__})"
     except Exception as e:
         return False, f"Network error: {e}"
+
+
+async def _gh_delete_file(rel_path: str, sha: str, message: str) -> tuple[bool, str]:
+    if not GITHUB_TOKEN:
+        return False, "GITHUB_TOKEN not set"
+    url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/{rel_path}"
+    body = {"message": message, "sha": sha, "branch": GITHUB_BRANCH}
+    timeout = httpx.Timeout(connect=10.0, write=30.0, read=30.0, pool=5.0)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.delete(url, json=body, headers=_GH_HEADERS)
+        if r.status_code == 200:
+            return True, ""
+        try:
+            msg = r.json().get("message", f"HTTP {r.status_code}")
+        except Exception:
+            msg = f"HTTP {r.status_code}"
+        return False, msg
+    except httpx.TimeoutException as e:
+        return False, f"Timed out ({e.__class__.__name__})"
+    except Exception as e:
+        return False, f"Network error: {e}"
+
+
+async def _list_gallery_files(gallery: str) -> list[dict]:
+    url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/assets/{gallery}"
+    timeout = httpx.Timeout(connect=10.0, read=15.0, write=10.0, pool=5.0)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.get(url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
+        if r.status_code == 200:
+            return sorted(
+                (item for item in r.json() if item["type"] == "file"),
+                key=lambda x: x["name"],
+                reverse=True,  # newest first (timestamp filenames)
+            )
+    except Exception:
+        pass
+    return []
 
 
 # ---------------------------------------------------------------------------
@@ -182,6 +221,47 @@ def _insert_into_js_array(text: str, var_name: str, value: str) -> str:
         return pre + stripped + f"\n        '{_safe_js(value)}',\n      " + post
 
     return re.sub(pattern, replacer, text)
+
+
+def _get_js_array_entries(text: str, var_name: str) -> list[str]:
+    m = re.search(rf"var {re.escape(var_name)}\s*=\s*\[([\s\S]*?)\];", text)
+    if not m:
+        return []
+    return re.findall(r"'((?:[^'\\]|\\.)*)'", m.group(1))
+
+
+def _set_js_array(text: str, var_name: str, entries: list[str]) -> str:
+    if entries:
+        inner = "\n        " + "\n        ".join(f"'{_safe_js(e)}'," for e in entries) + "\n      "
+    else:
+        inner = ""
+    new_decl = f"var {var_name} = [{inner}];"
+    return re.sub(rf"var {re.escape(var_name)}\s*=\s*\[[\s\S]*?\];", new_decl, text)
+
+
+def _remove_from_gallery_html(current: bytes, gallery: str, filename: str) -> bytes:
+    text = current.decode("utf-8")
+
+    if re.search(r"var filenames\s*=\s*\[", text):
+        filenames = _get_js_array_entries(text, "filenames")
+        if filename in filenames:
+            idx = filenames.index(filename)
+            filenames.pop(idx)
+            text = _set_js_array(text, "filenames", filenames)
+            captions = _get_js_array_entries(text, "captions")
+            if captions and idx < len(captions):
+                captions.pop(idx)
+                text = _set_js_array(text, "captions", captions)
+
+    elif re.search(r'class="photo-grid"', text):
+        asset_path = re.escape(f"assets/{gallery}/{filename}")
+        text = re.sub(
+            rf'\n\s*<div class="photo-item">\n\s*<(?:img|video)[^>]*src="{asset_path}"[^>]*>(?:</video>)?\n\s*<div class="photo-label">[^<]*</div>\n\s*</div>',
+            "",
+            text,
+        )
+
+    return text.encode("utf-8")
 
 
 def _updated_html(current: bytes, gallery: str, filename: str, caption: str) -> bytes:
@@ -308,9 +388,11 @@ def _authorized(update: Update) -> bool:
 async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "Joyce Gallery Bot\n\n"
-        "Send a photo to add it to a gallery.\n"
+        "Send a photo or video to add it to a gallery.\n"
         "Send as a file to preserve full quality.\n\n"
         "/galleries — list existing galleries\n"
+        "/remove    — delete a photo or video\n"
+        "/done      — finish a batch upload\n"
         "/cancel    — cancel current operation"
     )
 
@@ -561,6 +643,88 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return ADDING_MORE
 
 
+async def cmd_remove(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        await update.message.reply_text("Not authorized.")
+        return ConversationHandler.END
+    galleries = await _existing_galleries()
+    if not galleries:
+        await update.message.reply_text("No galleries found.")
+        return ConversationHandler.END
+    context.user_data["remove_galleries"] = galleries
+    keyboard = [[InlineKeyboardButton(g, callback_data=f"rg:{i}")] for i, g in enumerate(galleries)]
+    await update.message.reply_text("Remove from which gallery?", reply_markup=InlineKeyboardMarkup(keyboard))
+    return REMOVING_GALLERY
+
+
+async def remove_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    idx = int(query.data[3:])
+    gallery = context.user_data["remove_galleries"][idx]
+    context.user_data["remove_gallery"] = gallery
+
+    await query.edit_message_text(f"Fetching files in {gallery}…")
+    files = await _list_gallery_files(gallery)
+    if not files:
+        await query.edit_message_text(f"No files found in {gallery}.")
+        return ConversationHandler.END
+
+    # Cap at 50 most-recent files to keep the keyboard manageable
+    shown = files[:50]
+    context.user_data["remove_files"] = shown
+    keyboard = []
+    for i, f in enumerate(shown):
+        name = f["name"]
+        label = name if len(name) <= 30 else "…" + name[-28:]
+        keyboard.append([InlineKeyboardButton(label, callback_data=f"rf:{i}")])
+
+    note = f" (showing 50 of {len(files)})" if len(files) > 50 else ""
+    await query.edit_message_text(
+        f"{gallery}{note}\nTap a file to delete it:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return REMOVING_FILE
+
+
+async def remove_file_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    idx = int(query.data[3:])
+    files = context.user_data["remove_files"]
+    gallery = context.user_data["remove_gallery"]
+    file_info = files[idx]
+    filename = file_info["name"]
+    file_sha = file_info["sha"]
+
+    await query.edit_message_text(f"Deleting {filename}…")
+
+    ok, err = await _gh_delete_file(
+        f"assets/{gallery}/{filename}", file_sha, f"Remove {filename} from {gallery}"
+    )
+    if not ok:
+        await query.edit_message_text(f"Delete failed: {err}")
+        return ConversationHandler.END
+
+    # Remove the reference from the gallery HTML
+    html_rel = _html_rel_path(gallery)
+    current_html, html_sha = await _gh_get_file(html_rel)
+    if current_html:
+        new_html = _remove_from_gallery_html(current_html, gallery, filename)
+        if new_html != current_html:
+            await _gh_put_file(
+                html_rel, new_html,
+                f"Remove {filename} from {gallery} page",
+                sha=html_sha,
+            )
+
+    await query.edit_message_text(
+        f"✓ {filename} deleted from {gallery}.\n\n"
+        f"/remove to delete another · send a photo to upload"
+    )
+    return ConversationHandler.END
+
+
 async def cmd_cancel(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Cancelled.")
     return ConversationHandler.END
@@ -577,7 +741,10 @@ def main() -> None:
     _media_filter = filters.PHOTO | filters.VIDEO | filters.Document.IMAGE | filters.Document.VIDEO
 
     conv = ConversationHandler(
-        entry_points=[MessageHandler(_media_filter, photo_received)],
+        entry_points=[
+            MessageHandler(_media_filter, photo_received),
+            CommandHandler("remove", cmd_remove),
+        ],
         states={
             CHOOSING_GALLERY:        [CallbackQueryHandler(gallery_chosen, pattern=r"^g:")],
             NAMING_GALLERY:          [MessageHandler(filters.TEXT & ~filters.COMMAND, gallery_named)],
@@ -591,6 +758,8 @@ def main() -> None:
                 MessageHandler(_media_filter, more_photo_received),
                 CommandHandler("done", cmd_done),
             ],
+            REMOVING_GALLERY:        [CallbackQueryHandler(remove_gallery_chosen, pattern=r"^rg:")],
+            REMOVING_FILE:           [CallbackQueryHandler(remove_file_chosen, pattern=r"^rf:")],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel)],
     )
