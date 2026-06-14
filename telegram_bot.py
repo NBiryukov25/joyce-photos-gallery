@@ -58,7 +58,7 @@ ALLOWED_USER_ID = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION = range(5)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE = range(6)
 
 SPECIAL_HTML: dict[str, str] = {}
 
@@ -406,6 +406,25 @@ async def caption_skipped(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return await _finalize(update, context)
 
 
+async def more_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if update.message.document:
+        context.user_data["file_id"] = update.message.document.file_id
+        context.user_data["original_name"] = update.message.document.file_name or "photo.jpg"
+        context.user_data["use_original"] = True
+    else:
+        context.user_data["file_id"] = update.message.photo[-1].file_id
+        context.user_data["use_original"] = False
+    gallery = context.user_data.get("gallery", "")
+    display = gallery.replace("Friends-", "").replace("-", " ") if gallery.startswith("Friends-") else gallery
+    await update.message.reply_text(f"Adding to {display}.\n\nCaption? (or /skip)")
+    return ADDING_CAPTION
+
+
+async def cmd_done(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text("Done. Send a photo any time to start a new upload.")
+    return ConversationHandler.END
+
+
 async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     try:
         return await _finalize_inner(update, context)
@@ -485,10 +504,10 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await status.edit_text(
         f"✓ {filename} added to {display}.\n\n"
         f"Gallery: {gallery_url}\n\n"
-        "(Site rebuilds in ~30 seconds)"
+        f"Send another photo for {display}, or /done to finish."
     )
 
-    return ConversationHandler.END
+    return ADDING_MORE
 
 
 async def cmd_cancel(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> int:
@@ -514,6 +533,10 @@ def main() -> None:
             ADDING_CAPTION:          [
                 CommandHandler("skip", caption_skipped),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, caption_received),
+            ],
+            ADDING_MORE:             [
+                MessageHandler(filters.PHOTO | filters.Document.IMAGE, more_photo_received),
+                CommandHandler("done", cmd_done),
             ],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel)],
