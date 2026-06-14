@@ -97,15 +97,26 @@
       var autoplayTimer = null;
       var slides = [];
 
+      var videoExts = ['mp4', 'mov', 'webm', 'm4v', 'avi'];
+
       filenames.forEach(function (filename, index) {
         var slide = document.createElement('div');
         slide.className = 'slide' + (index === 0 ? ' active' : '');
 
-        var img = document.createElement('img');
-        img.src = assetFolder + encodeURIComponent(filename);
-        img.alt = galleryTitle + ' ' + (index + 1);
+        var ext = filename.split('.').pop().toLowerCase();
+        var media;
+        if (videoExts.indexOf(ext) !== -1) {
+          media = document.createElement('video');
+          media.src = assetFolder + encodeURIComponent(filename);
+          media.controls = true;
+          media.style.cssText = 'max-width:100%;max-height:100%;';
+        } else {
+          media = document.createElement('img');
+          media.src = assetFolder + encodeURIComponent(filename);
+          media.alt = galleryTitle + ' ' + (index + 1);
+        }
 
-        slide.appendChild(img);
+        slide.appendChild(media);
         frame.appendChild(slide);
         slides.push(slide);
       });

@@ -152,10 +152,14 @@ def _compress_photo(data: bytes, max_dimension: int = 1600, quality: int = 78) -
     return buf.getvalue()
 
 
-def _make_filename(use_original: bool, original_name: str) -> str:
+def _make_filename(use_original: bool, original_name: str, is_video: bool = False) -> str:
     if use_original:
         return original_name
-    return f"photo-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.jpg"
+    ts = datetime.utcnow().strftime('%Y%m%d-%H%M%S')
+    return f"video-{ts}.mp4" if is_video else f"photo-{ts}.jpg"
+
+
+_VIDEO_EXTS = frozenset({"mp4", "mov", "webm", "m4v", "avi"})
 
 
 def _safe_js(value: str) -> str:
@@ -189,13 +193,23 @@ def _updated_html(current: bytes, gallery: str, filename: str, caption: str) -> 
         if re.search(r"var captions\s*=\s*\[", text):
             text = _insert_into_js_array(text, "captions", caption)
     elif re.search(r'class="photo-grid"', text):
-        # Photo-grid gallery (e.g. friends.html): append a photo-item div
+        # Photo-grid gallery: append a photo-item div (or video element)
         asset_path = f"assets/{gallery}/{filename}"
         label = _safe_html(caption if caption else filename)
+        ext = filename.rsplit(".", 1)[-1].lower()
+        if ext in _VIDEO_EXTS:
+            media_tag = (
+                f'        <video controls src="{asset_path}"'
+                f' style="width:100%;display:block;border-radius:4px;"></video>'
+            )
+        else:
+            media_tag = (
+                f'        <img src="{asset_path}" alt="{_safe_html(caption or "Photo")}"'
+                f' data-caption="{_safe_html(caption)}">'
+            )
         new_item = (
             f'\n      <div class="photo-item">\n'
-            f'        <img src="{asset_path}" alt="{_safe_html(caption or "Photo")}"'
-            f' data-caption="{_safe_html(caption)}">\n'
+            f'{media_tag}\n'
             f'        <div class="photo-label">{label}</div>\n'
             f'      </div>'
         )
@@ -315,18 +329,49 @@ async def cmd_galleries(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None
 # ---------------------------------------------------------------------------
 
 
+_MAX_VIDEO_BYTES = 20 * 1024 * 1024  # Telegram Bot API hard limit
+
+
+def _store_media(msg, context: ContextTypes.DEFAULT_TYPE) -> str | None:
+    """Populate context.user_data from a photo/video/document message.
+    Returns an error string if the file is too large, else None."""
+    ud = context.user_data
+    if msg.video:
+        size = msg.video.file_size or 0
+        if size > _MAX_VIDEO_BYTES:
+            return f"Video is too large ({size // (1024*1024)} MB). Max 20 MB."
+        ud["file_id"] = msg.video.file_id
+        ud["original_name"] = "video.mp4"
+        ud["use_original"] = False
+        ud["is_video"] = True
+    elif msg.document:
+        mime = msg.document.mime_type or ""
+        is_vid = mime.startswith("video/")
+        if is_vid:
+            size = msg.document.file_size or 0
+            if size > _MAX_VIDEO_BYTES:
+                return f"Video is too large ({size // (1024*1024)} MB). Max 20 MB."
+        ud["file_id"] = msg.document.file_id
+        ud["original_name"] = msg.document.file_name or ("video.mp4" if is_vid else "photo.jpg")
+        ud["use_original"] = True
+        ud["is_video"] = is_vid
+    else:
+        ud["file_id"] = msg.photo[-1].file_id
+        ud["original_name"] = "photo.jpg"
+        ud["use_original"] = False
+        ud["is_video"] = False
+    return None
+
+
 async def photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if not _authorized(update):
         await update.message.reply_text("Not authorized.")
         return ConversationHandler.END
 
-    if update.message.document:
-        context.user_data["file_id"] = update.message.document.file_id
-        context.user_data["original_name"] = update.message.document.file_name or "photo.jpg"
-        context.user_data["use_original"] = True
-    else:
-        context.user_data["file_id"] = update.message.photo[-1].file_id
-        context.user_data["use_original"] = False
+    err = _store_media(update.message, context)
+    if err:
+        await update.message.reply_text(err)
+        return ConversationHandler.END
 
     galleries = await _existing_galleries()
     regular = [g for g in galleries if not g.startswith("Friends-")]
@@ -407,16 +452,14 @@ async def caption_skipped(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 async def more_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if update.message.document:
-        context.user_data["file_id"] = update.message.document.file_id
-        context.user_data["original_name"] = update.message.document.file_name or "photo.jpg"
-        context.user_data["use_original"] = True
-    else:
-        context.user_data["file_id"] = update.message.photo[-1].file_id
-        context.user_data["use_original"] = False
+    err = _store_media(update.message, context)
+    if err:
+        await update.message.reply_text(err)
+        return ConversationHandler.END
     gallery = context.user_data.get("gallery", "")
     display = gallery.replace("Friends-", "").replace("-", " ") if gallery.startswith("Friends-") else gallery
-    await update.message.reply_text(f"Adding to {display}.\n\nCaption? (or /skip)")
+    kind = "video" if context.user_data.get("is_video") else "photo"
+    await update.message.reply_text(f"Adding {kind} to {display}.\n\nCaption? (or /skip)")
     return ADDING_CAPTION
 
 
@@ -443,27 +486,35 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     file_id   = context.user_data["file_id"]
     use_orig  = context.user_data.get("use_original", False)
     orig_name = context.user_data.get("original_name", "photo.jpg")
+    is_video  = context.user_data.get("is_video", False)
 
-    status = await update.message.reply_text("Downloading photo...")
+    kind = "video" if is_video else "photo"
+    status = await update.message.reply_text(f"Downloading {kind}...")
 
-    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+    suffix = ".mp4" if is_video else ".jpg"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
         tmp_path = Path(tmp.name)
     tg_file = await context.bot.get_file(file_id)
-    await asyncio.wait_for(tg_file.download_to_drive(str(tmp_path)), timeout=30)
+    await asyncio.wait_for(tg_file.download_to_drive(str(tmp_path)), timeout=60)
     raw_bytes = tmp_path.read_bytes()
     tmp_path.unlink(missing_ok=True)
 
-    await status.edit_text("Compressing photo...")
-    photo_bytes = _compress_photo(raw_bytes)
-    kb = len(photo_bytes) // 1024
-    logger.info("Compressed photo: %d KB (was %d KB)", kb, len(raw_bytes) // 1024)
+    if is_video:
+        upload_bytes = raw_bytes
+        kb = len(upload_bytes) // 1024
+        logger.info("Video upload: %d KB", kb)
+    else:
+        await status.edit_text("Compressing photo...")
+        upload_bytes = _compress_photo(raw_bytes)
+        kb = len(upload_bytes) // 1024
+        logger.info("Compressed photo: %d KB (was %d KB)", kb, len(raw_bytes) // 1024)
 
-    filename  = _make_filename(use_orig, orig_name)
+    filename  = _make_filename(use_orig, orig_name, is_video=is_video)
     photo_rel = f"assets/{gallery}/{filename}"
 
-    await status.edit_text(f"Uploading to GitHub ({kb} KB)...")
+    await status.edit_text(f"Uploading {kind} to GitHub ({kb} KB)...")
 
-    ok, err = await _gh_put_file(photo_rel, photo_bytes, f"Add {filename} to {gallery}")
+    ok, err = await _gh_put_file(photo_rel, upload_bytes, f"Add {filename} to {gallery}")
     if not ok:
         await status.edit_text(f"Upload failed: {err}")
         return ConversationHandler.END
@@ -523,8 +574,10 @@ async def cmd_cancel(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> int:
 def main() -> None:
     app = Application.builder().token(BOT_TOKEN).build()
 
+    _media_filter = filters.PHOTO | filters.VIDEO | filters.Document.IMAGE | filters.Document.VIDEO
+
     conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.PHOTO | filters.Document.IMAGE, photo_received)],
+        entry_points=[MessageHandler(_media_filter, photo_received)],
         states={
             CHOOSING_GALLERY:        [CallbackQueryHandler(gallery_chosen, pattern=r"^g:")],
             NAMING_GALLERY:          [MessageHandler(filters.TEXT & ~filters.COMMAND, gallery_named)],
@@ -535,7 +588,7 @@ def main() -> None:
                 MessageHandler(filters.TEXT & ~filters.COMMAND, caption_received),
             ],
             ADDING_MORE:             [
-                MessageHandler(filters.PHOTO | filters.Document.IMAGE, more_photo_received),
+                MessageHandler(_media_filter, more_photo_received),
                 CommandHandler("done", cmd_done),
             ],
         },
