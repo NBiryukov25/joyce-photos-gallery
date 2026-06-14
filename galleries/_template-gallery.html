@@ -84,9 +84,7 @@
         'photo-03.jpg'
       ];
 
-      var captions = filenames.map(function (name, index) {
-        return 'Slide ' + (index + 1) + ' of ' + filenames.length + ' — ' + galleryTitle;
-      });
+      var captions = [];
 
       document.title = galleryTitle + ' · Sheryl Joyce';
       document.querySelector('.topbar h1').textContent = galleryTitle;
@@ -117,7 +115,9 @@
         slides[current].classList.remove('active');
         current = (index + slides.length) % slides.length;
         slides[current].classList.add('active');
-        captionEl.textContent = captions[current];
+        var captionText = captions[current] || '';
+        captionEl.textContent = captionText;
+        captionEl.style.display = captionText ? '' : 'none';
         numberEl.textContent = (current + 1) + ' / ' + slides.length;
       }
 

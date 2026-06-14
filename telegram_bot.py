@@ -220,8 +220,9 @@ def _new_gallery_html(template: bytes, gallery: str, filename: str, caption: str
         text,
     )
     if caption:
+        # Match either array literal (var captions = [...];) or map() call (var captions = x.map(...});)
         text = re.sub(
-            r"var captions\s*=[\s\S]*?;",
+            r"var captions\s*=[\s\S]*?(?:\]\s*;|\}\s*\)\s*;)",
             f"var captions = [\n        '{_safe_js(caption)}'\n      ];",
             text,
         )
