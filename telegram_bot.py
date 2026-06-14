@@ -122,7 +122,7 @@ async def _gh_delete_file(rel_path: str, sha: str, message: str) -> tuple[bool, 
     timeout = httpx.Timeout(connect=10.0, write=30.0, read=30.0, pool=5.0)
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            r = await client.delete(url, json=body, headers=_GH_HEADERS)
+            r = await client.request("DELETE", url, json=body, headers=_GH_HEADERS)
         if r.status_code == 200:
             return True, ""
         try:
