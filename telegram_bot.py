@@ -394,6 +394,7 @@ async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "Send as a file to preserve full quality.\n\n"
         "/galleries — list existing galleries\n"
         "/remove    — delete a photo or video\n"
+        "/sync      — post all existing photos to the channel\n"
         "/done      — finish a batch upload\n"
         "/cancel    — cancel current operation"
     )
@@ -406,6 +407,98 @@ async def cmd_galleries(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None
         await update.message.reply_text(f"Galleries:\n{lines}")
     else:
         await update.message.reply_text("No galleries found.")
+
+
+async def _all_asset_dirs() -> list[str]:
+    """All asset directories, including ones skipped from the upload menu."""
+    url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/assets"
+    timeout = httpx.Timeout(connect=10.0, read=15.0, write=10.0, pool=5.0)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.get(url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
+        if r.status_code == 200:
+            return sorted(
+                item["name"] for item in r.json()
+                if item["type"] == "dir"
+                and not item["name"].startswith(".")
+                and item["name"] not in {"videos", "audio", "Gallery_photos"}
+            )
+    except Exception:
+        pass
+    return []
+
+
+async def cmd_sync(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _authorized(update):
+        return
+    if not TELEGRAM_CHANNEL:
+        await update.message.reply_text("TELEGRAM_CHANNEL is not set in Railway variables.")
+        return
+
+    status = await update.message.reply_text("Starting sync — fetching gallery list…")
+    galleries = await _all_asset_dirs()
+    if not galleries:
+        await status.edit_text("No galleries found.")
+        return
+
+    sent = 0
+    failed = 0
+
+    for gallery in galleries:
+        files = await _list_gallery_files(gallery)
+        if not files:
+            continue
+
+        # Build caption map: filename → caption text
+        html_rel = _html_rel_path(gallery)
+        caption_map: dict[str, str] = {}
+        gallery_html, _ = await _gh_get_file(html_rel)
+        if gallery_html:
+            text = gallery_html.decode("utf-8")
+            fn_list  = _get_js_array_entries(text, "filenames")
+            cap_list = _get_js_array_entries(text, "captions")
+            for i, fn in enumerate(fn_list):
+                caption_map[fn] = cap_list[i] if i < len(cap_list) else ""
+
+        await status.edit_text(
+            f"Syncing {gallery} ({len(files)} files)…\n"
+            f"Sent so far: {sent}"
+        )
+
+        for file_info in reversed(files):  # oldest first
+            filename = file_info["name"]
+            ext = filename.rsplit(".", 1)[-1].lower()
+            caption = caption_map.get(filename) or None
+
+            try:
+                timeout = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=5.0)
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    r = await client.get(file_info["download_url"], headers=_GH_HEADERS)
+                file_bytes = r.content
+            except Exception as e:
+                logger.warning("Sync: download failed %s: %s", filename, e)
+                failed += 1
+                continue
+
+            try:
+                if ext in _VIDEO_EXTS:
+                    await context.bot.send_video(
+                        chat_id=TELEGRAM_CHANNEL, video=file_bytes, caption=caption
+                    )
+                else:
+                    await context.bot.send_photo(
+                        chat_id=TELEGRAM_CHANNEL, photo=file_bytes, caption=caption
+                    )
+                sent += 1
+                await asyncio.sleep(1.5)  # stay well within Telegram rate limits
+            except Exception as e:
+                logger.warning("Sync: channel send failed %s: %s", filename, e)
+                failed += 1
+
+    await status.edit_text(
+        f"✓ Sync complete.\n"
+        f"Posted: {sent}  ·  Failed: {failed}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -826,6 +919,7 @@ def main() -> None:
 
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("galleries", cmd_galleries))
+    app.add_handler(CommandHandler("sync", cmd_sync))
     app.add_handler(conv)
 
     logger.info("Bot polling...")
