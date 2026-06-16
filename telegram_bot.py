@@ -19,6 +19,7 @@ import os
 import re
 import logging
 import tempfile
+import urllib.parse
 from datetime import datetime
 from pathlib import Path
 
@@ -664,65 +665,100 @@ async def remove_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TY
     gallery = context.user_data["remove_galleries"][idx]
     context.user_data["remove_gallery"] = gallery
 
-    await query.edit_message_text(f"Fetching files in {gallery}…")
+    await query.edit_message_text(f"Loading {gallery}…")
     files = await _list_gallery_files(gallery)
     if not files:
         await query.edit_message_text(f"No files found in {gallery}.")
         return ConversationHandler.END
 
-    # Cap at 50 most-recent files to keep the keyboard manageable
-    shown = files[:50]
-    context.user_data["remove_files"] = shown
-    keyboard = []
-    for i, f in enumerate(shown):
-        name = f["name"]
-        label = name if len(name) <= 30 else "…" + name[-28:]
-        keyboard.append([InlineKeyboardButton(label, callback_data=f"rf:{i}")])
-
-    note = f" (showing 50 of {len(files)})" if len(files) > 50 else ""
-    await query.edit_message_text(
-        f"{gallery}{note}\nTap a file to delete it:",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
+    context.user_data["remove_files"] = files
+    await query.edit_message_text(f"{gallery} — {len(files)} file(s). Sending preview…")
+    await _send_remove_preview(update.effective_chat.id, context, 0)
     return REMOVING_FILE
 
 
-async def remove_file_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    query = update.callback_query
-    await query.answer()
-    idx = int(query.data[3:])
+async def _send_remove_preview(chat_id: int, context: ContextTypes.DEFAULT_TYPE, idx: int) -> None:
     files = context.user_data["remove_files"]
     gallery = context.user_data["remove_gallery"]
+    total = len(files)
+
+    if idx >= total:
+        await context.bot.send_message(chat_id, "No more files.\n\n/remove to start over · send a photo to upload")
+        return
+
     file_info = files[idx]
     filename = file_info["name"]
-    file_sha = file_info["sha"]
+    ext = filename.rsplit(".", 1)[-1].lower()
+    caption = f"{idx + 1} / {total}"
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("🗑 Delete", callback_data=f"rd:del:{idx}"),
+        InlineKeyboardButton("→ Next",   callback_data=f"rd:nxt:{idx}"),
+        InlineKeyboardButton("✓ Done",   callback_data=f"rd:done:{idx}"),
+    ]])
 
-    await query.edit_message_text(f"Deleting {filename}…")
-
-    ok, err = await _gh_delete_file(
-        f"assets/{gallery}/{filename}", file_sha, f"Remove {filename} from {gallery}"
+    raw_url = (
+        f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
+        f"/assets/{urllib.parse.quote(gallery)}/{urllib.parse.quote(filename)}"
     )
-    if not ok:
-        await query.edit_message_text(f"Delete failed: {err}")
+
+    if ext in _VIDEO_EXTS:
+        await context.bot.send_message(chat_id, f"📹 {caption}\n{filename}", reply_markup=keyboard)
+    else:
+        try:
+            await context.bot.send_photo(chat_id, photo=raw_url, caption=caption, reply_markup=keyboard)
+        except Exception:
+            await context.bot.send_message(chat_id, f"🖼 {caption}\n{filename}", reply_markup=keyboard)
+
+
+async def remove_file_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    parts = query.data.split(":")   # "rd", action, idx
+    action = parts[1]
+    file_idx = int(parts[2])
+
+    # Remove keyboard from the tapped message
+    try:
+        await query.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+
+    if action == "done":
+        await query.message.reply_text("Done.\n\n/remove to delete more · send a photo to upload")
         return ConversationHandler.END
 
-    # Remove the reference from the gallery HTML
-    html_rel = _html_rel_path(gallery)
-    current_html, html_sha = await _gh_get_file(html_rel)
-    if current_html:
-        new_html = _remove_from_gallery_html(current_html, gallery, filename)
-        if new_html != current_html:
-            await _gh_put_file(
-                html_rel, new_html,
-                f"Remove {filename} from {gallery} page",
-                sha=html_sha,
-            )
+    files = context.user_data["remove_files"]
+    gallery = context.user_data["remove_gallery"]
 
-    await query.edit_message_text(
-        f"✓ {filename} deleted from {gallery}.\n\n"
-        f"/remove to delete another · send a photo to upload"
-    )
-    return ConversationHandler.END
+    if action == "del":
+        file_info = files[file_idx]
+        filename = file_info["name"]
+        file_sha = file_info["sha"]
+
+        deleting_msg = await query.message.reply_text(f"Deleting…")
+        ok, err = await _gh_delete_file(
+            f"assets/{gallery}/{filename}", file_sha, f"Remove {filename} from {gallery}"
+        )
+        if not ok:
+            await deleting_msg.edit_text(f"Delete failed: {err}")
+            return REMOVING_FILE
+
+        html_rel = _html_rel_path(gallery)
+        current_html, html_sha = await _gh_get_file(html_rel)
+        if current_html:
+            new_html = _remove_from_gallery_html(current_html, gallery, filename)
+            if new_html != current_html:
+                await _gh_put_file(html_rel, new_html, f"Remove {filename}", sha=html_sha)
+
+        await deleting_msg.edit_text(f"✓ Deleted.")
+        files.pop(file_idx)
+        next_idx = file_idx  # next file slides into same position
+
+    else:  # nxt
+        next_idx = file_idx + 1
+
+    await _send_remove_preview(update.effective_chat.id, context, next_idx)
+    return REMOVING_FILE
 
 
 async def cmd_cancel(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> int:
@@ -759,7 +795,7 @@ def main() -> None:
                 CommandHandler("done", cmd_done),
             ],
             REMOVING_GALLERY:        [CallbackQueryHandler(remove_gallery_chosen, pattern=r"^rg:")],
-            REMOVING_FILE:           [CallbackQueryHandler(remove_file_chosen, pattern=r"^rf:")],
+            REMOVING_FILE:           [CallbackQueryHandler(remove_file_action, pattern=r"^rd:")],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel)],
     )
