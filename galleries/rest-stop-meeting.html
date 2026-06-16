@@ -9,74 +9,71 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; background: #060404; color: #f7f1ee; font-family: 'Cormorant Garamond', serif; overflow: hidden; }
-    body { display: flex; align-items: stretch; justify-content: center; }
-    .slideshow-shell { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
-    .topbar { position: absolute; z-index: 20; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; background: rgba(10, 8, 6, 0.45); }
-    .topbar h1 { margin: 0; font-size: 1.2rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 400; }
-    .topbar a { color: #f7f1ee; text-decoration: none; font-size: 0.9rem; letter-spacing: 0.12em; }
-    .topbar-actions { display: flex; align-items: center; gap: 0.65rem; }
-    .topbar-button { appearance: none; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.08); color: #f7f1ee; padding: 0.55rem 0.9rem; border-radius: 999px; font-size: 0.82rem; letter-spacing: 0.12em; cursor: pointer; transition: background 0.2s ease, border-color 0.2s ease; }
-    .topbar-button:hover { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.55); }
-    .slide-frame { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #080606; }
-    .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.6s ease; display: flex; align-items: center; justify-content: center; }
+    html, body { margin: 0; height: 100%; background: #060404; color: #f7f1ee; font-family: 'Cormorant Garamond', serif; overflow: hidden; }
+    .slideshow-shell { position: relative; width: 100vw; height: 100vh; }
+
+    /* ── top bar ── */
+    .topbar { position: absolute; top: 0; left: 0; right: 0; z-index: 20; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 1.25rem; background: rgba(10,8,6,0.55); }
+    .topbar h1 { margin: 0; font-size: 1.1rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45vw; }
+    .topbar-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+    .topbar-btn { appearance: none; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.07); color: #f7f1ee; padding: 0.4rem 0.75rem; border-radius: 999px; font-size: 0.78rem; letter-spacing: 0.1em; cursor: pointer; transition: background 0.2s; text-decoration: none; display: inline-flex; align-items: center; }
+    .topbar-btn:hover { background: rgba(255,255,255,0.14); }
+
+    /* ── photo area ── */
+    .slide-frame { position: absolute; top: 52px; bottom: 68px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; background: #080606; }
+    .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.5s ease; display: flex; align-items: center; justify-content: center; }
     .slide.active { opacity: 1; }
-    .slide img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
-    .controls, .footer { position: absolute; z-index: 20; width: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-    .controls { top: 50%; transform: translateY(-50%); gap: 1rem; }
-    .control { pointer-events: all; width: 3.2rem; height: 3.2rem; border: 1px solid rgba(255,255,255,0.55); border-radius: 50%; background: rgba(10, 8, 6, 0.45); color: #f7f1ee; font-size: 1.75rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s ease; }
-    .control:hover { background: rgba(255,255,255,0.12); }
-    .footer { bottom: 1.2rem; justify-content: space-between; padding: 0 1.5rem; font-size: 0.9rem; letter-spacing: 0.12em; color: rgba(247,241,238,0.8); }
-    .slide-number { font-family: 'Jost', sans-serif; }
-    .caption { position: absolute; left: 1.5rem; bottom: 4.5rem; max-width: 55vw; background: rgba(5, 4, 3, 0.55); padding: 0.95rem 1.1rem; border-radius: 4px; backdrop-filter: blur(6px); font-size: 0.96rem; line-height: 1.6; }
-    @media (max-width: 768px) {
-      .topbar { padding: 0.8rem 1rem; }
-      .topbar h1 { font-size: 0.95rem; }
-      .topbar-actions { gap: 0.4rem; }
-      .topbar-button { padding: 0.45rem 0.65rem; font-size: 0.72rem; }
-      .control { width: 2.8rem; height: 2.8rem; font-size: 1.4rem; }
-      .caption { bottom: 4rem; max-width: 80vw; font-size: 0.88rem; }
+    .slide img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+    .slide video { max-width: 100%; max-height: 100%; }
+
+    /* ── bottom bar: arrows · caption · download · counter ── */
+    .bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 68px; z-index: 20; display: flex; align-items: center; gap: 0.6rem; padding: 0 1rem; background: rgba(10,8,6,0.82); }
+    .nav-btn { width: 2.6rem; height: 2.6rem; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.35); border-radius: 50%; background: rgba(255,255,255,0.07); color: #f7f1ee; font-size: 1.55rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; text-decoration: none; appearance: none; line-height: 1; }
+    .nav-btn:hover { background: rgba(255,255,255,0.15); }
+    .bottom-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; min-width: 0; }
+    .caption-text { font-size: 0.9rem; line-height: 1.3; color: rgba(247,241,238,0.88); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+    .slide-counter { font-family: 'Jost', sans-serif; font-size: 0.68rem; letter-spacing: 0.15em; color: rgba(247,241,238,0.45); }
+
+    @media (max-width: 600px) {
+      .topbar h1 { font-size: 0.9rem; max-width: 40vw; }
+      .topbar-btn { padding: 0.35rem 0.55rem; font-size: 0.7rem; }
+      .nav-btn { width: 2.2rem; height: 2.2rem; font-size: 1.3rem; }
+      .bottom-bar { gap: 0.4rem; padding: 0 0.6rem; }
+      .caption-text { font-size: 0.78rem; }
     }
   </style>
 </head>
 <body>
   <div class="slideshow-shell">
+
     <div class="topbar">
       <h1>Rest Stop Meeting</h1>
       <div class="topbar-actions">
-        <button class="topbar-button" id="autoplay-btn" type="button">Auto 7s OFF</button>
-        <button class="topbar-button" id="fullscreen-btn" type="button">Fullscreen</button>
-        <a href="../gallery.html">← Back to Galleries</a>
+        <button class="topbar-btn" id="autoplay-btn" type="button">Auto OFF</button>
+        <button class="topbar-btn" id="fullscreen-btn" type="button">Fullscreen</button>
+        <a class="topbar-btn" href="../friends.html">← Friends</a>
       </div>
     </div>
 
     <div class="slide-frame" id="slide-frame"></div>
 
-    <div class="controls">
-      <button class="control" id="prev-btn" aria-label="Previous slide">‹</button>
-      <button class="control" id="next-btn" aria-label="Next slide">›</button>
+    <div class="bottom-bar">
+      <button class="nav-btn" id="prev-btn" aria-label="Previous">‹</button>
+      <div class="bottom-center">
+        <div class="caption-text" id="caption"></div>
+        <div class="slide-counter" id="slide-number">1 / 1</div>
+      </div>
+      <a class="nav-btn" id="download-btn" title="Download" aria-label="Download">⬇</a>
+      <button class="nav-btn" id="next-btn" aria-label="Next">›</button>
     </div>
 
-    <div class="caption" id="caption"></div>
-
-    <div class="footer">
-      <span class="slide-number" id="slide-number">1 / 1</span>
-      <span class="slide-meta">Digital, 2026 · Full Screen Slideshow</span>
-    </div>
   </div>
 
   <script>
     (function () {
-      /*
-        HOW TO USE THIS TEMPLATE
-        1. Copy this file and rename it, for example: galleries/my-new-gallery.html
-        2. Put images in a folder, for example: assets/My-New-Gallery/
-        3. Change GALLERY_TITLE, ASSET_FOLDER, filenames, and galleryMeta below.
-      */
-
       var galleryTitle = 'Rest Stop Meeting';
-      var assetFolder = '../assets/Rest-Stop-Meeting/';
-      var galleryMeta = 'Digital, 2026 · Full Screen Slideshow';
+      var assetFolder  = '../assets/Rest-Stop-Meeting/';
+      var galleryMeta  = 'Digital, 2026 · Full Screen Slideshow';
 
       var filenames = [
         'photo-20260614-142031.jpg',
@@ -97,7 +94,7 @@
         'photo-20260615-050950.jpg',
       ];
 
-      var captions = [
+      var captions  = [
         'At a quiet Maine highway rest stop, Nicole steps into a moment of quiet sexual awakening. Her boyfriend’s deliberate arrangement brings her face-to-face with a Filipino woman, turning a routine travel break into an intimate exploration of desire. The fading evening light catches the shift in Nicole’s posture—hesitation giving way to curiosity. This piece captures the exact breath before surrender, where trust, arrangement, and self-discovery converge.',
         '',
         '',
@@ -118,24 +115,31 @@
 
       document.title = galleryTitle + ' · Sheryl Joyce';
       document.querySelector('.topbar h1').textContent = galleryTitle;
-      document.querySelector('.slide-meta').textContent = galleryMeta;
 
-      var frame = document.getElementById('slide-frame');
-      var captionEl = document.getElementById('caption');
-      var numberEl = document.getElementById('slide-number');
-      var current = 0;
+      var frame      = document.getElementById('slide-frame');
+      var captionEl  = document.getElementById('caption');
+      var numberEl   = document.getElementById('slide-number');
+      var downloadBtn = document.getElementById('download-btn');
+      var current    = 0;
       var autoplayTimer = null;
-      var slides = [];
+      var slides     = [];
+      var videoExts  = ['mp4', 'mov', 'webm', 'm4v', 'avi'];
 
       filenames.forEach(function (filename, index) {
         var slide = document.createElement('div');
         slide.className = 'slide' + (index === 0 ? ' active' : '');
-
-        var img = document.createElement('img');
-        img.src = assetFolder + encodeURIComponent(filename);
-        img.alt = galleryTitle + ' ' + (index + 1);
-
-        slide.appendChild(img);
+        var ext = filename.split('.').pop().toLowerCase();
+        var media;
+        if (videoExts.indexOf(ext) !== -1) {
+          media = document.createElement('video');
+          media.src = assetFolder + encodeURIComponent(filename);
+          media.controls = true;
+        } else {
+          media = document.createElement('img');
+          media.src = assetFolder + encodeURIComponent(filename);
+          media.alt = galleryTitle + ' ' + (index + 1);
+        }
+        slide.appendChild(media);
         frame.appendChild(slide);
         slides.push(slide);
       });
@@ -145,73 +149,54 @@
         slides[current].classList.remove('active');
         current = (index + slides.length) % slides.length;
         slides[current].classList.add('active');
-        var captionText = captions[current] || '';
-        captionEl.textContent = captionText;
-        captionEl.style.display = captionText ? '' : 'none';
+        var cap = captions[current] || '';
+        captionEl.textContent = cap;
+        captionEl.style.display = cap ? '' : 'none';
         numberEl.textContent = (current + 1) + ' / ' + slides.length;
+        var src = assetFolder + encodeURIComponent(filenames[current]);
+        downloadBtn.href = src;
+        downloadBtn.setAttribute('download', filenames[current]);
       }
 
-      function advanceSlide(index) {
+      function advance(index) {
         updateSlide(index);
-        if (autoplayTimer) {
-          stopAutoplay();
-          startAutoplay();
-        }
+        if (autoplayTimer) { stopAutoplay(); startAutoplay(); }
       }
 
-      document.getElementById('prev-btn').addEventListener('click', function () { advanceSlide(current - 1); });
-      document.getElementById('next-btn').addEventListener('click', function () { advanceSlide(current + 1); });
+      document.getElementById('prev-btn').addEventListener('click', function () { advance(current - 1); });
+      document.getElementById('next-btn').addEventListener('click', function () { advance(current + 1); });
 
-      var autoplayBtn = document.getElementById('autoplay-btn');
-      var fullscreenBtn = document.getElementById('fullscreen-btn');
-
-      function toggleAutoplay() {
-        if (autoplayTimer) {
-          stopAutoplay();
-        } else {
-          startAutoplay();
-        }
-      }
+      var autoplayBtn    = document.getElementById('autoplay-btn');
+      var fullscreenBtn  = document.getElementById('fullscreen-btn');
 
       function startAutoplay() {
         if (autoplayTimer) { return; }
-        autoplayBtn.textContent = 'Auto 7s ON';
-        autoplayTimer = setInterval(function () { advanceSlide(current + 1); }, 7000);
+        autoplayBtn.textContent = 'Auto ON';
+        autoplayTimer = setInterval(function () { advance(current + 1); }, 7000);
       }
-
       function stopAutoplay() {
-        if (!autoplayTimer) { return; }
         clearInterval(autoplayTimer);
         autoplayTimer = null;
-        autoplayBtn.textContent = 'Auto 7s OFF';
+        autoplayBtn.textContent = 'Auto OFF';
       }
+      autoplayBtn.addEventListener('click', function () {
+        autoplayTimer ? stopAutoplay() : startAutoplay();
+      });
 
-      function enterFullscreen() {
+      function toggleFullscreen() {
         var shell = document.querySelector('.slideshow-shell');
-        if (document.fullscreenElement) {
-          document.exitFullscreen();
-          return;
-        }
-        if (shell.requestFullscreen) {
-          shell.requestFullscreen();
-        } else if (shell.webkitRequestFullscreen) {
-          shell.webkitRequestFullscreen();
-        }
+        if (document.fullscreenElement) { document.exitFullscreen(); return; }
+        (shell.requestFullscreen || shell.webkitRequestFullscreen).call(shell);
       }
+      fullscreenBtn.addEventListener('click', toggleFullscreen);
+      document.addEventListener('fullscreenchange', function () {
+        fullscreenBtn.textContent = document.fullscreenElement ? 'Exit Full' : 'Fullscreen';
+      });
 
-      function updateFullscreenButton() {
-        fullscreenBtn.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
-      }
-
-      autoplayBtn.addEventListener('click', toggleAutoplay);
-      fullscreenBtn.addEventListener('click', enterFullscreen);
-      document.addEventListener('fullscreenchange', updateFullscreenButton);
-      document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
-
-      window.addEventListener('keydown', function (event) {
-        if (event.key === 'ArrowLeft') { advanceSlide(current - 1); }
-        if (event.key === 'ArrowRight') { advanceSlide(current + 1); }
-        if (event.key === 'f' || event.key === 'F') { enterFullscreen(); }
+      window.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowLeft')           { advance(current - 1); }
+        if (e.key === 'ArrowRight')          { advance(current + 1); }
+        if (e.key === 'f' || e.key === 'F') { toggleFullscreen(); }
       });
 
       updateSlide(0);
