@@ -52,8 +52,9 @@ if _tok_match:
     GITHUB_TOKEN = _tok_match.group(1)
 else:
     GITHUB_TOKEN = GITHUB_TOKEN.strip()
-GITHUB_REPO   = os.environ.get("GITHUB_REPO", "NBiryukov25/joyce-photos-gallery")
-GITHUB_BRANCH = os.environ.get("GITHUB_BRANCH", "main")
+GITHUB_REPO     = os.environ.get("GITHUB_REPO", "NBiryukov25/joyce-photos-gallery")
+GITHUB_BRANCH   = os.environ.get("GITHUB_BRANCH", "main")
+TELEGRAM_CHANNEL = os.environ.get("TELEGRAM_CHANNEL", "")  # e.g. @filipina_allure
 ALLOWED_USER_ID = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
 
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
@@ -635,8 +636,31 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     gallery_url = f"{GITHUB_PAGES_URL}/{html_rel}"
     display = gallery.replace("Friends-", "").replace("-", " ") if gallery.startswith("Friends-") else gallery
+
+    # Post to Telegram channel if configured
+    channel_note = ""
+    if TELEGRAM_CHANNEL:
+        try:
+            chan_caption = caption if caption else None
+            if is_video:
+                await context.bot.send_video(
+                    chat_id=TELEGRAM_CHANNEL,
+                    video=upload_bytes,
+                    caption=chan_caption,
+                )
+            else:
+                await context.bot.send_photo(
+                    chat_id=TELEGRAM_CHANNEL,
+                    photo=upload_bytes,
+                    caption=chan_caption,
+                )
+            channel_note = f"\nPosted to {TELEGRAM_CHANNEL} ✓"
+        except Exception as e:
+            logger.warning("Channel post failed: %s", e)
+            channel_note = f"\nChannel post failed: {e}"
+
     await status.edit_text(
-        f"✓ {filename} added to {display}.\n\n"
+        f"✓ {filename} added to {display}.{channel_note}\n\n"
         f"Gallery: {gallery_url}\n\n"
         f"Send another photo for {display}, or /done to finish."
     )
