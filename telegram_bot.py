@@ -54,7 +54,7 @@ else:
     GITHUB_TOKEN = GITHUB_TOKEN.strip()
 GITHUB_REPO     = os.environ.get("GITHUB_REPO", "NBiryukov25/joyce-photos-gallery")
 GITHUB_BRANCH   = os.environ.get("GITHUB_BRANCH", "main")
-TELEGRAM_CHANNEL = os.environ.get("TELEGRAM_CHANNEL", "")  # e.g. @filipina_allure
+TELEGRAM_CHANNEL = os.environ.get("TELEGRAM_CHANNEL", "@filipina_allure")
 ALLOWED_USER_ID = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
 
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
