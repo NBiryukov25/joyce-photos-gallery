@@ -204,7 +204,10 @@ _VIDEO_EXTS = frozenset({"mp4", "mov", "webm", "m4v", "avi"})
 
 
 def _safe_js(value: str) -> str:
-    return value.replace("\\", "\\\\").replace("'", "\\'")
+    return (value.replace("\\", "\\\\")
+                 .replace("'", "\\'")
+                 .replace("\r", "")
+                 .replace("\n", " "))
 
 
 def _safe_html(value: str) -> str:
@@ -234,7 +237,7 @@ def _get_js_array_entries(text: str, var_name: str) -> list[str]:
 
 def _set_js_array(text: str, var_name: str, entries: list[str]) -> str:
     if entries:
-        inner = "\n        " + "\n        ".join(f"'{_safe_js(e)}'," for e in entries) + "\n      "
+        inner = "\n        " + "\n        ".join(f"'{e}'," for e in entries) + "\n      "
     else:
         inner = ""
     new_decl = f"var {var_name} = [{inner}];"
