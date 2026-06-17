@@ -60,7 +60,7 @@ ALLOWED_USER_ID = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE = range(8)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT = range(11)
 
 SPECIAL_HTML: dict[str, str] = {}
 
@@ -881,6 +881,162 @@ async def remove_file_action(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return REMOVING_FILE
 
 
+def _unescape_js(value: str) -> str:
+    return value.replace("\\'", "'").replace("\\\\", "\\").replace("\\n", "\n")
+
+
+async def cmd_caption(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        await update.message.reply_text("Not authorized.")
+        return ConversationHandler.END
+    galleries = await _existing_galleries()
+    if not galleries:
+        await update.message.reply_text("No galleries found.")
+        return ConversationHandler.END
+    context.user_data["cap_galleries"] = galleries
+    keyboard = [[InlineKeyboardButton(g, callback_data=f"cg:{i}")] for i, g in enumerate(galleries)]
+    await update.message.reply_text("Edit captions in which gallery?", reply_markup=InlineKeyboardMarkup(keyboard))
+    return CAPTION_GALLERY
+
+
+async def caption_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    idx = int(query.data[3:])
+    gallery = context.user_data["cap_galleries"][idx]
+    context.user_data["cap_gallery"] = gallery
+
+    await query.edit_message_text(f"Loading {gallery}…")
+    current_html, html_sha = await _gh_get_file(_html_rel_path(gallery))
+    if not current_html:
+        await query.edit_message_text("Could not load gallery HTML.")
+        return ConversationHandler.END
+
+    text = current_html.decode("utf-8")
+    filenames = _get_js_array_entries(text, "filenames")
+    captions = _get_js_array_entries(text, "captions")
+    while len(captions) < len(filenames):
+        captions.append("")
+
+    if not filenames:
+        await query.edit_message_text(f"No photos found in {gallery}.")
+        return ConversationHandler.END
+
+    context.user_data["cap_filenames"] = filenames
+    context.user_data["cap_captions"] = captions  # stored as JS-escaped strings
+
+    await query.edit_message_text(f"{gallery} — {len(filenames)} photo(s). Sending preview…")
+    await _send_caption_preview(update.effective_chat.id, context, 0)
+    return CAPTION_FILE
+
+
+async def _send_caption_preview(chat_id: int, context: ContextTypes.DEFAULT_TYPE, idx: int) -> None:
+    filenames = context.user_data["cap_filenames"]
+    captions = context.user_data["cap_captions"]
+    gallery = context.user_data["cap_gallery"]
+    total = len(filenames)
+
+    if idx >= total:
+        await context.bot.send_message(chat_id, "All photos reviewed.\n\n/caption to edit more · send a photo to upload")
+        return
+
+    filename = filenames[idx]
+    current_cap = _unescape_js(captions[idx]) if captions[idx] else ""
+    ext = filename.rsplit(".", 1)[-1].lower()
+
+    tg_caption = f"{idx + 1} / {total}"
+    if current_cap:
+        tg_caption += f"\n📝 {current_cap[:200]}{'…' if len(current_cap) > 200 else ''}"
+
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("✏️ Edit", callback_data=f"ce:edit:{idx}"),
+        InlineKeyboardButton("→ Next",  callback_data=f"ce:nxt:{idx}"),
+        InlineKeyboardButton("✓ Done",  callback_data=f"ce:done:{idx}"),
+    ]])
+
+    raw_url = (
+        f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
+        f"/assets/{urllib.parse.quote(gallery)}/{urllib.parse.quote(filename)}"
+    )
+
+    if ext in _VIDEO_EXTS:
+        await context.bot.send_message(chat_id, f"📹 {tg_caption}\n{filename}", reply_markup=keyboard)
+    else:
+        try:
+            await context.bot.send_photo(chat_id, photo=raw_url, caption=tg_caption, reply_markup=keyboard)
+        except Exception:
+            await context.bot.send_message(chat_id, f"🖼 {tg_caption}\n{filename}", reply_markup=keyboard)
+
+
+async def caption_file_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    parts = query.data.split(":")
+    action = parts[1]
+    file_idx = int(parts[2])
+
+    try:
+        await query.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+
+    if action == "done":
+        await query.message.reply_text("Done.\n\n/caption to edit more · send a photo to upload")
+        return ConversationHandler.END
+
+    if action == "nxt":
+        await _send_caption_preview(update.effective_chat.id, context, file_idx + 1)
+        return CAPTION_FILE
+
+    # action == "edit"
+    context.user_data["cap_edit_idx"] = file_idx
+    total = len(context.user_data["cap_filenames"])
+    await query.message.reply_text(
+        f"Type the new caption for photo {file_idx + 1} / {total}:\n(or /skip to clear it)"
+    )
+    return CAPTION_TEXT
+
+
+async def caption_text_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    return await _apply_caption_edit(update, context, update.message.text.strip())
+
+
+async def caption_skip_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    return await _apply_caption_edit(update, context, "")
+
+
+async def _apply_caption_edit(update: Update, context: ContextTypes.DEFAULT_TYPE, new_caption: str) -> int:
+    idx = context.user_data["cap_edit_idx"]
+    gallery = context.user_data["cap_gallery"]
+    filenames = context.user_data["cap_filenames"]
+    captions = context.user_data["cap_captions"]
+
+    captions[idx] = _safe_js(new_caption)  # escape and store
+    context.user_data["cap_captions"] = captions
+
+    # Always fetch fresh HTML + SHA before saving to avoid conflicts
+    current_html, html_sha = await _gh_get_file(_html_rel_path(gallery))
+    if not current_html:
+        await update.message.reply_text("Failed to fetch gallery HTML.")
+        return CAPTION_FILE
+
+    text = current_html.decode("utf-8")
+    text = _set_js_array(text, "captions", captions)
+    ok, err = await _gh_put_file(
+        _html_rel_path(gallery), text.encode("utf-8"),
+        f"Update caption for {filenames[idx]} in {gallery}",
+        sha=html_sha,
+    )
+    if not ok:
+        await update.message.reply_text(f"Save failed: {err}")
+        return CAPTION_FILE
+
+    label = "Caption updated." if new_caption else "Caption cleared."
+    await update.message.reply_text(label)
+    await _send_caption_preview(update.effective_chat.id, context, idx + 1)
+    return CAPTION_FILE
+
+
 async def cmd_cancel(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Cancelled.")
     return ConversationHandler.END
@@ -900,6 +1056,7 @@ def main() -> None:
         entry_points=[
             MessageHandler(_media_filter, photo_received),
             CommandHandler("remove", cmd_remove),
+            CommandHandler("caption", cmd_caption),
         ],
         states={
             CHOOSING_GALLERY:        [CallbackQueryHandler(gallery_chosen, pattern=r"^g:")],
@@ -916,6 +1073,12 @@ def main() -> None:
             ],
             REMOVING_GALLERY:        [CallbackQueryHandler(remove_gallery_chosen, pattern=r"^rg:")],
             REMOVING_FILE:           [CallbackQueryHandler(remove_file_action, pattern=r"^rd:")],
+            CAPTION_GALLERY:         [CallbackQueryHandler(caption_gallery_chosen, pattern=r"^cg:")],
+            CAPTION_FILE:            [CallbackQueryHandler(caption_file_action, pattern=r"^ce:")],
+            CAPTION_TEXT:            [
+                CommandHandler("skip", caption_skip_received),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, caption_text_received),
+            ],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel)],
     )
