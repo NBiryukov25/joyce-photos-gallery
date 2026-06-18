@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="The Three Faces — describe a character, reveal their persona, ego, and shadow.">
+  <title>The Three Faces · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #060404; color: #f7f1ee; font-family: 'Cormorant Garamond', serif; min-height: 100%; }
+    body { padding: 0 1.5rem 6rem; max-width: 1100px; margin: 0 auto; }
+
+    /* ── nav ── */
+    .site-header { padding: 2em 0 1.6em; border-bottom: 1px solid rgba(247,241,238,0.1); }
+    .site-nav { display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-family: 'Cormorant Garamond', serif; font-size: 1em; font-weight: 400; letter-spacing: 0.26em; text-transform: uppercase; color: #f7f1ee; text-decoration: none; transition: color 0.2s; }
+    .nav-brand:hover { color: #c8a090; }
+    .nav-links { display: flex; gap: 2.4em; flex-wrap: wrap; }
+    .nav-link { font-family: 'Jost', sans-serif; font-size: 0.68em; font-weight: 300; letter-spacing: 0.26em; text-transform: uppercase; color: rgba(247,241,238,0.45); text-decoration: none; padding-bottom: 3px; border-bottom: 1px solid transparent; transition: color 0.2s, border-color 0.2s; }
+    .nav-link:hover { color: rgba(247,241,238,0.8); border-bottom-color: rgba(247,241,238,0.2); }
+    .nav-link.active { color: #f7f1ee; border-bottom-color: #8b3a3a; }
+
+    /* ── hero ── */
+    .portrait-hero { text-align: center; padding: 4rem 0 2.5rem; }
+    .portrait-overline { font-family: 'Jost', sans-serif; font-size: 0.65em; font-weight: 300; letter-spacing: 0.4em; text-transform: uppercase; color: #8b3a3a; margin-bottom: 0.9em; }
+    .portrait-title { font-family: 'Cormorant Garamond', serif; font-size: 4rem; font-weight: 300; letter-spacing: 0.14em; text-transform: uppercase; color: #f7f1ee; line-height: 1; margin-bottom: 0.4em; }
+    .portrait-subtitle { font-family: 'Jost', sans-serif; font-size: 0.72em; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(247,241,238,0.35); }
+    @media (max-width: 600px) { .portrait-title { font-size: 2.4rem; } .nav-links { gap: 1.4em; } }
+
+    /* ── divider ── */
+    .portrait-divider { border: none; border-top: 1px solid rgba(247,241,238,0.08); margin: 0 0 2.5rem; }
+
+    /* ── input area ── */
+    .portrait-intro { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.05rem; line-height: 1.7; color: rgba(247,241,238,0.5); text-align: center; max-width: 540px; margin: 0 auto 2rem; }
+    .portrait-form { display: flex; flex-direction: column; align-items: center; gap: 1.2rem; margin-bottom: 2rem; }
+    .portrait-textarea { width: 100%; max-width: 640px; min-height: 110px; background: rgba(255,255,255,0.03); border: 1px solid rgba(247,241,238,0.12); border-radius: 4px; color: #f7f1ee; font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; line-height: 1.6; padding: 1rem 1.2rem; resize: vertical; transition: border-color 0.2s; outline: none; }
+    .portrait-textarea::placeholder { color: rgba(247,241,238,0.2); font-style: italic; }
+    .portrait-textarea:focus { border-color: rgba(247,241,238,0.28); }
+    .reveal-btn { font-family: 'Jost', sans-serif; font-size: 0.72rem; font-weight: 300; letter-spacing: 0.28em; text-transform: uppercase; color: #f7f1ee; background: transparent; border: 1px solid rgba(247,241,238,0.28); border-radius: 999px; padding: 0.65rem 2.4rem; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+    .reveal-btn:hover:not(:disabled) { background: rgba(255,255,255,0.07); border-color: rgba(247,241,238,0.5); }
+    .reveal-btn:disabled { opacity: 0.4; cursor: default; }
+
+    /* ── error ── */
+    .portrait-error { font-family: 'Jost', sans-serif; font-size: 0.75rem; letter-spacing: 0.06em; color: #b05050; text-align: center; margin-bottom: 1.5rem; }
+
+    /* ── result panels ── */
+    .portrait-result { display: none; }
+    .portrait-result.visible { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 0.5rem; animation: fadeUp 0.7s ease; }
+    @media (max-width: 780px) { .portrait-result.visible { grid-template-columns: 1fr; } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+    .face-panel { padding: 2rem 1.6rem 1.8rem; border-top: 2px solid; background: rgba(255,255,255,0.015); }
+    .face-panel.persona { border-color: rgba(200,185,175,0.35); }
+    .face-panel.ego     { border-color: rgba(185,145,65,0.45); }
+    .face-panel.shadow  { border-color: rgba(139,58,58,0.65); }
+
+    .face-label { font-family: 'Jost', sans-serif; font-size: 0.58rem; font-weight: 300; letter-spacing: 0.42em; text-transform: uppercase; margin-bottom: 1.2rem; }
+    .face-panel.persona .face-label { color: rgba(200,185,175,0.65); }
+    .face-panel.ego     .face-label { color: rgba(200,160,75,0.75); }
+    .face-panel.shadow  .face-label { color: rgba(200,85,85,0.75); }
+
+    .face-text { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.05rem; line-height: 1.75; color: rgba(247,241,238,0.85); }
+
+    /* ── reset ── */
+    .portrait-reset { display: block; text-align: center; margin-top: 2.5rem; font-family: 'Jost', sans-serif; font-size: 0.62rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(247,241,238,0.25); cursor: pointer; background: none; border: none; transition: color 0.2s; }
+    .portrait-reset:hover { color: rgba(247,241,238,0.55); }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="site-nav">
+      <a href="gallery.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="gallery.html" class="nav-link">Galleries</a>
+        <a href="stories.html" class="nav-link">Stories</a>
+        <a href="friends.html" class="nav-link">Friends</a>
+        <a href="portrait.html" class="nav-link active">Portrait</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="portrait-hero">
+    <p class="portrait-overline">Character Study</p>
+    <h1 class="portrait-title">The Three Faces</h1>
+    <p class="portrait-subtitle">Persona &nbsp;·&nbsp; Ego &nbsp;·&nbsp; Shadow</p>
+  </section>
+
+  <hr class="portrait-divider">
+
+  <p class="portrait-intro">Describe a person — real or imagined. A name, a fragment, a feeling. The portrait reveals what they show the world, what they tell themselves, and what drives them from beneath.</p>
+
+  <div class="portrait-form">
+    <textarea id="desc" class="portrait-textarea" placeholder="A woman who laughs too easily at other people's jokes. Always the last to leave a room…" rows="4"></textarea>
+    <button id="reveal-btn" class="reveal-btn" type="button">Reveal</button>
+  </div>
+
+  <div id="portrait-error" class="portrait-error" style="display:none"></div>
+
+  <div id="portrait-result" class="portrait-result">
+    <div class="face-panel persona">
+      <p class="face-label">Persona</p>
+      <p class="face-text" id="text-persona"></p>
+    </div>
+    <div class="face-panel ego">
+      <p class="face-label">Ego</p>
+      <p class="face-text" id="text-ego"></p>
+    </div>
+    <div class="face-panel shadow">
+      <p class="face-label">Shadow</p>
+      <p class="face-text" id="text-shadow"></p>
+    </div>
+  </div>
+
+  <button id="reset-btn" class="portrait-reset" style="display:none" type="button">← New Portrait</button>
+
+  <script>
+    // ── API endpoint ──────────────────────────────────────────────────────────
+    // After deploying the updated bot to Railway, paste your Railway service URL:
+    var API_BASE = 'https://your-service.railway.app';
+    // ─────────────────────────────────────────────────────────────────────────
+
+    var descEl    = document.getElementById('desc');
+    var revealBtn = document.getElementById('reveal-btn');
+    var errorEl   = document.getElementById('portrait-error');
+    var resultEl  = document.getElementById('portrait-result');
+    var resetBtn  = document.getElementById('reset-btn');
+
+    revealBtn.addEventListener('click', reveal);
+    resetBtn.addEventListener('click', reset);
+    descEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { reveal(); }
+    });
+
+    function reveal() {
+      var desc = descEl.value.trim();
+      if (!desc) { descEl.focus(); return; }
+
+      errorEl.style.display = 'none';
+      revealBtn.textContent = 'Revealing…';
+      revealBtn.disabled = true;
+
+      fetch(API_BASE + '/portrait', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: desc }),
+      })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().then(function (body) {
+            throw new Error(body.detail || 'Request failed (' + res.status + ')');
+          });
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        document.getElementById('text-persona').textContent = data.persona;
+        document.getElementById('text-ego').textContent     = data.ego;
+        document.getElementById('text-shadow').textContent  = data.shadow;
+        resultEl.classList.add('visible');
+        resetBtn.style.display = '';
+        resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      })
+      .catch(function (err) {
+        errorEl.textContent = err.message;
+        errorEl.style.display = '';
+      })
+      .finally(function () {
+        revealBtn.textContent = 'Reveal';
+        revealBtn.disabled = false;
+      });
+    }
+
+    function reset() {
+      resultEl.classList.remove('visible');
+      resetBtn.style.display = 'none';
+      descEl.value = '';
+      errorEl.style.display = 'none';
+      descEl.focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+
+</body>
+</html>

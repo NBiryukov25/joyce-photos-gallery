@@ -15,6 +15,7 @@ Optional env vars:
 import asyncio
 import base64
 import io
+import json
 import os
 import re
 import logging
@@ -24,6 +25,11 @@ from datetime import datetime
 from pathlib import Path
 
 import httpx
+import uvicorn
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import anthropic as _anthropic_sdk
 from PIL import Image
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -55,7 +61,8 @@ else:
 GITHUB_REPO     = os.environ.get("GITHUB_REPO", "NBiryukov25/joyce-photos-gallery")
 GITHUB_BRANCH   = os.environ.get("GITHUB_BRANCH", "main")
 TELEGRAM_CHANNEL = os.environ.get("TELEGRAM_CHANNEL", "@filipina_allure")
-ALLOWED_USER_ID = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
+ALLOWED_USER_ID   = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
@@ -372,6 +379,93 @@ def _update_friends_index(friends_html: bytes, gallery: str, filename: str) -> b
         f'</div></div>\n'
     )
     return text.replace('<!-- friend-gallery-insert -->', card + '<!-- friend-gallery-insert -->').encode("utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Portrait API  (FastAPI served alongside the Telegram bot on $PORT)
+# ---------------------------------------------------------------------------
+
+portrait_api = FastAPI(title="Portrait API", docs_url=None, redoc_url=None)
+portrait_api.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
+
+_PORTRAIT_SYSTEM = """\
+You are a literary portrait writer with a cinematic, intimate, sensory style. \
+You excavate the hidden psychology of characters — what they show, what they believe, and what drives them.
+
+Given a character description, write three short vivid portraits:
+
+PERSONA — what they project to the world. Observational, exterior, third person.
+EGO    — the story they tell themselves. Interior, self-justifying, their own mythology.
+SHADOW — what drives them from beneath. Raw, elemental, the thing they cannot name even to themselves.
+
+Style reference from existing work:
+
+Persona: "Joyce stands at the water's edge, her petite frame outlined by the rushing current. \
+The sunlight illuminates the golden undertones of her warm olive skin, a visual cue of a life \
+that feels both familiar and suddenly urgent to explore. She holds herself with the careful \
+stillness of someone who has learned to present only what she intends."
+
+Ego: "Beneath the dappled light of the canopy, her expression is one of quiet determination. \
+She gazes beyond the ancient forest surrounding her, embodying the restless energy of a woman \
+seeking to redefine herself — not escaping, she tells herself, but finally arriving."
+
+Shadow: "A velvet vice that tightens with every deliberate beat, holding him in a grip so fierce \
+it feels almost like surrender. The searing pull of want beneath composed skin, radiating a heat \
+that lingers long after she turns away."
+
+Return ONLY valid JSON, nothing else:
+{"persona": "...", "ego": "...", "shadow": "..."}
+
+Each section: 2–4 sentences. Sensory. Specific. No clichés.\
+"""
+
+
+class _PortraitRequest(BaseModel):
+    description: str
+
+
+@portrait_api.get("/health")
+async def _health():
+    return {"status": "ok"}
+
+
+@portrait_api.post("/portrait")
+async def _generate_portrait(req: _PortraitRequest):
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=503, detail="Portrait service not configured (ANTHROPIC_API_KEY missing).")
+    desc = req.description.strip()
+    if not desc:
+        raise HTTPException(status_code=400, detail="Description is required.")
+    if len(desc) > 1000:
+        raise HTTPException(status_code=400, detail="Description too long (max 1000 characters).")
+    try:
+        client = _anthropic_sdk.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+        message = await client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=700,
+            system=_PORTRAIT_SYSTEM,
+            messages=[{"role": "user", "content": f"Write a three-part portrait of: {desc}"}],
+        )
+        raw = message.content[0].text.strip()
+        m = re.search(r"\{[\s\S]*\}", raw)
+        if not m:
+            raise ValueError("Unexpected response format from model.")
+        data = json.loads(m.group())
+        return {
+            "persona": data.get("persona", ""),
+            "ego":     data.get("ego", ""),
+            "shadow":  data.get("shadow", ""),
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Portrait generation failed")
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -1101,8 +1195,20 @@ def main() -> None:
     app.add_handler(conv)
     app.add_error_handler(error_handler)
 
-    logger.info("Bot polling...")
-    app.run_polling(drop_pending_updates=True)
+    PORT = int(os.environ.get("PORT", 8080))
+    uvicorn_config = uvicorn.Config(portrait_api, host="0.0.0.0", port=PORT, log_level="warning")
+    web_server = uvicorn.Server(uvicorn_config)
+
+    async def _run() -> None:
+        async with app:
+            await app.start()
+            await app.updater.start_polling(drop_pending_updates=True)
+            logger.info("Bot polling · Portrait API on :%d", PORT)
+            await web_server.serve()
+            await app.updater.stop()
+            await app.stop()
+
+    asyncio.run(_run())
 
 
 if __name__ == "__main__":
