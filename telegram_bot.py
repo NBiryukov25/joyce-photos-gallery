@@ -553,17 +553,21 @@ async def photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text(err)
         return ConversationHandler.END
 
-    galleries = await _existing_galleries()
-    regular = [g for g in galleries if not g.startswith("Friends-")]
-    keyboard = [[InlineKeyboardButton(g, callback_data=f"g:{g}")] for g in regular]
-    keyboard.append([InlineKeyboardButton("Friends →", callback_data="g:__friends__")])
-    keyboard.append([InlineKeyboardButton("+ New Gallery", callback_data="g:__new__")])
-
-    await update.message.reply_text(
-        "Which gallery?",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-    return CHOOSING_GALLERY
+    try:
+        galleries = await _existing_galleries()
+        regular = [g for g in galleries if not g.startswith("Friends-")]
+        keyboard = [[InlineKeyboardButton(g, callback_data=f"g:{g}")] for g in regular]
+        keyboard.append([InlineKeyboardButton("Friends →", callback_data="g:__friends__")])
+        keyboard.append([InlineKeyboardButton("+ New Gallery", callback_data="g:__new__")])
+        await update.message.reply_text(
+            "Which gallery?",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+        return CHOOSING_GALLERY
+    except Exception as exc:
+        logger.exception("Error in photo_received")
+        await update.message.reply_text(f"Error starting upload: {exc}")
+        return ConversationHandler.END
 
 
 async def gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -1083,10 +1087,19 @@ def main() -> None:
         fallbacks=[CommandHandler("cancel", cmd_cancel)],
     )
 
+    async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+        logger.error("Unhandled exception: %s", context.error, exc_info=context.error)
+        if isinstance(update, Update) and update.effective_message:
+            try:
+                await update.effective_message.reply_text(f"An error occurred: {context.error}")
+            except Exception:
+                pass
+
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("galleries", cmd_galleries))
     app.add_handler(CommandHandler("sync", cmd_sync))
     app.add_handler(conv)
+    app.add_error_handler(error_handler)
 
     logger.info("Bot polling...")
     app.run_polling(drop_pending_updates=True)
