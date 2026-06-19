@@ -426,7 +426,41 @@ Each section: 2–4 sentences. Sensory. Specific. No clichés.\
 
 
 class _PortraitRequest(BaseModel):
-    description: str
+    name:       str = ""
+    bio:        str = ""
+    appearance: str = ""
+    drive:      str = ""
+    desire:     str = ""
+    secret:     str = ""
+    fear:       str = ""
+    arc:        str = ""
+    voice:      str = ""
+    # legacy single-field support
+    description: str = ""
+
+
+def _build_portrait_prompt(req: _PortraitRequest) -> str:
+    parts = []
+    if req.name:       parts.append(f"Name: {req.name}")
+    if req.bio:        parts.append(f"Bio: {req.bio}")
+    if req.appearance: parts.append(f"Appearance: {req.appearance}")
+    if req.drive:      parts.append(f"Core Motivation (Drive): {req.drive}")
+    if req.desire:     parts.append(f"Explicit Goal (Desire): {req.desire}")
+    if req.secret:     parts.append(f"Hidden Secret: {req.secret}")
+    if req.fear:       parts.append(f"Deepest Fear: {req.fear}")
+    if req.arc:        parts.append(f"Character Arc: {req.arc}")
+    if req.voice:      parts.append(f"Voice & Speech: {req.voice}")
+    if not parts and req.description:
+        parts.append(req.description)
+    if not parts:
+        raise HTTPException(status_code=400, detail="At least one field is required.")
+    profile = "\n".join(parts)
+    return (
+        f"Write a three-part literary portrait for this character:\n\n{profile}\n\n"
+        "Ground the PERSONA in their appearance, voice, and public behavior. "
+        "Ground the EGO in their drive, desire, and arc. "
+        "Ground the SHADOW in their secret, fear, and the gap between what they want and what drives them."
+    )
 
 
 @portrait_api.get("/health")
@@ -438,18 +472,14 @@ async def _health():
 async def _generate_portrait(req: _PortraitRequest):
     if not ANTHROPIC_API_KEY:
         raise HTTPException(status_code=503, detail="Portrait service not configured (ANTHROPIC_API_KEY missing).")
-    desc = req.description.strip()
-    if not desc:
-        raise HTTPException(status_code=400, detail="Description is required.")
-    if len(desc) > 1000:
-        raise HTTPException(status_code=400, detail="Description too long (max 1000 characters).")
     try:
+        user_prompt = _build_portrait_prompt(req)
         client = _anthropic_sdk.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
         message = await client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=700,
+            max_tokens=800,
             system=_PORTRAIT_SYSTEM,
-            messages=[{"role": "user", "content": f"Write a three-part portrait of: {desc}"}],
+            messages=[{"role": "user", "content": user_prompt}],
         )
         raw = message.content[0].text.strip()
         m = re.search(r"\{[\s\S]*\}", raw)
