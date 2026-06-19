@@ -119,6 +119,16 @@
     .rel-tag-name { font-family: 'Cormorant Garamond', serif; font-size: 0.9rem; color: rgba(247,241,238,0.7); font-style: italic; }
 
     .portrait-actions { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+
+    /* ── observations ── */
+    .obs-section { margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid rgba(247,241,238,0.08); }
+    .obs-heading { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.1rem; color: rgba(247,241,238,0.4); margin-bottom: 0.8rem; }
+    .obs-actions { display: flex; align-items: center; gap: 1rem; margin-top: 0.9rem; }
+    .obs-error { font-family: 'Jost', sans-serif; font-size: 0.7rem; color: #b05050; }
+    .fields-divider { font-family: 'Jost', sans-serif; font-size: 0.58rem; letter-spacing: 0.26em; text-transform: uppercase; color: rgba(247,241,238,0.18); text-align: center; margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem; }
+    .fields-divider::before, .fields-divider::after { content: ''; flex: 1; height: 1px; background: rgba(247,241,238,0.07); }
+    @keyframes fieldPop { 0% { border-color: rgba(139,58,58,0.7); background: rgba(139,58,58,0.07); } 100% { border-color: rgba(247,241,238,0.1); background: rgba(255,255,255,0.03); } }
+    .field-populated { animation: fieldPop 1.8s ease forwards; }
   </style>
 </head>
 <body>
@@ -158,6 +168,18 @@
     </div>
 
     <form id="char-form" class="char-form" autocomplete="off">
+
+      <!-- ── observations ── -->
+      <div class="obs-section">
+        <p class="obs-heading">Describe your observations of this person…</p>
+        <textarea id="f-observations" class="field-textarea" style="min-height:120px" placeholder="She arrives early to everything but never seems relaxed when she gets there. Laughs at the wrong moments. Her car is older than her salary should allow. She volunteers at the hospital on weekends but never mentions it…"></textarea>
+        <div class="obs-actions">
+          <button type="button" class="pill-btn primary" id="infer-btn">Infer Character →</button>
+          <span id="obs-error" class="obs-error" style="display:none"></span>
+        </div>
+      </div>
+
+      <div class="fields-divider">or fill in manually</div>
 
       <div class="field-group">
         <label class="field-label" for="f-name">Name</label>
@@ -339,8 +361,11 @@
     function populateForm(char) {
       var fields = ['name','bio','appearance','drive','desire','secret','fear','arc','voice'];
       fields.forEach(function(f) {
-        document.getElementById('f-' + f).value = char ? (char[f] || '') : '';
+        var el = document.getElementById('f-' + f);
+        el.value = char ? (char[f] || '') : '';
+        el.classList.remove('field-populated');
       });
+      document.getElementById('f-observations').value = '';
       document.getElementById('form-title').textContent = char ? (char.name || 'Edit Character') : 'New Character';
       document.getElementById('form-error').style.display = 'none';
 
@@ -453,7 +478,54 @@
       showView('portrait');
     }
 
+    // ── infer fields from observations ────────────────────────────────────────
+    function inferFields() {
+      var obs = document.getElementById('f-observations').value.trim();
+      if (!obs) { document.getElementById('f-observations').focus(); return; }
+
+      var btn    = document.getElementById('infer-btn');
+      var errEl  = document.getElementById('obs-error');
+      btn.textContent = 'Inferring…';
+      btn.disabled = true;
+      errEl.style.display = 'none';
+
+      fetch(API_BASE + '/infer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ observations: obs }),
+      })
+      .then(function(res) {
+        if (!res.ok) return res.json().then(function(b) { throw new Error(b.detail || 'Request failed'); });
+        return res.json();
+      })
+      .then(function(data) {
+        var fields = ['name','bio','appearance','drive','desire','secret','fear','arc','voice'];
+        fields.forEach(function(f) {
+          var el = document.getElementById('f-' + f);
+          if (data[f]) {
+            el.value = data[f];
+            el.classList.remove('field-populated');
+            void el.offsetWidth; // force reflow so animation restarts
+            el.classList.add('field-populated');
+          }
+        });
+        // scroll to first populated field
+        var firstField = document.getElementById('f-name');
+        if (firstField) firstField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      })
+      .catch(function(err) {
+        errEl.textContent = err.message;
+        errEl.style.display = '';
+      })
+      .finally(function() {
+        btn.textContent = 'Infer Character →';
+        btn.disabled = false;
+      });
+    }
+
     // ── event wiring ───────────────────────────────────────────────────────────
+    document.getElementById('infer-btn').addEventListener('click', inferFields);
+
     document.getElementById('new-char-btn').addEventListener('click', function() {
       _editingId = null;
       populateForm(null);

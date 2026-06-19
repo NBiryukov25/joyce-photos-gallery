@@ -463,6 +463,52 @@ def _build_portrait_prompt(req: _PortraitRequest) -> str:
     )
 
 
+_INFER_SYSTEM = """\
+You are a perceptive character analyst. Given freeform observations about a person — real or imaginary — \
+extract and infer structured character attributes. Read between the lines. \
+Infer motivation from behavior, fear from avoidance, desire from what they pursue. \
+Be specific and psychologically astute, not generic.
+
+Return ONLY valid JSON with exactly these keys (use "" for anything truly unknowable):
+{"name":"","bio":"","appearance":"","drive":"","desire":"","secret":"","fear":"","arc":"","voice":""}\
+"""
+
+
+class _InferRequest(BaseModel):
+    observations: str
+
+
+@portrait_api.post("/infer")
+async def _infer_character(req: _InferRequest):
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=503, detail="Service not configured.")
+    obs = req.observations.strip()
+    if not obs:
+        raise HTTPException(status_code=400, detail="Observations are required.")
+    if len(obs) > 3000:
+        raise HTTPException(status_code=400, detail="Observations too long (max 3000 characters).")
+    try:
+        client = _anthropic_sdk.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+        message = await client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=800,
+            system=_INFER_SYSTEM,
+            messages=[{"role": "user", "content": f"Analyze these observations and infer character attributes:\n\n{obs}"}],
+        )
+        raw = message.content[0].text.strip()
+        m = re.search(r"\{[\s\S]*\}", raw)
+        if not m:
+            raise ValueError("Unexpected response format.")
+        data = json.loads(m.group())
+        keys = ['name', 'bio', 'appearance', 'drive', 'desire', 'secret', 'fear', 'arc', 'voice']
+        return {k: data.get(k, "") for k in keys}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Infer failed")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @portrait_api.get("/health")
 async def _health():
     return {"status": "ok"}
