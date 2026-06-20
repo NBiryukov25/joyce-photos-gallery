@@ -284,6 +284,26 @@ def _updated_html(current: bytes, gallery: str, filename: str, caption: str) -> 
         text = _insert_into_js_array(text, "filenames", filename)
         if re.search(r"var captions\s*=\s*\[", text):
             text = _insert_into_js_array(text, "captions", caption)
+    elif re.search(r'class="bento-gallery"', text):
+        # Bento grid gallery: append a figure element
+        asset_path = f"../assets/{gallery}/{filename}"
+        ext = filename.rsplit(".", 1)[-1].lower()
+        if ext in _VIDEO_EXTS:
+            media_tag = f'        <video controls src="{asset_path}" style="width:100%;display:block;"></video>'
+        else:
+            media_tag = f'        <img src="{asset_path}" alt="{_safe_html(caption or "Photo")}">'
+        new_item = (
+            f'\n      <figure class="bento-item">\n'
+            f'{media_tag}\n'
+            f'        <figcaption>{_safe_html(caption)}</figcaption>\n'
+            f'      </figure>'
+        )
+        text = re.sub(
+            r'(\n\s+</div>\s*\n\s*</section>)',
+            new_item + r'\1',
+            text,
+            count=1,
+        )
     elif re.search(r'class="photo-grid"', text):
         # Photo-grid gallery: append a photo-item div (or video element)
         asset_path = f"assets/{gallery}/{filename}"
