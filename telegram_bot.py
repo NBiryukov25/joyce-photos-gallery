@@ -911,7 +911,7 @@ async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     except Exception as exc:
         logger.exception("Unhandled error in _finalize")
         try:
-            await update.message.reply_text(
+            await update.effective_message.reply_text(
                 f"Something went wrong: {exc}\n\nSend another photo to continue, or /done to finish."
             )
         except Exception:
@@ -928,7 +928,7 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     is_video  = context.user_data.get("is_video", False)
 
     kind = "video" if is_video else "photo"
-    status = await update.message.reply_text(f"Downloading {kind}...")
+    status = await update.effective_message.reply_text(f"Downloading {kind}...")
 
     suffix = ".mp4" if is_video else ".jpg"
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
@@ -1333,7 +1333,6 @@ def main() -> None:
             CommandHandler("remove", cmd_remove),
             CommandHandler("caption", cmd_caption),
         ],
-        allow_reentry=True,
         states={
             CHOOSING_GALLERY:        [
                 CallbackQueryHandler(gallery_chosen, pattern=r"^g:"),
