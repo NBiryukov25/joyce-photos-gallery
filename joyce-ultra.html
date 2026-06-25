@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sheryl Joyce — Joyce Ultra. Premium exclusive collections.">
+  <title>Joyce Ultra · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="gallery.css">
+  <link rel="stylesheet" href="lightbox.css">
+  <style>
+    /* ── Ultra dark-theme overrides ── */
+    html, body { background: #0c0a08; color: rgba(255,255,255,0.88); }
+
+    .site-header {
+      border-bottom: 1px solid rgba(201,169,110,0.15);
+      background: rgba(8,6,4,0.96);
+    }
+    .nav-brand { color: rgba(255,255,255,0.8) !important; }
+    .nav-link { color: rgba(255,255,255,0.55) !important; border-color: transparent !important; }
+    .nav-link:hover { color: #c9a96e !important; border-color: #c9a96e !important; }
+    .nav-link.active { color: #c9a96e !important; border-color: #c9a96e !important; }
+
+    .page-hero { background: #0c0a08; }
+    .page-hero-overline { color: #c9a96e; letter-spacing: 0.28em; }
+    .page-hero-title { color: rgba(255,255,255,0.92); }
+    .page-hero-subtitle { color: rgba(255,255,255,0.35); }
+
+    .gallery-divider { border-color: rgba(201,169,110,0.15); }
+
+    .gallery-row { gap: 1.5rem; }
+
+    .gallery-item {
+      background: #161210;
+      border: 1px solid rgba(201,169,110,0.1);
+      border-radius: 2px;
+    }
+    .gallery-item:hover {
+      border-color: rgba(201,169,110,0.45);
+      box-shadow: 0 6px 32px rgba(201,169,110,0.07);
+      transform: translateY(-2px);
+    }
+    .gallery-item img { filter: brightness(0.92); transition: filter 0.3s; }
+    .gallery-item:hover img { filter: brightness(1); }
+
+    .gallery-caption { padding: 1rem 1.1rem 1.2rem; }
+    .gallery-caption-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1rem;
+      font-weight: 400;
+      color: rgba(255,255,255,0.82);
+      letter-spacing: 0.04em;
+    }
+    .gallery-caption-meta { color: rgba(255,255,255,0.3); }
+    .gallery-caption-text { color: rgba(255,255,255,0.45); }
+    .gallery-view-link { color: #c9a96e !important; }
+    .gallery-view-link:hover { color: rgba(201,169,110,0.65) !important; }
+
+    .gallery-section-label {
+      color: rgba(255,255,255,0.28);
+      border-top-color: rgba(201,169,110,0.12);
+      letter-spacing: 0.22em;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="site-nav">
+      <a href="gallery.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="gallery.html" class="nav-link">Galleries</a>
+        <a href="stories.html" class="nav-link">Stories</a>
+        <a href="friends.html" class="nav-link">Friends</a>
+        <a href="portrait.html" class="nav-link">Portrait</a>
+        <a href="joyce-ultra.html" class="nav-link active">Ultra</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="page-hero">
+    <p class="page-hero-overline">Exclusive</p>
+    <h1 class="page-hero-title">Joyce Ultra</h1>
+    <p class="page-hero-subtitle">Premium collections &nbsp;·&nbsp; Curated light</p>
+  </section>
+
+  <hr class="gallery-divider">
+
+  <div class="gallery-row" id="ultra-galleries"><!-- ultra-gallery-insert --></div>
+
+  <script src="lightbox.js"></script>
+
+</body>
+</html>

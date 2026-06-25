@@ -67,7 +67,7 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT = range(11)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY = range(13)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -397,6 +397,24 @@ def _update_friends_index(friends_html: bytes, gallery: str, filename: str) -> b
         f'</div></div>\n'
     )
     return text.replace('<!-- friend-gallery-insert -->', card + '<!-- friend-gallery-insert -->').encode("utf-8")
+
+
+def _update_ultra_index(ultra_html: bytes, gallery: str, filename: str) -> bytes:
+    text = ultra_html.decode("utf-8")
+    html_path = _html_rel_path(gallery)
+    if html_path in text:
+        return ultra_html  # card already present
+    name = gallery.replace("Ultra-", "").replace("-", " ").title()
+    img_src = f"assets/{gallery}/{filename}"
+    card = (
+        f'<div class="gallery-item">'
+        f'<a href="{html_path}"><img src="{img_src}" alt="{_safe_html(name)}"></a>'
+        f'<div class="gallery-caption">'
+        f'<p class="gallery-caption-title">{_safe_html(name)}</p>'
+        f'<a class="gallery-view-link" href="{html_path}">View gallery →</a>'
+        f'</div></div>\n'
+    )
+    return text.replace('<!-- ultra-gallery-insert -->', card + '<!-- ultra-gallery-insert -->').encode("utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -745,7 +763,10 @@ async def photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         galleries = await _existing_galleries()
         regular = [g for g in galleries if not g.startswith("Friends-")]
         keyboard = [[InlineKeyboardButton(g, callback_data=f"g:{g}")] for g in regular]
-        keyboard.append([InlineKeyboardButton("Friends →", callback_data="g:__friends__")])
+        keyboard.append([
+            InlineKeyboardButton("Friends →", callback_data="g:__friends__"),
+            InlineKeyboardButton("Joyce Ultra →", callback_data="g:__ultra__"),
+        ])
         keyboard.append([InlineKeyboardButton("+ New Gallery", callback_data="g:__new__")])
         await update.message.reply_text(
             "Which gallery?",
@@ -778,6 +799,17 @@ async def gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await query.edit_message_text("Which friend gallery?", reply_markup=InlineKeyboardMarkup(keyboard))
         return CHOOSING_FRIEND_GALLERY
 
+    if choice == "__ultra__":
+        all_galleries = await _existing_galleries()
+        ultra_galleries = [g for g in all_galleries if g.startswith("Ultra-")]
+        keyboard = [[InlineKeyboardButton(
+            g.replace("Ultra-", "").replace("-", " "),
+            callback_data=f"u:{g}"
+        )] for g in ultra_galleries]
+        keyboard.append([InlineKeyboardButton("+ New Ultra Gallery", callback_data="u:__new__")])
+        await query.edit_message_text("Which Ultra gallery?", reply_markup=InlineKeyboardMarkup(keyboard))
+        return CHOOSING_ULTRA_GALLERY
+
     context.user_data["gallery"] = choice
     await query.edit_message_text(f"Adding to {choice}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
@@ -802,6 +834,28 @@ async def friend_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYP
     gallery = f"Friends-{name}"
     context.user_data["gallery"] = gallery
     await update.message.reply_text(f"New friend gallery: {name.replace('-', ' ')}\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
+    return ADDING_CAPTION
+
+
+async def ultra_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    choice = query.data[2:]  # strips "u:"
+    if choice == "__new__":
+        await query.edit_message_text("Name this Ultra gallery (e.g. Night-Session):")
+        return NAMING_ULTRA_GALLERY
+    context.user_data["gallery"] = choice
+    name = choice.replace("Ultra-", "").replace("-", " ").title()
+    await query.edit_message_text(f"Adding to {name}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
+    return ADDING_CAPTION
+
+
+async def ultra_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    raw = update.message.text.strip()
+    name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "Ultra"
+    gallery = f"Ultra-{name}"
+    context.user_data["gallery"] = gallery
+    await update.message.reply_text(f"New Ultra gallery: {name.replace('-', ' ')}\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
 
 
@@ -923,20 +977,36 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await status.edit_text(f"Photo uploaded but page update failed: {err}")
         return ConversationHandler.END
 
-    # New gallery → add a card to friends.html index
+    # New gallery → add a card to the appropriate index page
     if html_sha is None:
-        friends_html, friends_sha = await _gh_get_file("friends.html")
-        if friends_html:
-            updated_friends = _update_friends_index(friends_html, gallery, filename)
-            if updated_friends != friends_html:
-                await _gh_put_file(
-                    "friends.html", updated_friends,
-                    f"Add {gallery} gallery card to friends page",
-                    sha=friends_sha,
-                )
+        if gallery.startswith("Friends-"):
+            friends_html, friends_sha = await _gh_get_file("friends.html")
+            if friends_html:
+                updated_friends = _update_friends_index(friends_html, gallery, filename)
+                if updated_friends != friends_html:
+                    await _gh_put_file(
+                        "friends.html", updated_friends,
+                        f"Add {gallery} gallery card to friends page",
+                        sha=friends_sha,
+                    )
+        elif gallery.startswith("Ultra-"):
+            ultra_html, ultra_sha = await _gh_get_file("joyce-ultra.html")
+            if ultra_html:
+                updated_ultra = _update_ultra_index(ultra_html, gallery, filename)
+                if updated_ultra != ultra_html:
+                    await _gh_put_file(
+                        "joyce-ultra.html", updated_ultra,
+                        f"Add {gallery} gallery card to Joyce Ultra",
+                        sha=ultra_sha,
+                    )
 
     gallery_url = f"{GITHUB_PAGES_URL}/{html_rel}"
-    display = gallery.replace("Friends-", "").replace("-", " ") if gallery.startswith("Friends-") else gallery
+    if gallery.startswith("Friends-"):
+        display = gallery.replace("Friends-", "").replace("-", " ")
+    elif gallery.startswith("Ultra-"):
+        display = gallery.replace("Ultra-", "").replace("-", " ")
+    else:
+        display = gallery
 
     # Post to Telegram channel if configured
     channel_note = ""
@@ -1272,6 +1342,8 @@ def main() -> None:
             NAMING_GALLERY:          [MessageHandler(filters.TEXT & ~filters.COMMAND, gallery_named)],
             CHOOSING_FRIEND_GALLERY: [CallbackQueryHandler(friend_gallery_chosen, pattern=r"^f:")],
             NAMING_FRIEND_GALLERY:   [MessageHandler(filters.TEXT & ~filters.COMMAND, friend_gallery_named)],
+            CHOOSING_ULTRA_GALLERY:  [CallbackQueryHandler(ultra_gallery_chosen, pattern=r"^u:")],
+            NAMING_ULTRA_GALLERY:    [MessageHandler(filters.TEXT & ~filters.COMMAND, ultra_gallery_named)],
             ADDING_CAPTION:          [
                 CommandHandler("skip", caption_skipped),
                 CallbackQueryHandler(skip_caption_button, pattern=rf"^{_SKIP_CB}$"),
