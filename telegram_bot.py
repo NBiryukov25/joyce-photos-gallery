@@ -276,7 +276,7 @@ def _remove_from_gallery_html(current: bytes, gallery: str, filename: str) -> by
     return text.encode("utf-8")
 
 
-def _updated_html(current: bytes, gallery: str, filename: str, caption: str) -> bytes:
+def _updated_html(current: bytes, gallery: str, filename: str, caption: str, html_rel: str = "") -> bytes:
     text = current.decode("utf-8")
 
     if re.search(r"var filenames\s*=\s*\[", text):
@@ -305,32 +305,27 @@ def _updated_html(current: bytes, gallery: str, filename: str, caption: str) -> 
             count=1,
         )
     elif re.search(r'class="photo-grid"', text):
-        # Photo-grid gallery: append a photo-item div (or video element)
-        asset_path = f"assets/{gallery}/{filename}"
-        label = _safe_html(caption if caption else filename)
+        # Photo-grid gallery — galleries in the galleries/ subdir need ../assets/ prefix
+        in_subdir = html_rel.startswith("galleries/")
+        asset_path = f"../assets/{gallery}/{filename}" if in_subdir else f"assets/{gallery}/{filename}"
         ext = filename.rsplit(".", 1)[-1].lower()
         if ext in _VIDEO_EXTS:
-            media_tag = (
-                f'        <video controls src="{asset_path}"'
-                f' style="width:100%;display:block;border-radius:4px;"></video>'
-            )
+            media_tag = f'      <video controls src="{asset_path}" style="width:100%;display:block;border-radius:4px;"></video>'
         else:
-            media_tag = (
-                f'        <img src="{asset_path}" alt="{_safe_html(caption or "Photo")}"'
-                f' data-caption="{_safe_html(caption)}">'
-            )
+            media_tag = f'      <img src="{asset_path}" alt="{_safe_html(caption or "Photo")}">'
         new_item = (
-            f'\n      <div class="photo-item">\n'
+            f'    <div class="photo-item">\n'
             f'{media_tag}\n'
-            f'        <div class="photo-label">{label}</div>\n'
-            f'      </div>'
+            f'      <div class="photo-info">\n'
+            f'        <p class="photo-caption">{_safe_html(caption)}</p>\n'
+            f'      </div>\n'
+            f'    </div>'
         )
-        text = re.sub(
-            r'(\n\n    </div>\n\n  </div>)',
-            new_item + r'\1',
-            text,
-            count=1,
-        )
+        # Insert before the photo-grid's closing </div> using rfind for reliability
+        end_marker = '\n\n  </div>'
+        pos = text.rfind(end_marker)
+        if pos != -1:
+            text = text[:pos] + '\n\n' + new_item + text[pos:]
 
     return text.encode("utf-8")
 
@@ -899,7 +894,7 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     current_html, html_sha = await _gh_get_file(html_rel)
 
     if current_html is not None:
-        new_html = _updated_html(current_html, gallery, filename, caption)
+        new_html = _updated_html(current_html, gallery, filename, caption, html_rel=html_rel)
     else:
         template, _ = await _gh_get_file("galleries/_template-gallery.html")
         if not template:
