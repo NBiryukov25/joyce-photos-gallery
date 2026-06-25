@@ -69,6 +69,9 @@ GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
 CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT = range(11)
 
+_SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
+_SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
+
 SPECIAL_HTML: dict[str, str] = {}
 
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
@@ -776,7 +779,7 @@ async def gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return CHOOSING_FRIEND_GALLERY
 
     context.user_data["gallery"] = choice
-    await query.edit_message_text(f"Adding to {choice}.\n\nCaption? (or /skip)")
+    await query.edit_message_text(f"Adding to {choice}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
 
 
@@ -789,7 +792,7 @@ async def friend_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TY
         return NAMING_FRIEND_GALLERY
     context.user_data["gallery"] = choice
     name = choice.replace("Friends-", "").replace("-", " ").title()
-    await query.edit_message_text(f"Adding to {name}.\n\nCaption? (or /skip)")
+    await query.edit_message_text(f"Adding to {name}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
 
 
@@ -798,7 +801,7 @@ async def friend_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYP
     name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "Friend"
     gallery = f"Friends-{name}"
     context.user_data["gallery"] = gallery
-    await update.message.reply_text(f"New friend gallery: {name.replace('-', ' ')}\n\nCaption? (or /skip)")
+    await update.message.reply_text(f"New friend gallery: {name.replace('-', ' ')}\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
 
 
@@ -806,7 +809,7 @@ async def gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     raw = update.message.text.strip()
     name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "New-Gallery"
     context.user_data["gallery"] = name
-    await update.message.reply_text(f"Gallery: {name}\n\nCaption? (or /skip)")
+    await update.message.reply_text(f"Gallery: {name}\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
 
 
@@ -820,6 +823,17 @@ async def caption_skipped(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return await _finalize(update, context)
 
 
+async def skip_caption_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    try:
+        await query.edit_message_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    context.user_data["caption"] = ""
+    return await _finalize(update, context)
+
+
 async def more_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     err = _store_media(update.message, context)
     if err:
@@ -828,7 +842,7 @@ async def more_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE
     gallery = context.user_data.get("gallery", "")
     display = gallery.replace("Friends-", "").replace("-", " ") if gallery.startswith("Friends-") else gallery
     kind = "video" if context.user_data.get("is_video") else "photo"
-    await update.message.reply_text(f"Adding {kind} to {display}.\n\nCaption? (or /skip)")
+    await update.message.reply_text(f"Adding {kind} to {display}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
 
 
@@ -843,10 +857,12 @@ async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     except Exception as exc:
         logger.exception("Unhandled error in _finalize")
         try:
-            await update.message.reply_text(f"Error: {exc}")
+            await update.message.reply_text(
+                f"Something went wrong: {exc}\n\nSend another photo to continue, or /done to finish."
+            )
         except Exception:
             pass
-        return ConversationHandler.END
+        return ADDING_MORE
 
 
 async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -1258,8 +1274,8 @@ def main() -> None:
             NAMING_FRIEND_GALLERY:   [MessageHandler(filters.TEXT & ~filters.COMMAND, friend_gallery_named)],
             ADDING_CAPTION:          [
                 CommandHandler("skip", caption_skipped),
+                CallbackQueryHandler(skip_caption_button, pattern=rf"^{_SKIP_CB}$"),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, caption_received),
-                MessageHandler(_media_filter, photo_received),
             ],
             ADDING_MORE:             [
                 MessageHandler(_media_filter, more_photo_received),
