@@ -1252,14 +1252,19 @@ def main() -> None:
             CommandHandler("remove", cmd_remove),
             CommandHandler("caption", cmd_caption),
         ],
+        allow_reentry=True,
         states={
-            CHOOSING_GALLERY:        [CallbackQueryHandler(gallery_chosen, pattern=r"^g:")],
+            CHOOSING_GALLERY:        [
+                CallbackQueryHandler(gallery_chosen, pattern=r"^g:"),
+                MessageHandler(_media_filter, photo_received),
+            ],
             NAMING_GALLERY:          [MessageHandler(filters.TEXT & ~filters.COMMAND, gallery_named)],
             CHOOSING_FRIEND_GALLERY: [CallbackQueryHandler(friend_gallery_chosen, pattern=r"^f:")],
             NAMING_FRIEND_GALLERY:   [MessageHandler(filters.TEXT & ~filters.COMMAND, friend_gallery_named)],
             ADDING_CAPTION:          [
                 CommandHandler("skip", caption_skipped),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, caption_received),
+                MessageHandler(_media_filter, photo_received),
             ],
             ADDING_MORE:             [
                 MessageHandler(_media_filter, more_photo_received),
