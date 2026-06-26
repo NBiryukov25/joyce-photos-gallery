@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Sheryl Joyce — Joyce Ultra. Premium exclusive collections.">
+  <meta name="description" content="Sheryl Joyce — Joyce Ultra. Exclusive photos, videos and stories.">
   <title>Joyce Ultra · Sheryl Joyce</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="gallery.css">
   <link rel="stylesheet" href="lightbox.css">
   <style>
-    /* ── Ultra dark-theme overrides ── */
+    /* ── Base dark theme ── */
     html, body { background: #0c0a08; color: rgba(255,255,255,0.88); }
 
     .site-header {
@@ -19,49 +19,155 @@
       background: rgba(8,6,4,0.96);
     }
     .nav-brand { color: rgba(255,255,255,0.8) !important; }
-    .nav-link { color: rgba(255,255,255,0.55) !important; border-color: transparent !important; }
+    .nav-link { color: rgba(255,255,255,0.5) !important; border-color: transparent !important; }
     .nav-link:hover { color: #c9a96e !important; border-color: #c9a96e !important; }
     .nav-link.active { color: #c9a96e !important; border-color: #c9a96e !important; }
 
-    .page-hero { background: #0c0a08; }
+    .page-hero { background: #0c0a08; padding-bottom: 2rem; }
     .page-hero-overline { color: #c9a96e; letter-spacing: 0.28em; }
     .page-hero-title { color: rgba(255,255,255,0.92); }
-    .page-hero-subtitle { color: rgba(255,255,255,0.35); }
+    .page-hero-subtitle { color: rgba(255,255,255,0.32); }
 
-    .gallery-divider { border-color: rgba(201,169,110,0.15); }
+    /* ── Section labels ── */
+    .ultra-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+    .ultra-section-header {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      margin: 2.8rem 0 1.6rem;
+    }
+    .ultra-section-header::before,
+    .ultra-section-header::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(201,169,110,0.18);
+    }
+    .ultra-section-label {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 300;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+      color: #c9a96e;
+      white-space: nowrap;
+    }
 
-    .gallery-row { gap: 1.5rem; }
-
+    /* ── Gallery cards (Photos & Videos) ── */
+    .ultra-media-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.4rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
     .gallery-item {
       background: #161210;
       border: 1px solid rgba(201,169,110,0.1);
       border-radius: 2px;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
     }
     .gallery-item:hover {
-      border-color: rgba(201,169,110,0.45);
+      border-color: rgba(201,169,110,0.42);
       box-shadow: 0 6px 32px rgba(201,169,110,0.07);
-      transform: translateY(-2px);
+      transform: translateY(-3px);
     }
-    .gallery-item img { filter: brightness(0.92); transition: filter 0.3s; }
-    .gallery-item:hover img { filter: brightness(1); }
-
-    .gallery-caption { padding: 1rem 1.1rem 1.2rem; }
+    .gallery-item img, .gallery-item video {
+      width: 100%; display: block;
+      filter: brightness(0.9); transition: filter 0.3s;
+    }
+    .gallery-item:hover img, .gallery-item:hover video { filter: brightness(1); }
+    .gallery-caption { padding: 0.9rem 1rem 1.1rem; }
     .gallery-caption-title {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 1rem;
-      font-weight: 400;
-      color: rgba(255,255,255,0.82);
-      letter-spacing: 0.04em;
+      font-size: 1rem; font-weight: 400;
+      color: rgba(255,255,255,0.82); letter-spacing: 0.04em;
+      margin: 0 0 0.25rem;
     }
-    .gallery-caption-meta { color: rgba(255,255,255,0.3); }
-    .gallery-caption-text { color: rgba(255,255,255,0.45); }
-    .gallery-view-link { color: #c9a96e !important; }
-    .gallery-view-link:hover { color: rgba(201,169,110,0.65) !important; }
+    .gallery-caption-meta { color: rgba(255,255,255,0.28); font-size: 0.75rem; margin: 0 0 0.4rem; }
+    .gallery-caption-text { color: rgba(255,255,255,0.42); font-size: 0.82rem; margin: 0 0 0.6rem; }
+    .gallery-view-link { color: #c9a96e !important; font-size: 0.78rem; letter-spacing: 0.1em; }
+    .gallery-view-link:hover { color: rgba(201,169,110,0.6) !important; }
 
-    .gallery-section-label {
-      color: rgba(255,255,255,0.28);
-      border-top-color: rgba(201,169,110,0.12);
+    /* ── Story cards ── */
+    .ultra-stories-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.6rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+    }
+    .ultra-story-card {
+      background: #111009;
+      border: 1px solid rgba(201,169,110,0.1);
+      border-radius: 2px;
+      padding: 1.8rem 1.6rem 1.6rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+      text-decoration: none;
+    }
+    .ultra-story-card:hover {
+      border-color: rgba(201,169,110,0.38);
+      box-shadow: 0 8px 40px rgba(201,169,110,0.06);
+      transform: translateY(-3px);
+    }
+    .ultra-story-tag {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.62rem;
+      font-weight: 300;
       letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #c9a96e;
+    }
+    .ultra-story-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.35rem;
+      font-weight: 400;
+      color: rgba(255,255,255,0.88);
+      line-height: 1.3;
+      margin: 0;
+    }
+    .ultra-story-date {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 200;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.28);
+    }
+    .ultra-story-excerpt {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.95rem;
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.45);
+      margin: 0.2rem 0 0;
+    }
+    .ultra-story-read {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 300;
+      letter-spacing: 0.14em;
+      color: #c9a96e;
+      margin-top: auto;
+      padding-top: 0.8rem;
+      text-decoration: none;
+    }
+    .ultra-story-card:hover .ultra-story-read { color: rgba(201,169,110,0.65); }
+
+    /* ── Page divider ── */
+    .ultra-divider {
+      border: none;
+      border-top: 1px solid rgba(201,169,110,0.12);
+      margin: 0;
     }
   </style>
 </head>
@@ -83,12 +189,40 @@
   <section class="page-hero">
     <p class="page-hero-overline">Exclusive</p>
     <h1 class="page-hero-title">Joyce Ultra</h1>
-    <p class="page-hero-subtitle">Premium collections &nbsp;·&nbsp; Curated light</p>
+    <p class="page-hero-subtitle">Photos &nbsp;·&nbsp; Videos &nbsp;·&nbsp; Stories</p>
   </section>
 
-  <hr class="gallery-divider">
+  <hr class="ultra-divider">
 
-  <div class="gallery-row" id="ultra-galleries"><!-- ultra-gallery-insert --></div>
+  <!-- ── Photos & Videos ── -->
+  <div class="ultra-section">
+    <div class="ultra-section-header">
+      <span class="ultra-section-label">Photos &amp; Videos</span>
+    </div>
+  </div>
+
+  <div class="ultra-media-row" id="ultra-galleries"><!-- ultra-gallery-insert --></div>
+
+  <hr class="ultra-divider" style="margin-top:2.5rem;">
+
+  <!-- ── Stories ── -->
+  <div class="ultra-section">
+    <div class="ultra-section-header">
+      <span class="ultra-section-label">Stories</span>
+    </div>
+  </div>
+
+  <div class="ultra-stories-grid">
+
+    <a class="ultra-story-card" href="stories/ultra-employers-playground-reimagined.html">
+      <p class="ultra-story-tag">Fiction · Ultra</p>
+      <h2 class="ultra-story-title">The Employer's Playground Reimagined</h2>
+      <p class="ultra-story-date">2026</p>
+      <span class="ultra-story-read">Read →</span>
+    </a>
+
+    <!-- ultra-story-insert -->
+  </div>
 
   <script src="lightbox.js"></script>
 
