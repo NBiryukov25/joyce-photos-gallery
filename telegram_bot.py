@@ -269,12 +269,43 @@ def _remove_from_gallery_html(current: bytes, gallery: str, filename: str) -> by
                 text = _set_js_array(text, "captions", captions)
 
     elif re.search(r'class="photo-grid"', text):
-        asset_path = re.escape(f"assets/{gallery}/{filename}")
-        text = re.sub(
-            rf'\n\s*<div class="photo-item">\n\s*<(?:img|video)[^>]*src="{asset_path}"[^>]*>(?:</video>)?\n\s*<div class="photo-label">[^<]*</div>\n\s*</div>',
-            "",
-            text,
-        )
+        # Try both path prefixes: galleries/ subdir uses ../, root-level uses plain
+        for _prefix in (f"../assets/{gallery}/{filename}", f"assets/{gallery}/{filename}"):
+            _src = f'src="{_prefix}"'
+            _pos = text.find(_src)
+            if _pos == -1:
+                continue
+            _open_tag = '<div class="photo-item">'
+            _bs = text.rfind(_open_tag, 0, _pos)
+            if _bs == -1:
+                break
+            # Walk forward tracking div nesting depth to find the matching </div>
+            _i = _bs + len(_open_tag)
+            _depth = 1
+            while _depth > 0 and _i < len(text):
+                _o = text.find('<div', _i)
+                _c = text.find('</div>', _i)
+                if _c == -1:
+                    _depth = 0
+                    break
+                if _o != -1 and _o < _c:
+                    _depth += 1
+                    _i = _o + 4
+                else:
+                    _depth -= 1
+                    _i = _c + 6
+            _be = _i
+            # Strip leading indent + preceding newline
+            _trim = _bs
+            while _trim > 0 and text[_trim - 1] in ' \t':
+                _trim -= 1
+            if _trim > 0 and text[_trim - 1] == '\n':
+                _trim -= 1
+            # Strip trailing newline
+            if _be < len(text) and text[_be] == '\n':
+                _be += 1
+            text = text[:_trim] + text[_be:]
+            break
 
     return text.encode("utf-8")
 
