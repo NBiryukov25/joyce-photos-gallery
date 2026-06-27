@@ -66,6 +66,7 @@
     const btnShare = overlay.querySelector('#lb-share');
 
     let current = 0;
+    let lastFocused = null;
     const hearted = {};
 
     function getCaptionFor(idx) {
@@ -107,6 +108,7 @@
 
       overlay.classList.add('active');
       document.body.style.overflow = 'hidden';
+      btnClose.focus();
     }
 
     function close() {
@@ -114,12 +116,27 @@
       document.body.style.overflow = '';
       lbImg.src = '';
       lbImg.classList.remove('loaded');
+      if (lastFocused && typeof lastFocused.focus === 'function') {
+        lastFocused.focus();
+      }
     }
 
     imgs.forEach(function (img, idx) {
-      img.addEventListener('click', function (e) {
+      // Make every trigger reachable and operable by keyboard, not just mouse.
+      if (!img.hasAttribute('tabindex')) { img.setAttribute('tabindex', '0'); }
+      if (!img.hasAttribute('role'))     { img.setAttribute('role', 'button'); }
+
+      function open(e) {
         e.preventDefault();
+        lastFocused = img;
         show(idx);
+      }
+
+      img.addEventListener('click', open);
+      img.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          open(e);
+        }
       });
     });
 

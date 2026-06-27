@@ -30,6 +30,11 @@ html {
   background-attachment: fixed;
   background-repeat: no-repeat;
 }
+/* iOS Safari mishandles fixed cover backgrounds and it causes scroll jank
+   on small screens — fall back to a scrolling background there. */
+@media (max-width: 600px) {
+  html { background-attachment: scroll; }
+}
 html::before {
   content: '';
   position: fixed;
@@ -49,7 +54,7 @@ body {
   z-index: 1;
   background: transparent;
   color: var(--text);
-  font-family: 'Jost', Georgia, "Times New Roman", serif;
+  font-family: 'Jost', Helvetica, Arial, sans-serif;
   max-width: 1140px;
   margin: 0 auto;
   padding: 0 2.4em 7em;
@@ -548,6 +553,7 @@ h1, h2, .hero-name, .page-hero-title {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
+  margin-bottom: 4em;
 }
 @media (max-width: 600px) {
   .photo-grid {
@@ -653,12 +659,6 @@ h1, h2, .hero-name, .page-hero-title {
 }
 
 /* ── LOVE LETTERS ── */
-.photo-grid {
-  columns: 3 200px;
-  column-gap: 1rem;
-  margin-bottom: 4em;
-}
-
 .love-letters-grid {
   display: flex;
   flex-wrap: wrap;

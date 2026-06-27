@@ -161,7 +161,7 @@ Text after the second photo..."></textarea>
         }
         if (i < photoIds.length) {
           out += '\n    <div class="story-inline-img-wrap">\n'
-               + '      <img class="story-inline-img"\n'
+               + '      <img loading="lazy" decoding="async" class="story-inline-img"\n'
                + '           src="https://drive.google.com/thumbnail?id=' + photoIds[i] + '&sz=w2000"\n'
                + '           alt="' + title.replace(/"/g, '&quot;') + '">\n'
                + '    </div>\n\n';
