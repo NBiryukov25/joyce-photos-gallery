@@ -169,6 +169,148 @@
       border-top: 1px solid rgba(201,169,110,0.12);
       margin: 0;
     }
+
+    /* ── Opening Popup (Featuring) — subtle, Ultra dark theme ── */
+    .od-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1em;
+      background: rgba(6, 4, 3, 0.78);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+      animation: odFade 0.9s ease;
+    }
+    .od-overlay.od-hidden { display: none; }
+    @keyframes odFade { from { opacity: 0; } to { opacity: 1; } }
+
+    .od-modal {
+      background: #14100b;
+      border: 1px solid rgba(201, 169, 110, 0.18);
+      border-radius: 14px;
+      width: min(92vw, 420px);
+      max-height: 86vh;
+      overflow-y: auto;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.6);
+      animation: odRise 0.9s cubic-bezier(0.16, 0.84, 0.34, 1);
+    }
+    @keyframes odRise {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .od-header { padding: 1.3em 1.6em 0; text-align: center; }
+    .od-close {
+      position: absolute;
+      top: 0.8em;
+      right: 0.9em;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(201, 169, 110, 0.18);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      font-size: 0.85em;
+      color: rgba(201, 169, 110, 0.75);
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.2s, background 0.2s;
+    }
+    .od-close:hover { color: #c9a96e; background: rgba(201, 169, 110, 0.14); }
+    .od-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.3em;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0;
+    }
+    .od-rule { width: 32px; height: 1px; background: #c9a96e; border: none; margin: 0.65em auto 0; }
+
+    .od-slides-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      width: calc(100% - 32px);
+      margin: 1em auto 0;
+      aspect-ratio: 4 / 5;
+      overflow: hidden;
+      background: #0d0a07;
+      border-radius: 10px;
+      flex: 0 0 auto;
+    }
+    .od-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1s ease; }
+    .od-slide.active { opacity: 1; }
+    .od-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover !important;
+      object-position: center center;
+      display: block;
+      transform-origin: center center;
+    }
+    /* slow Ken-Burns zoom preserved, softened for subtlety */
+    .od-slide.active img { animation: odSlowZoom 9s ease-in-out forwards; }
+    @keyframes odSlowZoom {
+      0%   { transform: scale(1.05); }
+      100% { transform: scale(1.20); }
+    }
+
+    .od-progress {
+      width: calc(100% - 32px);
+      height: 2px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      margin: 0 auto;
+      flex: 0 0 auto;
+    }
+    .od-bar { height: 100%; background: #c9a96e; width: 0; }
+
+    .od-dots { display: flex; justify-content: center; gap: 5px; padding: 0.7em 0 0; flex: 0 0 auto; }
+    .od-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      border: none;
+      padding: 0;
+      transition: background 0.3s;
+    }
+    .od-dot.active { background: #c9a96e; }
+
+    .od-message {
+      padding: 1.1em 1.6em 0;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.98em;
+      line-height: 1.65;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    .od-message p { margin-bottom: 0.8em; }
+    .od-message p:last-child { margin-bottom: 0; }
+    .od-message strong { color: rgba(201, 169, 110, 0.92); font-weight: 400; }
+
+    .od-footer { padding: 1.1em 1.5em 1.4em; text-align: center; }
+    .od-enter {
+      display: inline-block;
+      padding: 0.65em 2.2em;
+      background: transparent;
+      color: #c9a96e;
+      border: 1px solid rgba(201, 169, 110, 0.5);
+      border-radius: 999px;
+      font-family: 'Jost', sans-serif;
+      font-size: 0.68em;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .od-enter:hover { background: rgba(201, 169, 110, 0.14); color: #e7d4ad; }
   </style>
 </head>
 <body>
@@ -238,6 +380,120 @@
   </div>
 
   <script src="lightbox.js"></script>
+
+  <!-- ── OPENING POPUP ── -->
+  <div id="opening-popup" class="od-overlay">
+    <div class="od-modal">
+      <button class="od-close" onclick="odClose()">✕</button>
+
+      <div class="od-header">
+        <h2 class="od-title">Featuring: Girlfriend Experience—Opening our Doors</h2>
+        <hr class="od-rule">
+      </div>
+
+      <div class="od-slides-wrap">
+        <div class="od-slide active"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (7).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (8).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (9).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (10).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (11).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (12).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (13).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (14).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (15).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (1).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (1).png" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (2).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (2).PNG" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (3).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (4).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (5).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (6).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Girlfriend_Experience (1).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Girlfriend_Experience (2).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Girlfriend_Experience (3).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Girlfriend_Experience (4).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Girlfriend_Experience (5).jpg" alt="Opening our Doors"></div>
+      </div>
+      <div class="od-progress"><div class="od-bar" id="od-bar"></div></div>
+
+      <div class="od-dots">
+        <button class="od-dot active" onclick="odGo(0)"></button>
+        <button class="od-dot" onclick="odGo(1)"></button>
+        <button class="od-dot" onclick="odGo(2)"></button>
+        <button class="od-dot" onclick="odGo(3)"></button>
+        <button class="od-dot" onclick="odGo(4)"></button>
+        <button class="od-dot" onclick="odGo(5)"></button>
+        <button class="od-dot" onclick="odGo(6)"></button>
+        <button class="od-dot" onclick="odGo(7)"></button>
+        <button class="od-dot" onclick="odGo(8)"></button>
+        <button class="od-dot" onclick="odGo(9)"></button>
+        <button class="od-dot" onclick="odGo(10)"></button>
+        <button class="od-dot" onclick="odGo(11)"></button>
+        <button class="od-dot" onclick="odGo(12)"></button>
+        <button class="od-dot" onclick="odGo(13)"></button>
+        <button class="od-dot" onclick="odGo(14)"></button>
+        <button class="od-dot" onclick="odGo(15)"></button>
+        <button class="od-dot" onclick="odGo(16)"></button>
+        <button class="od-dot" onclick="odGo(17)"></button>
+        <button class="od-dot" onclick="odGo(18)"></button>
+        <button class="od-dot" onclick="odGo(19)"></button>
+        <button class="od-dot" onclick="odGo(20)"></button>
+        <button class="od-dot" onclick="odGo(21)"></button>
+      </div>
+
+      <div class="od-message">
+        <p>My wife and I offer you our place for your stay during your tropical vacation here in the Philippines. We are pleased to inform you that my wife offers herself completely—<strong>mind, soul, and body</strong>—and each serves its purpose in your satisfaction.</p><p>With her <strong>mind</strong>, she becomes whatever you need her to be. She'll listen for hours to your stories, your frustrations, your darkest thoughts, absorbing them without judgment. She knows when to speak and when silence is the greater gift. She'll study your preferences, anticipate your desires before you voice them, and reshape her own thoughts to mirror whatever brings you pleasure. Her intelligence bends entirely toward understanding how to make you feel powerful.</p><p>With her <strong>soul</strong>, she surrenders the parts of herself that most people guard fiercely. Her dignity becomes yours to dismantle at your leisure. Her pride is negotiable, her boundaries flexible, her self-respect a luxury she can't afford to cling to. She'll look at you with genuine reverence while accepting treatment that would break most women, and she'll mean every moment of her submission because she understands what you're providing in return.</p><p>With her <strong>body</strong>, she offers the complete spectrum of physical devotion. Soft touches when you crave gentleness, willing endurance when you crave something more strenuous. She accepts that her comfort is secondary to your desires, that her pain can be your entertainment, that her body exists in that space to be used, displayed, tested, or simply admired as your possession. Every mark, every strain, every moment of physical sacrifice is her way of showing gratitude.</p><p>Together, these three elements create something rare—a person who has made peace with her purpose and finds genuine fulfillment in your satisfaction, no matter the cost to herself.</p>
+      </div>
+
+      <div class="od-footer">
+        <button class="od-enter" onclick="odClose()">Enter</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var N = 22, INTERVAL = 8000, cur = 0, timer = null;
+
+      function show(n) {
+        document.querySelectorAll('.od-slide')[cur].classList.remove('active');
+        document.querySelectorAll('.od-dot')[cur].classList.remove('active');
+        cur = (n + N) % N;
+        document.querySelectorAll('.od-slide')[cur].classList.add('active');
+        document.querySelectorAll('.od-dot')[cur].classList.add('active');
+        resetBar();
+      }
+
+      function resetBar() {
+        var bar = document.getElementById('od-bar');
+        bar.style.transition = 'none';
+        bar.style.width = '0%';
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            bar.style.transition = 'width ' + INTERVAL + 'ms linear';
+            bar.style.width = '100%';
+          });
+        });
+      }
+
+      function start() { timer = setInterval(function () { show(cur + 1); }, INTERVAL); }
+
+      window.odClose = function () {
+        document.getElementById('opening-popup').classList.add('od-hidden');
+        clearInterval(timer);
+      };
+
+      window.odGo = function (n) {
+        clearInterval(timer);
+        show(n);
+        start();
+      };
+
+      resetBar();
+      start();
+    })();
+  </script>
 
 </body>
 </html>
