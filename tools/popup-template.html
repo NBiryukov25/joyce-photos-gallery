@@ -1,0 +1,56 @@
+<!-- ============================================================
+     FEATURING POPUP — reusable template
+     ------------------------------------------------------------
+     This is the markup for ONE popup. Paste it on the Ultra page
+     just above the  <!-- ultra-popup-insert -->  marker, or let
+     tools/add_popup.py generate and insert it for you.
+
+     Requirements on the host page (joyce-ultra.html already has them):
+       1. The .od-* CSS (lives in joyce-ultra.html's <style> block).
+       2. <script src="od-popup.js"></script> near the end of <body>.
+
+     Placeholders to fill in:
+       TITLE          — heading shown at the top
+       PHOTO PATHS    — one .od-slide per photo (first one keeps
+                        the "active" class)
+       MESSAGE        — one <p> per paragraph; use <strong> for emphasis
+
+     Options (attributes on .od-overlay):
+       data-od-interval="8000"  autoplay speed in ms (default 8000)
+       data-od-auto="false"     exclude from the auto-open queue
+                                (open manually via element._odOpen())
+
+     The .od-dots container can be left EMPTY — od-popup.js builds
+     one dot per slide automatically.
+     ============================================================ -->
+
+<div class="od-overlay od-hidden" data-od-popup data-od-interval="8000">
+  <div class="od-modal">
+    <button class="od-close" data-od-close aria-label="Close">✕</button>
+
+    <div class="od-header">
+      <h2 class="od-title">TITLE GOES HERE</h2>
+      <hr class="od-rule">
+    </div>
+
+    <div class="od-slides-wrap">
+      <div class="od-slide active"><img loading="lazy" decoding="async" src="assets/Your-Folder/photo-01.jpg" alt="TITLE GOES HERE"></div>
+      <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Your-Folder/photo-02.jpg" alt="TITLE GOES HERE"></div>
+      <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Your-Folder/photo-03.jpg" alt="TITLE GOES HERE"></div>
+    </div>
+
+    <div class="od-progress"><div class="od-bar"></div></div>
+
+    <!-- leave empty: dots are generated from the slide count -->
+    <div class="od-dots"></div>
+
+    <div class="od-message">
+      <p>First paragraph of the caption / story goes here.</p>
+      <p>Use <strong>strong</strong> for emphasis. Add as many paragraphs as you like.</p>
+    </div>
+
+    <div class="od-footer">
+      <button class="od-enter" data-od-close>Enter</button>
+    </div>
+  </div>
+</div>
