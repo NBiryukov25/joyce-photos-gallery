@@ -68,7 +68,7 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION = range(16)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE = range(17)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -1398,6 +1398,10 @@ async def feature_caption_received(update: Update, context: ContextTypes.DEFAULT
 
 
 async def feature_caption_done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    # If we entered via /fcaption, delegate to the caption-only update handler
+    if context.user_data.get("fcap_slug"):
+        return await fcap_done(update, context)
+
     parts = context.user_data.get("feat_caption_parts", [])
     if not parts:
         await update.message.reply_text("No caption yet — type at least one paragraph, then /done.")
@@ -1476,6 +1480,129 @@ async def feature_caption_done(update: Update, context: ContextTypes.DEFAULT_TYP
         f'"{title}" · {len(photos)} photo{"s" if len(photos) != 1 else ""} · {len(parts)} paragraph{"s" if len(parts) != 1 else ""}\n\n'
         f'{gallery_url}\n\n'
         f'{ultra_line}'
+    )
+    return ConversationHandler.END
+
+
+def _replace_feature_caption(html_bytes: bytes, new_caption: str) -> bytes:
+    text = html_bytes.decode("utf-8")
+    paras = [p.strip() for p in new_caption.strip().split("\n\n") if p.strip()]
+    if not paras:
+        paras = [new_caption.strip()]
+    cap_html = "\n".join(f"    <p>{_safe_html(p)}</p>" for p in paras)
+    # Replace everything between <div class="fp-caption"> and the closing </div>
+    updated = re.sub(
+        r'(<div class="fp-caption">).*?(</div>)',
+        lambda m: m.group(1) + "\n" + cap_html + "\n  " + m.group(2),
+        text, count=1, flags=re.DOTALL
+    )
+    return updated.encode("utf-8")
+
+
+async def _list_feature_pages() -> list[tuple[str, str]]:
+    """Return list of (slug, html_rel) for existing feature pages."""
+    url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/galleries"
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
+        if r.status_code == 200:
+            return [
+                (item["name"][len("feature-"):-5], item["path"])
+                for item in r.json()
+                if item["type"] == "file" and item["name"].startswith("feature-") and item["name"].endswith(".html")
+            ]
+    except Exception:
+        pass
+    return []
+
+
+async def cmd_fcaption(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        await update.message.reply_text("Not authorized.")
+        return ConversationHandler.END
+    pages = await _list_feature_pages()
+    if not pages:
+        await update.message.reply_text("No featured pages found.")
+        return ConversationHandler.END
+    if len(pages) == 1:
+        slug, html_rel = pages[0]
+        context.user_data["fcap_slug"]    = slug
+        context.user_data["fcap_rel"]     = html_rel
+        context.user_data["feat_caption_parts"] = []
+        context.user_data.pop("feat_cap_status_id", None)
+        st = await update.message.reply_text(
+            f"Editing caption for: {slug}\n\n"
+            f"Type your story — each message is a paragraph. /done when finished.\n\n"
+            f"Paragraphs: 0"
+        )
+        context.user_data["feat_cap_status_id"]  = st.message_id
+        context.user_data["feat_cap_status_chat"] = update.message.chat_id
+        return FEATURE_CAPTION
+    context.user_data["fcap_pages"] = pages
+    keyboard = [[InlineKeyboardButton(slug, callback_data=f"fc:{i}")] for i, (slug, _) in enumerate(pages)]
+    await update.message.reply_text("Which featured page?", reply_markup=InlineKeyboardMarkup(keyboard))
+    return FCAP_CHOOSE
+
+
+async def fcap_page_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    idx = int(query.data[3:])
+    slug, html_rel = context.user_data["fcap_pages"][idx]
+    context.user_data["fcap_slug"]  = slug
+    context.user_data["fcap_rel"]   = html_rel
+    context.user_data["feat_caption_parts"] = []
+    context.user_data.pop("feat_cap_status_id", None)
+    st = await query.edit_message_text(
+        f"Editing caption for: {slug}\n\n"
+        f"Type your story — each message is a paragraph. /done when finished.\n\n"
+        f"Paragraphs: 0"
+    )
+    context.user_data["feat_cap_status_id"]  = st.message_id
+    context.user_data["feat_cap_status_chat"] = query.message.chat_id
+    return FEATURE_CAPTION
+
+
+async def fcap_done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    parts = context.user_data.get("feat_caption_parts", [])
+    if not parts:
+        await update.message.reply_text("No caption yet — type at least one paragraph, then /done.")
+        return FEATURE_CAPTION
+
+    slug    = context.user_data.get("fcap_slug", "")
+    html_rel = context.user_data.get("fcap_rel", f"galleries/feature-{slug}.html")
+    caption = "\n\n".join(parts)
+
+    status_id   = context.user_data.get("feat_cap_status_id")
+    status_chat = context.user_data.get("feat_cap_status_chat")
+
+    async def _edit(text: str) -> None:
+        if status_id and status_chat == update.message.chat_id:
+            try:
+                await context.bot.edit_message_text(text, chat_id=status_chat, message_id=status_id)
+                return
+            except Exception:
+                pass
+        await update.message.reply_text(text)
+
+    await _edit("Updating caption...")
+
+    existing, sha = await _gh_get_file(html_rel)
+    if not existing:
+        await _edit(f"Could not fetch {html_rel} from GitHub.")
+        return ConversationHandler.END
+
+    updated = _replace_feature_caption(existing, caption)
+    ok, err = await _gh_put_file(html_rel, updated, f"Update caption: {slug}", sha=sha)
+    if not ok:
+        await _edit(f"Failed to save: {err}")
+        return ConversationHandler.END
+
+    gallery_url = f"{GITHUB_PAGES_URL}/{html_rel}"
+    await _edit(
+        f'✓ Caption updated!\n\n'
+        f'{len(parts)} paragraph{"s" if len(parts) != 1 else ""}\n\n'
+        f'{gallery_url}'
     )
     return ConversationHandler.END
 
@@ -1775,6 +1902,7 @@ def main() -> None:
             CommandHandler("remove", cmd_remove),
             CommandHandler("caption", cmd_caption),
             CommandHandler("feature", cmd_feature),
+            CommandHandler("fcaption", cmd_fcaption),
         ],
         states={
             CHOOSING_GALLERY:        [
@@ -1812,6 +1940,7 @@ def main() -> None:
                 MessageHandler(filters.TEXT & ~filters.COMMAND, feature_caption_received),
                 CommandHandler("done", feature_caption_done),
             ],
+            FCAP_CHOOSE: [CallbackQueryHandler(fcap_page_chosen, pattern=r"^fc:")],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel)],
         name="main_conv",
