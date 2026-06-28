@@ -1276,30 +1276,31 @@ async def _upload_one_feature_photo(
         return None, str(exc)
 
 
-async def _process_feature_album(context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Job callback: upload all photos collected from one Telegram album."""
-    job = context.job
-    chat_id = job.data["chat_id"]
-    album_key = job.data["album_key"]
+async def _process_feature_album(bot, user_data: dict, chat_id: int, album_key: str) -> None:
+    """Waits 3 s for all album photos to arrive, then uploads them all in parallel."""
+    await asyncio.sleep(3)
 
-    slug = context.user_data.get("feat_slug")
+    slug = user_data.get("feat_slug")
+    task_key = album_key.replace("feat_album_", "feat_task_")
+    user_data.pop(task_key, None)
+
     if not slug:
-        await context.bot.send_message(chat_id, "Session lost — please start over with /feature.")
+        await bot.send_message(chat_id, "Session lost — please start over with /feature.")
         return
 
     folder = f"Feature-{slug}"
-    items = context.user_data.pop(album_key, [])
+    items = user_data.pop(album_key, [])
     if not items:
         return
 
     n = len(items)
-    status = await context.bot.send_message(chat_id, f"Uploading {n} photo{'s' if n != 1 else ''}...")
+    status = await bot.send_message(chat_id, f"Uploading {n} photo{'s' if n != 1 else ''}...")
 
-    existing = context.user_data.setdefault("feat_photos", [])
+    existing = user_data.setdefault("feat_photos", [])
     start_index = len(existing)
 
     results = await asyncio.gather(
-        *[_upload_one_feature_photo(context.bot, folder, item, start_index + i)
+        *[_upload_one_feature_photo(bot, folder, item, start_index + i)
           for i, item in enumerate(items)],
         return_exceptions=True,
     )
@@ -1320,9 +1321,7 @@ async def _process_feature_album(context: ContextTypes.DEFAULT_TYPE) -> None:
     if errors:
         lines.append(f"{len(errors)} failed — try resending those.")
     lines.append("Send more photos or /done when you're finished.")
-    await context.bot.edit_message_text(
-        "\n".join(lines), chat_id=chat_id, message_id=status.message_id
-    )
+    await bot.edit_message_text("\n".join(lines), chat_id=chat_id, message_id=status.message_id)
 
 
 async def feature_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -1341,6 +1340,7 @@ async def feature_photo_received(update: Update, context: ContextTypes.DEFAULT_T
             return FEATURE_PHOTOS
 
         album_key = f"feat_album_{msg.media_group_id}"
+        task_key  = f"feat_task_{msg.media_group_id}"
         pending = context.user_data.setdefault(album_key, [])
         pending.append({
             "file_id":       context.user_data["file_id"],
@@ -1349,18 +1349,12 @@ async def feature_photo_received(update: Update, context: ContextTypes.DEFAULT_T
             "original_name": context.user_data.get("original_name", "photo.jpg"),
         })
 
-        # Reset the 3-second timer so we wait for all album photos to arrive
-        job_name = f"feat_upload_{msg.media_group_id}"
-        for job in context.job_queue.get_jobs_by_name(job_name):
-            job.schedule_removal()
-        context.job_queue.run_once(
-            _process_feature_album,
-            when=3,
-            name=job_name,
-            data={"chat_id": msg.chat_id, "album_key": album_key},
-            chat_id=msg.chat_id,
-            user_id=update.effective_user.id,
-        )
+        # Create the upload task only once (first photo of this album)
+        if not context.user_data.get(task_key):
+            context.user_data[task_key] = True
+            asyncio.create_task(
+                _process_feature_album(context.bot, context.user_data, msg.chat_id, album_key)
+            )
         return FEATURE_PHOTOS
 
     # ── Single photo ──────────────────────────────────────────────────────
