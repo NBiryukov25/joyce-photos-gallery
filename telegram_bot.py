@@ -1276,51 +1276,6 @@ async def _upload_one_feature_photo(
         return None, str(exc)
 
 
-async def _process_feature_album(bot, user_data: dict, chat_id: int, album_key: str) -> None:
-    """Waits 3 s for all album photos to arrive, then uploads them all in parallel."""
-    await asyncio.sleep(3)
-
-    slug = user_data.get("feat_slug")
-    task_key = album_key.replace("feat_album_", "feat_task_")
-    user_data.pop(task_key, None)
-
-    if not slug:
-        await bot.send_message(chat_id, "Session lost — please start over with /feature.")
-        return
-
-    folder = f"Feature-{slug}"
-    items = user_data.pop(album_key, [])
-    if not items:
-        return
-
-    n = len(items)
-    status = await bot.send_message(chat_id, f"Uploading {n} photo{'s' if n != 1 else ''}...")
-
-    existing = user_data.setdefault("feat_photos", [])
-    start_index = len(existing)
-
-    added, errors = [], []
-    for i, item in enumerate(items):
-        await bot.edit_message_text(
-            f"Uploading {i + 1}/{n}...", chat_id=chat_id, message_id=status.message_id
-        )
-        filename, err = await _upload_one_feature_photo(bot, folder, item, start_index + i)
-        if filename:
-            added.append(filename)
-            existing.append(filename)
-        else:
-            errors.append(f"Photo {i + 1}: {err}")
-
-    total = len(existing)
-    lines = [f"✓ {len(added)} of {n} uploaded ({total} total)."]
-    if errors:
-        lines.append("Failed:")
-        lines.extend(errors)
-        lines.append("Try resending those.")
-    lines.append("Send more photos or /done when you're finished.")
-    await bot.edit_message_text("\n".join(lines), chat_id=chat_id, message_id=status.message_id)
-
-
 async def feature_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     msg = update.message
 
@@ -1329,32 +1284,6 @@ async def feature_photo_received(update: Update, context: ContextTypes.DEFAULT_T
         await msg.reply_text("Session lost — please start over with /feature.")
         return ConversationHandler.END
 
-    # ── Album (multi-photo send) ──────────────────────────────────────────
-    if msg.media_group_id:
-        err = _store_media(msg, context)
-        if err:
-            await msg.reply_text(err)
-            return FEATURE_PHOTOS
-
-        album_key = f"feat_album_{msg.media_group_id}"
-        task_key  = f"feat_task_{msg.media_group_id}"
-        pending = context.user_data.setdefault(album_key, [])
-        pending.append({
-            "file_id":       context.user_data["file_id"],
-            "is_video":      context.user_data.get("is_video", False),
-            "use_original":  context.user_data.get("use_original", False),
-            "original_name": context.user_data.get("original_name", "photo.jpg"),
-        })
-
-        # Create the upload task only once (first photo of this album)
-        if not context.user_data.get(task_key):
-            context.user_data[task_key] = True
-            asyncio.create_task(
-                _process_feature_album(context.bot, context.user_data, msg.chat_id, album_key)
-            )
-        return FEATURE_PHOTOS
-
-    # ── Single photo ──────────────────────────────────────────────────────
     err = _store_media(msg, context)
     if err:
         await msg.reply_text(err)
@@ -1364,8 +1293,32 @@ async def feature_photo_received(update: Update, context: ContextTypes.DEFAULT_T
     is_video = context.user_data.get("is_video", False)
     kind = "video" if is_video else "photo"
     index = len(context.user_data.get("feat_photos", []))
+    album_id = msg.media_group_id
 
-    status = await msg.reply_text(f"Uploading {kind}...")
+    # For album photos reuse the same status message to keep chat tidy
+    status_id   = context.user_data.get("feat_status_id")
+    status_chat = context.user_data.get("feat_status_chat")
+    last_album  = context.user_data.get("feat_last_album")
+
+    if album_id and album_id == last_album and status_id and status_chat == msg.chat_id:
+        try:
+            await context.bot.edit_message_text(
+                f"Uploading {kind} {index + 1}...",
+                chat_id=status_chat, message_id=status_id
+            )
+        except Exception:
+            st = await msg.reply_text(f"Uploading {kind} {index + 1}...")
+            context.user_data["feat_status_id"]   = st.message_id
+            context.user_data["feat_status_chat"]  = msg.chat_id
+            status_id   = st.message_id
+            status_chat = msg.chat_id
+    else:
+        st = await msg.reply_text(f"Uploading {kind} {index + 1}...")
+        context.user_data["feat_status_id"]   = st.message_id
+        context.user_data["feat_status_chat"]  = msg.chat_id
+        context.user_data["feat_last_album"]   = album_id
+        status_id   = st.message_id
+        status_chat = msg.chat_id
 
     item = {
         "file_id":       context.user_data["file_id"],
@@ -1375,15 +1328,25 @@ async def feature_photo_received(update: Update, context: ContextTypes.DEFAULT_T
     }
     filename, err = await _upload_one_feature_photo(context.bot, folder, item, index)
     if err:
-        await status.edit_text(f"Upload failed: {err}\n\nTry sending that photo again.")
+        try:
+            await context.bot.edit_message_text(
+                f"Upload failed: {err}\n\nTry sending that photo again.",
+                chat_id=status_chat, message_id=status_id
+            )
+        except Exception:
+            await msg.reply_text(f"Upload failed: {err}\n\nTry sending that photo again.")
         return FEATURE_PHOTOS
 
     photos = context.user_data.setdefault("feat_photos", [])
     photos.append(filename)
-    await status.edit_text(
-        f"✓ {kind.capitalize()} {len(photos)} added.\n\n"
-        f"Send another, or /done when all photos are in."
-    )
+    total = len(photos)
+    try:
+        await context.bot.edit_message_text(
+            f"✓ {total} photo{'s' if total != 1 else ''} saved. Send more or /done.",
+            chat_id=status_chat, message_id=status_id
+        )
+    except Exception:
+        pass
     return FEATURE_PHOTOS
 
 
