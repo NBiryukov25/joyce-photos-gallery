@@ -1703,6 +1703,9 @@ def main() -> None:
             ],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel)],
+        name="main_conv",
+        persistent=True,
+        conversation_timeout=1800,
     )
 
     async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
