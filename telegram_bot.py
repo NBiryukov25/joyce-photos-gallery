@@ -39,6 +39,7 @@ from telegram.ext import (
     ConversationHandler,
     MessageHandler,
     ContextTypes,
+    PicklePersistence,
     filters,
 )
 
@@ -1652,7 +1653,8 @@ async def cmd_cancel(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 def main() -> None:
-    app = Application.builder().token(BOT_TOKEN).build()
+    persistence = PicklePersistence(filepath="/tmp/joyce_bot_state.pkl")
+    app = Application.builder().token(BOT_TOKEN).persistence(persistence).build()
 
     _media_filter = filters.PHOTO | filters.VIDEO | filters.Document.IMAGE | filters.Document.VIDEO
 
