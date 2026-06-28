@@ -1299,27 +1299,24 @@ async def _process_feature_album(bot, user_data: dict, chat_id: int, album_key: 
     existing = user_data.setdefault("feat_photos", [])
     start_index = len(existing)
 
-    results = await asyncio.gather(
-        *[_upload_one_feature_photo(bot, folder, item, start_index + i)
-          for i, item in enumerate(items)],
-        return_exceptions=True,
-    )
-
     added, errors = [], []
-    for r in results:
-        if isinstance(r, Exception):
-            errors.append(str(r))
-        elif r[0]:
-            added.append(r[0])
+    for i, item in enumerate(items):
+        await bot.edit_message_text(
+            f"Uploading {i + 1}/{n}...", chat_id=chat_id, message_id=status.message_id
+        )
+        filename, err = await _upload_one_feature_photo(bot, folder, item, start_index + i)
+        if filename:
+            added.append(filename)
+            existing.append(filename)
         else:
-            errors.append(r[1] or "unknown error")
+            errors.append(f"Photo {i + 1}: {err}")
 
-    existing.extend(added)
     total = len(existing)
-
     lines = [f"✓ {len(added)} of {n} uploaded ({total} total)."]
     if errors:
-        lines.append(f"{len(errors)} failed — try resending those.")
+        lines.append("Failed:")
+        lines.extend(errors)
+        lines.append("Try resending those.")
     lines.append("Send more photos or /done when you're finished.")
     await bot.edit_message_text("\n".join(lines), chat_id=chat_id, message_id=status.message_id)
 
