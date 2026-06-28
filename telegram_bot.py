@@ -1357,11 +1357,14 @@ async def feature_ask_caption(update: Update, context: ContextTypes.DEFAULT_TYPE
         return FEATURE_PHOTOS
     n = len(photos)
     context.user_data["feat_caption_parts"] = []
-    await update.message.reply_text(
+    context.user_data.pop("feat_cap_status_id", None)
+    st = await update.message.reply_text(
         f"{n} photo{'s' if n != 1 else ''} ready.\n\n"
-        f"Now type your story. Send as many messages as you like — each one becomes a paragraph.\n\n"
-        f"/done when you've finished writing."
+        f"Type your story — each message is a paragraph. /done when finished.\n\n"
+        f"Paragraphs: 0"
     )
+    context.user_data["feat_cap_status_id"]   = st.message_id
+    context.user_data["feat_cap_status_chat"]  = update.message.chat_id
     return FEATURE_CAPTION
 
 
@@ -1370,10 +1373,27 @@ async def feature_caption_received(update: Update, context: ContextTypes.DEFAULT
     if chunk:
         context.user_data.setdefault("feat_caption_parts", []).append(chunk)
     parts = context.user_data.get("feat_caption_parts", [])
-    await update.message.reply_text(
-        f"Got it — {len(parts)} paragraph{'s' if len(parts) != 1 else ''} so far.\n"
-        f"Keep going, or /done to publish."
+    n = len(parts)
+
+    # Edit the single status message instead of sending a new one every time,
+    # so we never hit Telegram's outgoing message rate limit.
+    status_id   = context.user_data.get("feat_cap_status_id")
+    status_chat = context.user_data.get("feat_cap_status_chat")
+    status_text = (
+        f"Type your story — each message is a paragraph. /done when finished.\n\n"
+        f"Paragraphs: {n}"
     )
+    if status_id and status_chat == update.message.chat_id:
+        try:
+            await context.bot.edit_message_text(status_text, chat_id=status_chat, message_id=status_id)
+        except Exception:
+            st = await update.message.reply_text(status_text)
+            context.user_data["feat_cap_status_id"]  = st.message_id
+            context.user_data["feat_cap_status_chat"] = update.message.chat_id
+    else:
+        st = await update.message.reply_text(status_text)
+        context.user_data["feat_cap_status_id"]  = st.message_id
+        context.user_data["feat_cap_status_chat"] = update.message.chat_id
     return FEATURE_CAPTION
 
 
@@ -1384,20 +1404,46 @@ async def feature_caption_done(update: Update, context: ContextTypes.DEFAULT_TYP
         return FEATURE_CAPTION
 
     caption = "\n\n".join(parts)
-    title = context.user_data["feat_title"]
-    slug = context.user_data["feat_slug"]
+    title = context.user_data.get("feat_title", "")
+    slug  = context.user_data.get("feat_slug", "feature")
     folder = f"Feature-{slug}"
     photos = context.user_data.get("feat_photos", [])
 
-    status = await update.message.reply_text("Building featured page...")
+    # Reuse the caption status message if possible, otherwise send a new one
+    status_id   = context.user_data.get("feat_cap_status_id")
+    status_chat = context.user_data.get("feat_cap_status_chat")
+    if status_id and status_chat == update.message.chat_id:
+        try:
+            await context.bot.edit_message_text(
+                "Building featured page...", chat_id=status_chat, message_id=status_id
+            )
+            status = None
+        except Exception:
+            status = await update.message.reply_text("Building featured page...")
+    else:
+        status = await update.message.reply_text("Building featured page...")
 
-    html_bytes = _build_feature_html(title, folder, photos, caption)
+    async def _edit_status(text: str) -> None:
+        if status:
+            await status.edit_text(text)
+        else:
+            try:
+                await context.bot.edit_message_text(text, chat_id=status_chat, message_id=status_id)
+            except Exception:
+                await update.message.reply_text(text)
+
+    try:
+        html_bytes = _build_feature_html(title, folder, photos, caption)
+    except Exception as exc:
+        await _edit_status(f"Failed to build page: {exc}")
+        return ConversationHandler.END
+
     html_rel = f"galleries/feature-{slug}.html"
     _, html_sha = await _gh_get_file(html_rel)
 
     ok, err = await _gh_put_file(html_rel, html_bytes, f"Add featured page: {title}", sha=html_sha)
     if not ok:
-        await status.edit_text(f"Page creation failed: {err}")
+        await _edit_status(f"Page creation failed: {err}")
         return ConversationHandler.END
 
     ultra_html, ultra_sha = await _gh_get_file("joyce-ultra.html")
@@ -1410,7 +1456,7 @@ async def feature_caption_done(update: Update, context: ContextTypes.DEFAULT_TYP
             )
 
     gallery_url = f"{GITHUB_PAGES_URL}/{html_rel}"
-    await status.edit_text(
+    await _edit_status(
         f'✓ Featured page published!\n\n'
         f'"{title}" · {len(photos)} photo{"s" if len(photos) != 1 else ""} · {len(parts)} paragraph{"s" if len(parts) != 1 else ""}\n\n'
         f'{gallery_url}\n\n'
