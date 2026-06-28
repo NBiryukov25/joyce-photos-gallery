@@ -1404,10 +1404,15 @@ async def feature_caption_done(update: Update, context: ContextTypes.DEFAULT_TYP
         return FEATURE_CAPTION
 
     caption = "\n\n".join(parts)
-    title = context.user_data.get("feat_title", "")
-    slug  = context.user_data.get("feat_slug", "feature")
+    slug  = context.user_data.get("feat_slug") or "the-employer-s-playground"
+    title = context.user_data.get("feat_title") or slug.replace("-", " ").title()
     folder = f"Feature-{slug}"
-    photos = context.user_data.get("feat_photos", [])
+
+    # Recover photo list from GitHub if session was restarted mid-flow
+    photos = context.user_data.get("feat_photos") or []
+    if not photos:
+        gh_files = await _list_gallery_files(folder)
+        photos = sorted(f["name"] for f in gh_files)
 
     # Reuse the caption status message if possible, otherwise send a new one
     status_id   = context.user_data.get("feat_cap_status_id")
