@@ -67,7 +67,7 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY = range(13)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION = range(16)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -169,7 +169,7 @@ async def _list_gallery_files(gallery: str) -> list[dict]:
 # gallery helpers
 # ---------------------------------------------------------------------------
 
-_SKIP_DIRS = {"videos", "audio", "Gallery_photos", "Joyce-and-Friends"}
+_SKIP_DIRS = {"videos", "audio", "Gallery_photos", "Joyce-and-Friends", "Feature"}
 
 
 async def _existing_galleries() -> list[str]:
@@ -183,6 +183,7 @@ async def _existing_galleries() -> list[str]:
                 item["name"] for item in r.json()
                 if item["type"] == "dir"
                 and not item["name"].startswith(".")
+                and not item["name"].startswith("Feature-")
                 and item["name"] not in _SKIP_DIRS
             )
     except Exception:
@@ -1070,6 +1071,269 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return ADDING_MORE
 
 
+# ---------------------------------------------------------------------------
+# /feature — Featured page (slideshow + caption → Joyce Ultra)
+# ---------------------------------------------------------------------------
+
+
+def _build_feature_html(title: str, folder: str, filenames: list[str], caption: str) -> bytes:
+    safe_title = _safe_html(title)
+    slides = []
+    for i, fn in enumerate(filenames):
+        active = " active" if i == 0 else ""
+        ext = fn.rsplit(".", 1)[-1].lower()
+        src = f"../assets/{folder}/{fn}"
+        if ext in _VIDEO_EXTS:
+            media = f'      <video src="{src}" muted loop autoplay playsinline style="width:100%;height:100%;object-fit:cover;display:block;"></video>'
+        else:
+            media = f'      <img src="{src}" alt="{safe_title}">'
+        slides.append(f'    <div class="fp-slide{active}">\n{media}\n    </div>')
+    slides_html = "\n\n".join(slides)
+
+    paras = [p.strip() for p in caption.strip().split("\n\n") if p.strip()]
+    if not paras and caption.strip():
+        paras = [caption.strip()]
+    cap_html = "\n".join(f"    <p>{_safe_html(p)}</p>" for p in paras)
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{safe_title} · Joyce Ultra</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    html, body {{ min-height: 100%; background: #0c0a08; color: rgba(255,255,255,0.88); font-family: 'Cormorant Garamond', serif; }}
+    .back-link {{ display: inline-block; font-family: 'Jost', sans-serif; font-size: 0.72rem; font-weight: 300; letter-spacing: 0.18em; color: rgba(201,169,110,0.7); text-decoration: none; padding: 1.2rem 1.5rem; }}
+    .back-link:hover {{ color: #c9a96e; }}
+    .fp-stage {{ position: relative; width: 100%; max-width: 860px; margin: 0 auto; aspect-ratio: 4/5; overflow: hidden; background: #060404; }}
+    .fp-slide {{ position: absolute; inset: 0; opacity: 0; transition: opacity 0.9s ease; }}
+    .fp-slide.active {{ opacity: 1; }}
+    .fp-slide img, .fp-slide video {{ width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1); transition: transform 0s; }}
+    .fp-slide.active img, .fp-slide.active video {{ transform: scale(1.06); transition: transform 9s ease-out; }}
+    .fp-progress {{ height: 2px; background: rgba(255,255,255,0.08); max-width: 860px; margin: 0 auto; }}
+    .fp-bar {{ height: 100%; width: 0%; background: #c9a96e; }}
+    .fp-dots {{ display: flex; justify-content: center; gap: 0.5rem; padding: 0.9rem 0 0; }}
+    .fp-dot {{ width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.2); border: none; cursor: pointer; padding: 0; transition: background 0.25s; }}
+    .fp-dot.active {{ background: #c9a96e; }}
+    .fp-header {{ max-width: 680px; margin: 2.4rem auto 0; padding: 0 1.5rem; text-align: center; }}
+    .fp-title {{ font-family: 'Cormorant Garamond', serif; font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 400; letter-spacing: 0.06em; color: rgba(255,255,255,0.92); line-height: 1.2; }}
+    .fp-rule {{ border: none; border-top: 1px solid rgba(201,169,110,0.28); margin: 1.2rem 0 0; }}
+    .fp-caption {{ max-width: 680px; margin: 2rem auto 5rem; padding: 0 1.5rem; }}
+    .fp-caption p {{ font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; font-weight: 300; line-height: 1.85; color: rgba(255,255,255,0.7); }}
+    .fp-caption p + p {{ margin-top: 1.2em; }}
+    .fp-caption strong {{ color: rgba(255,255,255,0.9); font-weight: 500; }}
+    .fp-caption em {{ font-style: italic; }}
+    @media (max-width: 600px) {{ .fp-stage {{ aspect-ratio: 3/4; }} }}
+  </style>
+</head>
+<body>
+
+  <a class="back-link" href="../joyce-ultra.html">← Ultra</a>
+
+  <div class="fp-stage" id="fp-stage" data-interval="8000">
+
+{slides_html}
+
+  </div>
+
+  <div class="fp-progress"><div class="fp-bar" id="fp-bar"></div></div>
+  <div class="fp-dots" id="fp-dots"></div>
+
+  <div class="fp-header">
+    <h1 class="fp-title">{safe_title}</h1>
+    <hr class="fp-rule">
+  </div>
+
+  <div class="fp-caption">
+{cap_html}
+  </div>
+
+  <script>
+    (function () {{
+      var stage    = document.getElementById('fp-stage');
+      var barEl    = document.getElementById('fp-bar');
+      var dotsWrap = document.getElementById('fp-dots');
+      var slides   = Array.prototype.slice.call(stage.querySelectorAll('.fp-slide'));
+      var N        = slides.length;
+      var INTERVAL = parseInt(stage.getAttribute('data-interval'), 10) || 8000;
+      var cur = 0, timer = null;
+      if (N === 0) return;
+      slides.forEach(function (_, i) {{
+        var b = document.createElement('button');
+        b.className = 'fp-dot' + (i === 0 ? ' active' : '');
+        b.setAttribute('aria-label', 'Slide ' + (i + 1));
+        b.addEventListener('click', function () {{ stop(); show(i); start(); }});
+        dotsWrap.appendChild(b);
+      }});
+      var dots = dotsWrap.querySelectorAll('.fp-dot');
+      function resetBar() {{
+        barEl.style.transition = 'none'; barEl.style.width = '0%';
+        requestAnimationFrame(function () {{ requestAnimationFrame(function () {{
+          barEl.style.transition = 'width ' + INTERVAL + 'ms linear'; barEl.style.width = '100%';
+        }}); }});
+      }}
+      function show(n) {{
+        slides[cur].classList.remove('active'); if (dots[cur]) dots[cur].classList.remove('active');
+        cur = (n + N) % N;
+        slides[cur].classList.add('active');   if (dots[cur]) dots[cur].classList.add('active');
+        resetBar();
+      }}
+      function start() {{ if (!timer && N > 1) timer = setInterval(function () {{ show(cur + 1); }}, INTERVAL); }}
+      function stop()  {{ clearInterval(timer); timer = null; }}
+      document.addEventListener('keydown', function (e) {{
+        if (e.key === 'ArrowRight') {{ stop(); show(cur + 1); start(); }}
+        if (e.key === 'ArrowLeft')  {{ stop(); show(cur - 1); start(); }}
+      }});
+      show(0); start();
+    }})();
+  </script>
+
+</body>
+</html>
+"""
+    return html.encode("utf-8")
+
+
+def _update_ultra_featured(ultra_html: bytes, title: str, html_rel: str) -> bytes:
+    text = ultra_html.decode("utf-8")
+    if html_rel in text:
+        return ultra_html
+    card = (
+        f'\n    <a class="ultra-story-card" href="{html_rel}">\n'
+        f'      <p class="ultra-story-tag">Featured · Ultra</p>\n'
+        f'      <h2 class="ultra-story-title">{_safe_html(title)}</h2>\n'
+        f'      <span class="ultra-story-read">View →</span>\n'
+        f'    </a>'
+    )
+    updated = text.replace("<!-- ultra-story-insert -->", card + "\n\n    <!-- ultra-story-insert -->")
+    return updated.encode("utf-8")
+
+
+async def cmd_feature(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        await update.message.reply_text("Not authorized.")
+        return ConversationHandler.END
+    context.user_data.clear()
+    await update.message.reply_text(
+        "Creating a Featured page for Joyce Ultra.\n\n"
+        "What's the title for this piece?"
+    )
+    return FEATURE_TITLE
+
+
+async def feature_title_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    title = update.message.text.strip()
+    slug = re.sub(r"[^\w\-]", "-", title.lower()).strip("-") or "feature"
+    slug = re.sub(r"-+", "-", slug)
+    context.user_data["feat_title"] = title
+    context.user_data["feat_slug"] = slug
+    context.user_data["feat_photos"] = []
+    await update.message.reply_text(
+        f'Title: "{title}"\n\n'
+        f"Now send your photos one at a time.\n"
+        f"/done when you've added all of them."
+    )
+    return FEATURE_PHOTOS
+
+
+async def feature_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    err = _store_media(update.message, context)
+    if err:
+        await update.message.reply_text(err)
+        return FEATURE_PHOTOS
+
+    slug = context.user_data["feat_slug"]
+    folder = f"Feature-{slug}"
+    is_video = context.user_data.get("is_video", False)
+    use_orig = context.user_data.get("use_original", False)
+    orig_name = context.user_data.get("original_name", "photo.jpg")
+    file_id = context.user_data["file_id"]
+    kind = "video" if is_video else "photo"
+
+    status = await update.message.reply_text(f"Uploading {kind}...")
+
+    suffix = ".mp4" if is_video else ".jpg"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+    tg_file = await context.bot.get_file(file_id)
+    await asyncio.wait_for(tg_file.download_to_drive(str(tmp_path)), timeout=60)
+    raw_bytes = tmp_path.read_bytes()
+    tmp_path.unlink(missing_ok=True)
+
+    upload_bytes = raw_bytes if is_video else _compress_photo(raw_bytes)
+    filename = _make_filename(use_orig, orig_name, is_video=is_video)
+    photo_rel = f"assets/{folder}/{filename}"
+
+    ok, err = await _gh_put_file(photo_rel, upload_bytes, f"Add {filename} to {folder}")
+    if not ok:
+        await status.edit_text(f"Upload failed: {err}\n\nSend another photo or /done.")
+        return FEATURE_PHOTOS
+
+    photos = context.user_data.setdefault("feat_photos", [])
+    photos.append(filename)
+
+    await status.edit_text(
+        f"✓ {kind.capitalize()} {len(photos)} added.\n\n"
+        f"Send another, or /done when all photos are in."
+    )
+    return FEATURE_PHOTOS
+
+
+async def feature_ask_caption(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    photos = context.user_data.get("feat_photos", [])
+    if not photos:
+        await update.message.reply_text("No photos yet — send at least one photo first.")
+        return FEATURE_PHOTOS
+    n = len(photos)
+    await update.message.reply_text(
+        f"{n} photo{'s' if n != 1 else ''} ready.\n\n"
+        f"Now type the caption or story for this featured page.\n"
+        f"Blank lines between paragraphs are fine."
+    )
+    return FEATURE_CAPTION
+
+
+async def feature_caption_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    caption = update.message.text.strip()
+    title = context.user_data["feat_title"]
+    slug = context.user_data["feat_slug"]
+    folder = f"Feature-{slug}"
+    photos = context.user_data.get("feat_photos", [])
+
+    status = await update.message.reply_text("Building featured page...")
+
+    html_bytes = _build_feature_html(title, folder, photos, caption)
+    html_rel = f"galleries/feature-{slug}.html"
+    _, html_sha = await _gh_get_file(html_rel)
+
+    ok, err = await _gh_put_file(html_rel, html_bytes, f"Add featured page: {title}", sha=html_sha)
+    if not ok:
+        await status.edit_text(f"Page creation failed: {err}")
+        return ConversationHandler.END
+
+    ultra_html, ultra_sha = await _gh_get_file("joyce-ultra.html")
+    if ultra_html:
+        updated_ultra = _update_ultra_featured(ultra_html, title, html_rel)
+        if updated_ultra != ultra_html:
+            await _gh_put_file(
+                "joyce-ultra.html", updated_ultra,
+                f"Add featured card: {title}", sha=ultra_sha
+            )
+
+    gallery_url = f"{GITHUB_PAGES_URL}/{html_rel}"
+    await status.edit_text(
+        f'✓ Featured page published!\n\n'
+        f'"{title}" · {len(photos)} photo{"s" if len(photos) != 1 else ""}\n\n'
+        f'{gallery_url}\n\n'
+        f'Card added to Joyce Ultra.'
+    )
+    return ConversationHandler.END
+
+
 async def cmd_remove(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if not _authorized(update):
         await update.message.reply_text("Not authorized.")
@@ -1363,6 +1627,7 @@ def main() -> None:
             MessageHandler(_media_filter, photo_received),
             CommandHandler("remove", cmd_remove),
             CommandHandler("caption", cmd_caption),
+            CommandHandler("feature", cmd_feature),
         ],
         states={
             CHOOSING_GALLERY:        [
@@ -1391,6 +1656,12 @@ def main() -> None:
                 CommandHandler("skip", caption_skip_received),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, caption_text_received),
             ],
+            FEATURE_TITLE:   [MessageHandler(filters.TEXT & ~filters.COMMAND, feature_title_received)],
+            FEATURE_PHOTOS:  [
+                MessageHandler(_media_filter, feature_photo_received),
+                CommandHandler("done", feature_ask_caption),
+            ],
+            FEATURE_CAPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, feature_caption_received)],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel)],
     )
