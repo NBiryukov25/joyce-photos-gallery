@@ -109,7 +109,7 @@ async def _gh_put_file(rel_path: str, content: bytes, message: str, sha: str | N
     }
     if sha:
         body["sha"] = sha
-    timeout = httpx.Timeout(connect=10.0, write=30.0, read=30.0, pool=5.0)
+    timeout = httpx.Timeout(connect=15.0, write=120.0, read=60.0, pool=5.0)
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             r = await client.put(url, json=body, headers=_GH_HEADERS)
@@ -1246,7 +1246,11 @@ async def feature_photo_received(update: Update, context: ContextTypes.DEFAULT_T
         await update.message.reply_text(err)
         return FEATURE_PHOTOS
 
-    slug = context.user_data["feat_slug"]
+    slug = context.user_data.get("feat_slug")
+    if not slug:
+        await update.message.reply_text("Session lost — please start over with /feature.")
+        return ConversationHandler.END
+
     folder = f"Feature-{slug}"
     is_video = context.user_data.get("is_video", False)
     use_orig = context.user_data.get("use_original", False)
@@ -1256,21 +1260,33 @@ async def feature_photo_received(update: Update, context: ContextTypes.DEFAULT_T
 
     status = await update.message.reply_text(f"Uploading {kind}...")
 
-    suffix = ".mp4" if is_video else ".jpg"
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp_path = Path(tmp.name)
-    tg_file = await context.bot.get_file(file_id)
-    await asyncio.wait_for(tg_file.download_to_drive(str(tmp_path)), timeout=60)
-    raw_bytes = tmp_path.read_bytes()
-    tmp_path.unlink(missing_ok=True)
+    try:
+        suffix = ".mp4" if is_video else ".jpg"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+        tg_file = await context.bot.get_file(file_id)
+        await asyncio.wait_for(tg_file.download_to_drive(str(tmp_path)), timeout=120)
+        raw_bytes = tmp_path.read_bytes()
+        tmp_path.unlink(missing_ok=True)
+    except Exception as exc:
+        await status.edit_text(
+            f"Download timed out or failed: {exc}\n\nTry sending that photo again."
+        )
+        return FEATURE_PHOTOS
 
-    upload_bytes = raw_bytes if is_video else _compress_photo(raw_bytes)
-    filename = _make_filename(use_orig, orig_name, is_video=is_video)
-    photo_rel = f"assets/{folder}/{filename}"
+    try:
+        upload_bytes = raw_bytes if is_video else _compress_photo(raw_bytes)
+        filename = _make_filename(use_orig, orig_name, is_video=is_video)
+        photo_rel = f"assets/{folder}/{filename}"
 
-    ok, err = await _gh_put_file(photo_rel, upload_bytes, f"Add {filename} to {folder}")
-    if not ok:
-        await status.edit_text(f"Upload failed: {err}\n\nSend another photo or /done.")
+        ok, err = await _gh_put_file(photo_rel, upload_bytes, f"Add {filename} to {folder}")
+        if not ok:
+            await status.edit_text(f"Upload failed: {err}\n\nTry sending that photo again.")
+            return FEATURE_PHOTOS
+    except Exception as exc:
+        await status.edit_text(
+            f"GitHub upload error: {exc}\n\nTry sending that photo again."
+        )
         return FEATURE_PHOTOS
 
     photos = context.user_data.setdefault("feat_photos", [])
