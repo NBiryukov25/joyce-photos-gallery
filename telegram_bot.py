@@ -1289,16 +1289,34 @@ async def feature_ask_caption(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text("No photos yet — send at least one photo first.")
         return FEATURE_PHOTOS
     n = len(photos)
+    context.user_data["feat_caption_parts"] = []
     await update.message.reply_text(
         f"{n} photo{'s' if n != 1 else ''} ready.\n\n"
-        f"Now type the caption or story for this featured page.\n"
-        f"Blank lines between paragraphs are fine."
+        f"Now type your story. Send as many messages as you like — each one becomes a paragraph.\n\n"
+        f"/done when you've finished writing."
     )
     return FEATURE_CAPTION
 
 
 async def feature_caption_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    caption = update.message.text.strip()
+    chunk = update.message.text.strip()
+    if chunk:
+        context.user_data.setdefault("feat_caption_parts", []).append(chunk)
+    parts = context.user_data.get("feat_caption_parts", [])
+    await update.message.reply_text(
+        f"Got it — {len(parts)} paragraph{'s' if len(parts) != 1 else ''} so far.\n"
+        f"Keep going, or /done to publish."
+    )
+    return FEATURE_CAPTION
+
+
+async def feature_caption_done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    parts = context.user_data.get("feat_caption_parts", [])
+    if not parts:
+        await update.message.reply_text("No caption yet — type at least one paragraph, then /done.")
+        return FEATURE_CAPTION
+
+    caption = "\n\n".join(parts)
     title = context.user_data["feat_title"]
     slug = context.user_data["feat_slug"]
     folder = f"Feature-{slug}"
@@ -1327,7 +1345,7 @@ async def feature_caption_received(update: Update, context: ContextTypes.DEFAULT
     gallery_url = f"{GITHUB_PAGES_URL}/{html_rel}"
     await status.edit_text(
         f'✓ Featured page published!\n\n'
-        f'"{title}" · {len(photos)} photo{"s" if len(photos) != 1 else ""}\n\n'
+        f'"{title}" · {len(photos)} photo{"s" if len(photos) != 1 else ""} · {len(parts)} paragraph{"s" if len(parts) != 1 else ""}\n\n'
         f'{gallery_url}\n\n'
         f'Card added to Joyce Ultra.'
     )
@@ -1661,7 +1679,10 @@ def main() -> None:
                 MessageHandler(_media_filter, feature_photo_received),
                 CommandHandler("done", feature_ask_caption),
             ],
-            FEATURE_CAPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, feature_caption_received)],
+            FEATURE_CAPTION: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, feature_caption_received),
+                CommandHandler("done", feature_caption_done),
+            ],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel)],
     )
