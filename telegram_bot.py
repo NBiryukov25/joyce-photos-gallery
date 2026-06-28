@@ -1446,21 +1446,31 @@ async def feature_caption_done(update: Update, context: ContextTypes.DEFAULT_TYP
         await _edit_status(f"Page creation failed: {err}")
         return ConversationHandler.END
 
-    ultra_html, ultra_sha = await _gh_get_file("joyce-ultra.html")
-    if ultra_html:
+    ultra_ok = False
+    for _attempt in range(2):
+        ultra_html, ultra_sha = await _gh_get_file("joyce-ultra.html")
+        if not ultra_html:
+            break
         updated_ultra = _update_ultra_featured(ultra_html, title, html_rel)
-        if updated_ultra != ultra_html:
-            await _gh_put_file(
-                "joyce-ultra.html", updated_ultra,
-                f"Add featured card: {title}", sha=ultra_sha
-            )
+        if updated_ultra == ultra_html:
+            ultra_ok = True  # card already present
+            break
+        ok2, _err2 = await _gh_put_file(
+            "joyce-ultra.html", updated_ultra,
+            f"Add featured card: {title}", sha=ultra_sha
+        )
+        if ok2:
+            ultra_ok = True
+            break
+        # SHA conflict on first attempt — re-fetch and retry once
 
     gallery_url = f"{GITHUB_PAGES_URL}/{html_rel}"
+    ultra_line = "Card added to Joyce Ultra." if ultra_ok else "⚠️ Joyce Ultra card update failed — please add it manually."
     await _edit_status(
         f'✓ Featured page published!\n\n'
         f'"{title}" · {len(photos)} photo{"s" if len(photos) != 1 else ""} · {len(parts)} paragraph{"s" if len(parts) != 1 else ""}\n\n'
         f'{gallery_url}\n\n'
-        f'Card added to Joyce Ultra.'
+        f'{ultra_line}'
     )
     return ConversationHandler.END
 
