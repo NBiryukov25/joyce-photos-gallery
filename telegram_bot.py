@@ -205,11 +205,12 @@ def _compress_photo(data: bytes, max_dimension: int = 1600, quality: int = 78) -
     return buf.getvalue()
 
 
-def _make_filename(use_original: bool, original_name: str, is_video: bool = False) -> str:
+def _make_filename(use_original: bool, original_name: str, is_video: bool = False, index: int = 0) -> str:
     if use_original:
         return original_name
     ts = datetime.utcnow().strftime('%Y%m%d-%H%M%S')
-    return f"video-{ts}.mp4" if is_video else f"photo-{ts}.jpg"
+    idx = f"-{index:02d}" if index > 0 else ""
+    return f"video-{ts}{idx}.mp4" if is_video else f"photo-{ts}{idx}.jpg"
 
 
 _VIDEO_EXTS = frozenset({"mp4", "mov", "webm", "m4v", "avi"})
@@ -1241,58 +1242,153 @@ async def feature_title_received(update: Update, context: ContextTypes.DEFAULT_T
     return FEATURE_PHOTOS
 
 
-async def feature_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    err = _store_media(update.message, context)
-    if err:
-        await update.message.reply_text(err)
-        return FEATURE_PHOTOS
-
-    slug = context.user_data.get("feat_slug")
-    if not slug:
-        await update.message.reply_text("Session lost — please start over with /feature.")
-        return ConversationHandler.END
-
-    folder = f"Feature-{slug}"
-    is_video = context.user_data.get("is_video", False)
-    use_orig = context.user_data.get("use_original", False)
-    orig_name = context.user_data.get("original_name", "photo.jpg")
-    file_id = context.user_data["file_id"]
-    kind = "video" if is_video else "photo"
-
-    status = await update.message.reply_text(f"Uploading {kind}...")
+async def _upload_one_feature_photo(
+    bot, folder: str, item: dict, index: int
+) -> tuple[str | None, str | None]:
+    """Download one photo/video from Telegram and upload to GitHub.
+    Returns (filename, None) on success or (None, error_str) on failure."""
+    file_id = item["file_id"]
+    is_video = item["is_video"]
+    use_orig = item["use_original"]
+    orig_name = item["original_name"]
 
     try:
         suffix = ".mp4" if is_video else ".jpg"
         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
             tmp_path = Path(tmp.name)
-        tg_file = await context.bot.get_file(file_id)
+        tg_file = await bot.get_file(file_id)
         await asyncio.wait_for(tg_file.download_to_drive(str(tmp_path)), timeout=120)
         raw_bytes = tmp_path.read_bytes()
         tmp_path.unlink(missing_ok=True)
     except Exception as exc:
-        await status.edit_text(
-            f"Download timed out or failed: {exc}\n\nTry sending that photo again."
-        )
-        return FEATURE_PHOTOS
+        return None, f"Download failed: {exc}"
 
     try:
         upload_bytes = raw_bytes if is_video else _compress_photo(raw_bytes)
-        filename = _make_filename(use_orig, orig_name, is_video=is_video)
-        photo_rel = f"assets/{folder}/{filename}"
-
-        ok, err = await _gh_put_file(photo_rel, upload_bytes, f"Add {filename} to {folder}")
-        if not ok:
-            await status.edit_text(f"Upload failed: {err}\n\nTry sending that photo again.")
-            return FEATURE_PHOTOS
-    except Exception as exc:
-        await status.edit_text(
-            f"GitHub upload error: {exc}\n\nTry sending that photo again."
+        filename = _make_filename(use_orig, orig_name, is_video=is_video, index=index)
+        ok, err = await _gh_put_file(
+            f"assets/{folder}/{filename}", upload_bytes, f"Add {filename} to {folder}"
         )
+        if not ok:
+            return None, err
+        return filename, None
+    except Exception as exc:
+        return None, str(exc)
+
+
+async def _process_feature_album(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Job callback: upload all photos collected from one Telegram album."""
+    job = context.job
+    chat_id = job.data["chat_id"]
+    album_key = job.data["album_key"]
+
+    slug = context.user_data.get("feat_slug")
+    if not slug:
+        await context.bot.send_message(chat_id, "Session lost — please start over with /feature.")
+        return
+
+    folder = f"Feature-{slug}"
+    items = context.user_data.pop(album_key, [])
+    if not items:
+        return
+
+    n = len(items)
+    status = await context.bot.send_message(chat_id, f"Uploading {n} photo{'s' if n != 1 else ''}...")
+
+    existing = context.user_data.setdefault("feat_photos", [])
+    start_index = len(existing)
+
+    results = await asyncio.gather(
+        *[_upload_one_feature_photo(context.bot, folder, item, start_index + i)
+          for i, item in enumerate(items)],
+        return_exceptions=True,
+    )
+
+    added, errors = [], []
+    for r in results:
+        if isinstance(r, Exception):
+            errors.append(str(r))
+        elif r[0]:
+            added.append(r[0])
+        else:
+            errors.append(r[1] or "unknown error")
+
+    existing.extend(added)
+    total = len(existing)
+
+    lines = [f"✓ {len(added)} of {n} uploaded ({total} total)."]
+    if errors:
+        lines.append(f"{len(errors)} failed — try resending those.")
+    lines.append("Send more photos or /done when you're finished.")
+    await context.bot.edit_message_text(
+        "\n".join(lines), chat_id=chat_id, message_id=status.message_id
+    )
+
+
+async def feature_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    msg = update.message
+
+    slug = context.user_data.get("feat_slug")
+    if not slug:
+        await msg.reply_text("Session lost — please start over with /feature.")
+        return ConversationHandler.END
+
+    # ── Album (multi-photo send) ──────────────────────────────────────────
+    if msg.media_group_id:
+        err = _store_media(msg, context)
+        if err:
+            await msg.reply_text(err)
+            return FEATURE_PHOTOS
+
+        album_key = f"feat_album_{msg.media_group_id}"
+        pending = context.user_data.setdefault(album_key, [])
+        pending.append({
+            "file_id":       context.user_data["file_id"],
+            "is_video":      context.user_data.get("is_video", False),
+            "use_original":  context.user_data.get("use_original", False),
+            "original_name": context.user_data.get("original_name", "photo.jpg"),
+        })
+
+        # Reset the 3-second timer so we wait for all album photos to arrive
+        job_name = f"feat_upload_{msg.media_group_id}"
+        for job in context.job_queue.get_jobs_by_name(job_name):
+            job.schedule_removal()
+        context.job_queue.run_once(
+            _process_feature_album,
+            when=3,
+            name=job_name,
+            data={"chat_id": msg.chat_id, "album_key": album_key},
+            chat_id=msg.chat_id,
+            user_id=update.effective_user.id,
+        )
+        return FEATURE_PHOTOS
+
+    # ── Single photo ──────────────────────────────────────────────────────
+    err = _store_media(msg, context)
+    if err:
+        await msg.reply_text(err)
+        return FEATURE_PHOTOS
+
+    folder = f"Feature-{slug}"
+    is_video = context.user_data.get("is_video", False)
+    kind = "video" if is_video else "photo"
+    index = len(context.user_data.get("feat_photos", []))
+
+    status = await msg.reply_text(f"Uploading {kind}...")
+
+    item = {
+        "file_id":       context.user_data["file_id"],
+        "is_video":      is_video,
+        "use_original":  context.user_data.get("use_original", False),
+        "original_name": context.user_data.get("original_name", "photo.jpg"),
+    }
+    filename, err = await _upload_one_feature_photo(context.bot, folder, item, index)
+    if err:
+        await status.edit_text(f"Upload failed: {err}\n\nTry sending that photo again.")
         return FEATURE_PHOTOS
 
     photos = context.user_data.setdefault("feat_photos", [])
     photos.append(filename)
-
     await status.edit_text(
         f"✓ {kind.capitalize()} {len(photos)} added.\n\n"
         f"Send another, or /done when all photos are in."
