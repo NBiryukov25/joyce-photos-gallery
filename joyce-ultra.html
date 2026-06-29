@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sheryl Joyce — Joyce Ultra. Exclusive photos, videos and stories.">
+  <title>Joyce Ultra · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="gallery.css">
+  <link rel="stylesheet" href="lightbox.css">
+  <style>
+    /* ── Base dark theme ── */
+    html, body { background: #0c0a08; color: rgba(255,255,255,0.88); }
+
+    .site-header {
+      border-bottom: 1px solid rgba(201,169,110,0.15);
+      background: rgba(8,6,4,0.96);
+    }
+    .nav-brand { color: rgba(255,255,255,0.8) !important; }
+    .nav-link { color: rgba(255,255,255,0.5) !important; border-color: transparent !important; }
+    .nav-link:hover { color: #c9a96e !important; border-color: #c9a96e !important; }
+    .nav-link.active { color: #c9a96e !important; border-color: #c9a96e !important; }
+
+    .page-hero { background: #0c0a08; padding-bottom: 2rem; }
+    .page-hero-overline { color: #c9a96e; letter-spacing: 0.28em; }
+    .page-hero-title { color: rgba(255,255,255,0.92); }
+    .page-hero-subtitle { color: rgba(255,255,255,0.32); }
+
+    /* ── Section labels ── */
+    .ultra-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+    .ultra-section-header {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      margin: 2.8rem 0 1.6rem;
+    }
+    .ultra-section-header::before,
+    .ultra-section-header::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(201,169,110,0.18);
+    }
+    .ultra-section-label {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 300;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+      color: #c9a96e;
+      white-space: nowrap;
+    }
+
+    /* ── Gallery cards (Photos & Videos) ── */
+    .ultra-media-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.4rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+    .gallery-item {
+      background: #161210;
+      border: 1px solid rgba(201,169,110,0.1);
+      border-radius: 2px;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+    }
+    .gallery-item:hover {
+      border-color: rgba(201,169,110,0.42);
+      box-shadow: 0 6px 32px rgba(201,169,110,0.07);
+      transform: translateY(-3px);
+    }
+    .gallery-item img, .gallery-item video {
+      width: 100%; display: block;
+      filter: brightness(0.9); transition: filter 0.3s;
+    }
+    .gallery-item:hover img, .gallery-item:hover video { filter: brightness(1); }
+    .gallery-caption { padding: 0.9rem 1rem 1.1rem; }
+    .gallery-caption-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1rem; font-weight: 400;
+      color: rgba(255,255,255,0.82); letter-spacing: 0.04em;
+      margin: 0 0 0.25rem;
+    }
+    .gallery-caption-meta { color: rgba(255,255,255,0.28); font-size: 0.75rem; margin: 0 0 0.4rem; }
+    .gallery-caption-text { color: rgba(255,255,255,0.42); font-size: 0.82rem; margin: 0 0 0.6rem; }
+    .gallery-view-link { color: #c9a96e !important; font-size: 0.78rem; letter-spacing: 0.1em; }
+    .gallery-view-link:hover { color: rgba(201,169,110,0.6) !important; }
+
+    /* ── Story cards ── */
+    .ultra-stories-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.6rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+    }
+    .ultra-story-card {
+      background: #111009;
+      border: 1px solid rgba(201,169,110,0.1);
+      border-radius: 2px;
+      padding: 1.8rem 1.6rem 1.6rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+      text-decoration: none;
+    }
+    .ultra-story-card:hover {
+      border-color: rgba(201,169,110,0.38);
+      box-shadow: 0 8px 40px rgba(201,169,110,0.06);
+      transform: translateY(-3px);
+    }
+    .ultra-story-tag {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.62rem;
+      font-weight: 300;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #c9a96e;
+    }
+    .ultra-story-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.35rem;
+      font-weight: 400;
+      color: rgba(255,255,255,0.88);
+      line-height: 1.3;
+      margin: 0;
+    }
+    .ultra-story-date {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 200;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.28);
+    }
+    .ultra-story-excerpt {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.95rem;
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.45);
+      margin: 0.2rem 0 0;
+    }
+    .ultra-story-read {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 300;
+      letter-spacing: 0.14em;
+      color: #c9a96e;
+      margin-top: auto;
+      padding-top: 0.8rem;
+      text-decoration: none;
+    }
+    .ultra-story-card:hover .ultra-story-read { color: rgba(201,169,110,0.65); }
+
+    /* ── Page divider ── */
+    .ultra-divider {
+      border: none;
+      border-top: 1px solid rgba(201,169,110,0.12);
+      margin: 0;
+    }
+
+    /* ── Opening Popup (Featuring) — subtle, Ultra dark theme ── */
+    .od-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1em;
+      background: rgba(6, 4, 3, 0.78);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+      animation: odFade 0.9s ease;
+    }
+    .od-overlay.od-hidden { display: none; }
+    @keyframes odFade { from { opacity: 0; } to { opacity: 1; } }
+
+    .od-modal {
+      background: #14100b;
+      border: 1px solid rgba(201, 169, 110, 0.18);
+      border-radius: 14px;
+      width: min(92vw, 420px);
+      max-height: 86vh;
+      overflow-y: auto;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.6);
+      animation: odRise 0.9s cubic-bezier(0.16, 0.84, 0.34, 1);
+    }
+    @keyframes odRise {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .od-header { padding: 1.3em 1.6em 0; text-align: center; }
+    .od-close {
+      position: absolute;
+      top: 0.8em;
+      right: 0.9em;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(201, 169, 110, 0.18);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      font-size: 0.85em;
+      color: rgba(201, 169, 110, 0.75);
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.2s, background 0.2s;
+    }
+    .od-close:hover { color: #c9a96e; background: rgba(201, 169, 110, 0.14); }
+    .od-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.3em;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0;
+    }
+    .od-rule { width: 32px; height: 1px; background: #c9a96e; border: none; margin: 0.65em auto 0; }
+
+    .od-slides-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      width: calc(100% - 32px);
+      margin: 1em auto 0;
+      aspect-ratio: 4 / 5;
+      overflow: hidden;
+      background: #0d0a07;
+      border-radius: 10px;
+      flex: 0 0 auto;
+    }
+    .od-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1s ease; }
+    .od-slide.active { opacity: 1; }
+    .od-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover !important;
+      object-position: center center;
+      display: block;
+      transform-origin: center center;
+    }
+    /* slow Ken-Burns zoom preserved, softened for subtlety */
+    .od-slide.active img { animation: odSlowZoom 9s ease-in-out forwards; }
+    @keyframes odSlowZoom {
+      0%   { transform: scale(1.05); }
+      100% { transform: scale(1.20); }
+    }
+
+    .od-progress {
+      width: calc(100% - 32px);
+      height: 2px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      margin: 0 auto;
+      flex: 0 0 auto;
+    }
+    .od-bar { height: 100%; background: #c9a96e; width: 0; }
+
+    .od-dots { display: flex; justify-content: center; gap: 5px; padding: 0.7em 0 0; flex: 0 0 auto; }
+    .od-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      border: none;
+      padding: 0;
+      transition: background 0.3s;
+    }
+    .od-dot.active { background: #c9a96e; }
+
+    .od-message {
+      padding: 1.1em 1.6em 0;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.98em;
+      line-height: 1.65;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    .od-message p { margin-bottom: 0.8em; }
+    .od-message p:last-child { margin-bottom: 0; }
+    .od-message strong { color: rgba(201, 169, 110, 0.92); font-weight: 400; }
+
+    .od-footer { padding: 1.1em 1.5em 1.4em; text-align: center; }
+    .od-enter {
+      display: inline-block;
+      padding: 0.65em 2.2em;
+      background: transparent;
+      color: #c9a96e;
+      border: 1px solid rgba(201, 169, 110, 0.5);
+      border-radius: 999px;
+      font-family: 'Jost', sans-serif;
+      font-size: 0.68em;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .od-enter:hover { background: rgba(201, 169, 110, 0.14); color: #e7d4ad; }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="site-nav">
+      <a href="gallery.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="gallery.html" class="nav-link">Galleries</a>
+        <a href="senza-veli.html" class="nav-link">Senza Veli</a>
+        <a href="stories.html" class="nav-link">Stories</a>
+        <a href="friends.html" class="nav-link">Friends</a>
+        <a href="portrait.html" class="nav-link">Portrait</a>
+        <a href="joyce-ultra.html" class="nav-link active">Ultra</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="page-hero">
+    <p class="page-hero-overline">Exclusive</p>
+    <h1 class="page-hero-title">Joyce Ultra</h1>
+    <p class="page-hero-subtitle">Photos &nbsp;·&nbsp; Videos &nbsp;·&nbsp; Stories</p>
+  </section>
+
+  <hr class="ultra-divider">
+
+  <!-- ── Photos & Videos ── -->
+  <div class="ultra-section">
+    <div class="ultra-section-header">
+      <span class="ultra-section-label">Photos &amp; Videos</span>
+    </div>
+  </div>
+
+  <div class="ultra-media-row" id="ultra-galleries">
+
+    <div class="gallery-item">
+      <a href="galleries/ultra-wine-cellar-blues-tan.html">
+        <img loading="lazy" decoding="async" src="assets/Wine-cellar-blues-tan/photo-20260620-022921.jpg" alt="Ultra — Wine Cellar Blues Tan">
+      </a>
+      <div class="gallery-caption">
+        <p class="gallery-caption-title">Ultra — Wine Cellar Blues Tan</p>
+        <a class="gallery-view-link" href="galleries/ultra-wine-cellar-blues-tan.html">View gallery →</a>
+      </div>
+    </div>
+
+  <div class="gallery-item"><a href="galleries/ultra-a-filipina-touch.html"><img loading="lazy" decoding="async" src="assets/Ultra-A-Filipina-touch/photo-20260626-222221.jpg" alt="A Filipina Touch"></a><div class="gallery-caption"><p class="gallery-caption-title">A Filipina Touch</p><a class="gallery-view-link" href="galleries/ultra-a-filipina-touch.html">View gallery →</a></div></div>
+<!-- ultra-gallery-insert --></div>
+
+  <hr class="ultra-divider" style="margin-top:2.5rem;">
+
+  <!-- ── Stories ── -->
+  <div class="ultra-section">
+    <div class="ultra-section-header">
+      <span class="ultra-section-label">Stories</span>
+    </div>
+  </div>
+
+  <div class="ultra-stories-grid">
+
+    <a class="ultra-story-card" href="stories/ultra-employers-playground-reimagined.html">
+      <p class="ultra-story-tag">Fiction · Ultra</p>
+      <h2 class="ultra-story-title">The Employer's Playground Reimagined</h2>
+      <p class="ultra-story-date">2026</p>
+      <span class="ultra-story-read">Read →</span>
+    </a>
+
+    <a class="ultra-story-card" href="galleries/feature-the-employer-s-playground.html">
+      <p class="ultra-story-tag">Featured · Ultra</p>
+      <h2 class="ultra-story-title">The Employer's Playground</h2>
+      <span class="ultra-story-read">View →</span>
+    </a>
+
+    <!-- ultra-story-insert -->
+  </div>
+
+  <script src="lightbox.js"></script>
+
+  <!-- ── FEATURED POPUP: Opening our Doors ── -->
+  <div class="od-overlay od-hidden" data-od-popup data-od-interval="8000">
+    <div class="od-modal">
+      <button class="od-close" data-od-close aria-label="Close">✕</button>
+
+      <div class="od-header">
+        <h2 class="od-title">Featuring: Girlfriend Experience—Opening our Doors</h2>
+        <hr class="od-rule">
+      </div>
+
+      <div class="od-slides-wrap">
+        <div class="od-slide active"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (7).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (8).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (9).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (10).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (11).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (12).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (13).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (14).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (15).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (1).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (1).png" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (2).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (2).PNG" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (3).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (4).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (5).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Joyce_Girlfriend_Experience (6).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Girlfriend_Experience (1).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Girlfriend_Experience (2).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Girlfriend_Experience (3).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Girlfriend_Experience (4).jpg" alt="Opening our Doors"></div>
+        <div class="od-slide"><img loading="lazy" decoding="async" src="assets/Gallery_photos/Girlfriend_Experience (5).jpg" alt="Opening our Doors"></div>
+      </div>
+      <div class="od-progress"><div class="od-bar" id="od-bar"></div></div>
+
+      <div class="od-dots"></div>
+
+      <div class="od-message">
+        <p>My wife and I offer you our place for your stay during your tropical vacation here in the Philippines. We are pleased to inform you that my wife offers herself completely—<strong>mind, soul, and body</strong>—and each serves its purpose in your satisfaction.</p><p>With her <strong>mind</strong>, she becomes whatever you need her to be. She'll listen for hours to your stories, your frustrations, your darkest thoughts, absorbing them without judgment. She knows when to speak and when silence is the greater gift. She'll study your preferences, anticipate your desires before you voice them, and reshape her own thoughts to mirror whatever brings you pleasure. Her intelligence bends entirely toward understanding how to make you feel powerful.</p><p>With her <strong>soul</strong>, she surrenders the parts of herself that most people guard fiercely. Her dignity becomes yours to dismantle at your leisure. Her pride is negotiable, her boundaries flexible, her self-respect a luxury she can't afford to cling to. She'll look at you with genuine reverence while accepting treatment that would break most women, and she'll mean every moment of her submission because she understands what you're providing in return.</p><p>With her <strong>body</strong>, she offers the complete spectrum of physical devotion. Soft touches when you crave gentleness, willing endurance when you crave something more strenuous. She accepts that her comfort is secondary to your desires, that her pain can be your entertainment, that her body exists in that space to be used, displayed, tested, or simply admired as your possession. Every mark, every strain, every moment of physical sacrifice is her way of showing gratitude.</p><p>Together, these three elements create something rare—a person who has made peace with her purpose and finds genuine fulfillment in your satisfaction, no matter the cost to herself.</p>
+      </div>
+
+      <div class="od-footer">
+        <button class="od-enter" data-od-close>Enter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New popups generated by tools/add_popup.py are inserted directly above this line. -->
+  <!-- ultra-popup-insert -->
+
+  <script src="od-popup.js"></script>
+
+</body>
+</html>
