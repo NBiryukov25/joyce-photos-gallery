@@ -1919,10 +1919,29 @@ async def reorder_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_T
 
     context.user_data["reorder_filenames"] = filenames
     n = len(filenames)
-    listing = "\n".join(f"{i + 1}. {fn}" for i, fn in enumerate(filenames))
-    await query.edit_message_text(
-        f"Current order in {gallery} ({n} photos):\n\n{listing}\n\n"
-        f"Reply with the new order as numbers — one line, space-separated.\n"
+    chat_id = update.effective_chat.id
+
+    await query.edit_message_text(f"Sending {n} photos — scroll up after they load, then reply with the new order.")
+
+    for i, fn in enumerate(filenames):
+        raw_url = (
+            f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
+            f"/assets/{urllib.parse.quote(gallery)}/{urllib.parse.quote(fn)}"
+        )
+        ext = fn.rsplit(".", 1)[-1].lower()
+        caption = f"{i + 1} / {n}"
+        if ext in _VIDEO_EXTS:
+            await context.bot.send_message(chat_id, f"📹 {caption}\n{fn}")
+        else:
+            try:
+                await context.bot.send_photo(chat_id, photo=raw_url, caption=caption)
+            except Exception:
+                await context.bot.send_message(chat_id, f"🖼 {caption}\n{fn}")
+
+    await context.bot.send_message(
+        chat_id,
+        f"Photos above are numbered 1–{n}.\n\n"
+        f"Reply with the new order — numbers only, space-separated.\n"
         f"Example: <code>3 1 2 4 5</code>\n\n"
         f"All {n} numbers required. /cancel to quit.",
         parse_mode="HTML",
