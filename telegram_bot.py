@@ -73,7 +73,9 @@ CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
 
-SPECIAL_HTML: dict[str, str] = {}
+SPECIAL_HTML: dict[str, str] = {
+    "Stashed-companion": "galleries/Stashed-companion.html",
+}
 
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -170,7 +172,7 @@ async def _list_gallery_files(gallery: str) -> list[dict]:
 # gallery helpers
 # ---------------------------------------------------------------------------
 
-_SKIP_DIRS = {"videos", "audio", "Gallery_photos", "Joyce-and-Friends", "Feature", "Stashed-companion"}
+_SKIP_DIRS = {"videos", "audio", "Gallery_photos", "Joyce-and-Friends", "Feature"}
 
 
 async def _existing_galleries() -> list[str]:
