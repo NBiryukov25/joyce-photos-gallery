@@ -796,6 +796,20 @@ async def photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text(err)
         return ConversationHandler.END
 
+    album_id = update.message.media_group_id
+    if album_id:
+        item = {k: context.user_data[k] for k in ("file_id", "original_name", "use_original", "is_video")}
+        if context.user_data.get("pending_album_id") == album_id:
+            # Same album still arriving — buffer silently, picker already shown
+            context.user_data["pending_album"].append(item)
+            return CHOOSING_GALLERY
+        # First photo of a new album
+        context.user_data["pending_album_id"] = album_id
+        context.user_data["pending_album"] = [item]
+    else:
+        context.user_data.pop("pending_album_id", None)
+        context.user_data.pop("pending_album", None)
+
     try:
         galleries = await _existing_galleries()
         regular = [g for g in galleries if not g.startswith("Friends-")]
@@ -848,7 +862,9 @@ async def gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return CHOOSING_ULTRA_GALLERY
 
     context.user_data["gallery"] = choice
-    await query.edit_message_text(f"Adding to {choice}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
+    n = len(context.user_data.get("pending_album") or [])
+    count = f"{n} photos" if n > 1 else "photo"
+    await query.edit_message_text(f"Adding {count} to {choice}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
 
 
@@ -861,7 +877,9 @@ async def friend_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TY
         return NAMING_FRIEND_GALLERY
     context.user_data["gallery"] = choice
     name = choice.replace("Friends-", "").replace("-", " ").title()
-    await query.edit_message_text(f"Adding to {name}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
+    n = len(context.user_data.get("pending_album") or [])
+    count = f"{n} photos" if n > 1 else "photo"
+    await query.edit_message_text(f"Adding {count} to {name}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
 
 
@@ -883,7 +901,9 @@ async def ultra_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYP
         return NAMING_ULTRA_GALLERY
     context.user_data["gallery"] = choice
     name = choice.replace("Ultra-", "").replace("-", " ").title()
-    await query.edit_message_text(f"Adding to {name}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
+    n = len(context.user_data.get("pending_album") or [])
+    count = f"{n} photos" if n > 1 else "photo"
+    await query.edit_message_text(f"Adding {count} to {name}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
 
 
@@ -930,10 +950,24 @@ async def more_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE
     if err:
         await update.message.reply_text(err)
         return ConversationHandler.END
+
+    album_id = update.message.media_group_id
+    if album_id:
+        item = {k: context.user_data[k] for k in ("file_id", "original_name", "use_original", "is_video")}
+        if context.user_data.get("pending_album_id") == album_id:
+            context.user_data["pending_album"].append(item)
+            return ADDING_CAPTION  # prompt already shown
+        context.user_data["pending_album_id"] = album_id
+        context.user_data["pending_album"] = [item]
+    else:
+        context.user_data.pop("pending_album_id", None)
+        context.user_data.pop("pending_album", None)
+
     gallery = context.user_data.get("gallery", "")
     display = gallery.replace("Friends-", "").replace("-", " ") if gallery.startswith("Friends-") else gallery
-    kind = "video" if context.user_data.get("is_video") else "photo"
-    await update.message.reply_text(f"Adding {kind} to {display}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
+    n = len(context.user_data.get("pending_album") or [])
+    count = f"{n} photos" if n > 1 else "photo"
+    await update.message.reply_text(f"Adding {count} to {display}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
 
 
@@ -956,16 +990,21 @@ async def _finalize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return ADDING_MORE
 
 
-async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    gallery   = context.user_data["gallery"]
-    caption   = context.user_data.get("caption", "")
-    file_id   = context.user_data["file_id"]
-    use_orig  = context.user_data.get("use_original", False)
-    orig_name = context.user_data.get("original_name", "photo.jpg")
-    is_video  = context.user_data.get("is_video", False)
-
-    kind = "video" if is_video else "photo"
-    status = await update.effective_message.reply_text(f"Downloading {kind}...")
+async def _upload_and_register(
+    context,
+    gallery: str,
+    html_rel: str,
+    item: dict,
+    caption: str,
+    index: int,
+    current_html: bytes | None,
+    html_sha: str | None,
+) -> tuple[str, bytes, bytes, str | None]:
+    """Download, compress, upload one photo/video. Returns (filename, upload_bytes, new_html, new_sha)."""
+    file_id   = item["file_id"]
+    use_orig  = item["use_original"]
+    orig_name = item["original_name"]
+    is_video  = item["is_video"]
 
     suffix = ".mp4" if is_video else ".jpg"
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
@@ -975,67 +1014,99 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     raw_bytes = tmp_path.read_bytes()
     tmp_path.unlink(missing_ok=True)
 
-    if is_video:
-        upload_bytes = raw_bytes
-        kb = len(upload_bytes) // 1024
-        logger.info("Video upload: %d KB", kb)
-    else:
-        await status.edit_text("Compressing photo...")
-        upload_bytes = _compress_photo(raw_bytes)
-        kb = len(upload_bytes) // 1024
-        logger.info("Compressed photo: %d KB (was %d KB)", kb, len(raw_bytes) // 1024)
-
-    filename  = _make_filename(use_orig, orig_name, is_video=is_video)
+    upload_bytes = raw_bytes if is_video else _compress_photo(raw_bytes)
+    filename = _make_filename(use_orig, orig_name, is_video=is_video, index=index)
     photo_rel = f"assets/{gallery}/{filename}"
-
-    await status.edit_text(f"Uploading {kind} to GitHub ({kb} KB)...")
 
     ok, err = await _gh_put_file(photo_rel, upload_bytes, f"Add {filename} to {gallery}")
     if not ok:
-        await status.edit_text(f"Upload failed: {err}")
-        return ConversationHandler.END
-
-    await status.edit_text("Updating gallery page...")
-
-    html_rel = _html_rel_path(gallery)
-    current_html, html_sha = await _gh_get_file(html_rel)
+        raise RuntimeError(f"Upload failed for {filename}: {err}")
 
     if current_html is not None:
         new_html = _updated_html(current_html, gallery, filename, caption, html_rel=html_rel)
     else:
         template, _ = await _gh_get_file("galleries/_template-gallery.html")
         if not template:
-            await status.edit_text("Could not find gallery template.")
-            return ConversationHandler.END
+            raise RuntimeError("Could not find gallery template.")
         new_html = _new_gallery_html(template, gallery, filename, caption)
 
     ok, err = await _gh_put_file(html_rel, new_html, f"Update {gallery} — add {filename}", sha=html_sha)
     if not ok:
-        await status.edit_text(f"Photo uploaded but page update failed: {err}")
+        raise RuntimeError(f"Page update failed for {filename}: {err}")
+
+    # Re-fetch sha for the next sequential write
+    _, new_sha = await _gh_get_file(html_rel)
+    return filename, upload_bytes, new_html, new_sha
+
+
+async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    gallery = context.user_data["gallery"]
+    caption = context.user_data.get("caption", "")
+
+    # Collect items — album batch or single photo
+    pending = context.user_data.pop("pending_album", None)
+    context.user_data.pop("pending_album_id", None)
+    if pending and len(pending) > 0:
+        items = pending
+    else:
+        items = [{
+            "file_id":       context.user_data["file_id"],
+            "original_name": context.user_data.get("original_name", "photo.jpg"),
+            "use_original":  context.user_data.get("use_original", False),
+            "is_video":      context.user_data.get("is_video", False),
+        }]
+
+    total = len(items)
+    status = await update.effective_message.reply_text(
+        f"Uploading 1 / {total}…" if total > 1 else "Downloading photo…"
+    )
+
+    html_rel = _html_rel_path(gallery)
+    current_html, html_sha = await _gh_get_file(html_rel)
+    first_html_sha = html_sha  # used to detect new gallery
+    is_new_gallery = html_sha is None
+
+    uploaded_files: list[tuple[str, bytes, bool]] = []  # (filename, bytes, is_video)
+    failed = 0
+
+    for i, item in enumerate(items):
+        if total > 1:
+            try:
+                await status.edit_text(f"Uploading {i + 1} / {total}…")
+            except Exception:
+                pass
+        try:
+            filename, upload_bytes, current_html, html_sha = await _upload_and_register(
+                context, gallery, html_rel, item, caption, i, current_html, html_sha
+            )
+            uploaded_files.append((filename, upload_bytes, item["is_video"]))
+        except Exception as exc:
+            logger.exception("Upload failed for item %d", i)
+            failed += 1
+            try:
+                await status.edit_text(f"Photo {i + 1} failed: {exc}\nContinuing…")
+            except Exception:
+                pass
+
+    if not uploaded_files:
+        await status.edit_text("All uploads failed. Please try again.")
         return ConversationHandler.END
 
-    # New gallery → add a card to the appropriate index page
-    if html_sha is None:
+    # New gallery → add card to the appropriate index page
+    if is_new_gallery:
+        first_filename = uploaded_files[0][0]
         if gallery.startswith("Friends-"):
             friends_html, friends_sha = await _gh_get_file("friends.html")
             if friends_html:
-                updated_friends = _update_friends_index(friends_html, gallery, filename)
-                if updated_friends != friends_html:
-                    await _gh_put_file(
-                        "friends.html", updated_friends,
-                        f"Add {gallery} gallery card to friends page",
-                        sha=friends_sha,
-                    )
+                updated = _update_friends_index(friends_html, gallery, first_filename)
+                if updated != friends_html:
+                    await _gh_put_file("friends.html", updated, f"Add {gallery} to friends page", sha=friends_sha)
         elif gallery.startswith("Ultra-"):
             ultra_html, ultra_sha = await _gh_get_file("joyce-ultra.html")
             if ultra_html:
-                updated_ultra = _update_ultra_index(ultra_html, gallery, filename)
-                if updated_ultra != ultra_html:
-                    await _gh_put_file(
-                        "joyce-ultra.html", updated_ultra,
-                        f"Add {gallery} gallery card to Joyce Ultra",
-                        sha=ultra_sha,
-                    )
+                updated = _update_ultra_index(ultra_html, gallery, first_filename)
+                if updated != ultra_html:
+                    await _gh_put_file("joyce-ultra.html", updated, f"Add {gallery} to Joyce Ultra", sha=ultra_sha)
 
     gallery_url = f"{GITHUB_PAGES_URL}/{html_rel}"
     if gallery.startswith("Friends-"):
@@ -1045,30 +1116,30 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     else:
         display = gallery
 
-    # Post to Telegram channel if configured
+    # Post to Telegram channel
     channel_note = ""
     if TELEGRAM_CHANNEL:
-        try:
-            chan_caption = caption if caption else None
-            if is_video:
-                await context.bot.send_video(
-                    chat_id=TELEGRAM_CHANNEL,
-                    video=upload_bytes,
-                    caption=chan_caption,
-                )
-            else:
-                await context.bot.send_photo(
-                    chat_id=TELEGRAM_CHANNEL,
-                    photo=upload_bytes,
-                    caption=chan_caption,
-                )
-            channel_note = f"\nPosted to {TELEGRAM_CHANNEL} ✓"
-        except Exception as e:
-            logger.warning("Channel post failed: %s", e)
-            channel_note = f"\nChannel post failed: {e}"
+        chan_caption = caption if caption else None
+        posted = 0
+        for filename, upload_bytes, is_video in uploaded_files:
+            try:
+                if is_video:
+                    await context.bot.send_video(chat_id=TELEGRAM_CHANNEL, video=upload_bytes, caption=chan_caption)
+                else:
+                    await context.bot.send_photo(chat_id=TELEGRAM_CHANNEL, photo=upload_bytes, caption=chan_caption)
+                posted += 1
+                chan_caption = None  # caption only on first
+            except Exception as e:
+                logger.warning("Channel post failed: %s", e)
+        if posted:
+            channel_note = f"\nPosted {posted} to {TELEGRAM_CHANNEL} ✓"
 
+    ok_count = len(uploaded_files)
+    summary = f"✓ {ok_count} photo{'s' if ok_count != 1 else ''} added to {display}."
+    if failed:
+        summary += f" ({failed} failed)"
     await status.edit_text(
-        f"✓ {filename} added to {display}.{channel_note}\n\n"
+        f"{summary}{channel_note}\n\n"
         f"Gallery: {gallery_url}\n\n"
         f"Send another photo for {display}, or /done to finish."
     )
