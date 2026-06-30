@@ -170,7 +170,7 @@ async def _list_gallery_files(gallery: str) -> list[dict]:
 # gallery helpers
 # ---------------------------------------------------------------------------
 
-_SKIP_DIRS = {"videos", "audio", "Gallery_photos", "Joyce-and-Friends", "Feature"}
+_SKIP_DIRS = {"videos", "audio", "Gallery_photos", "Joyce-and-Friends", "Feature", "Stashed-companion"}
 
 
 async def _existing_galleries() -> list[str]:
