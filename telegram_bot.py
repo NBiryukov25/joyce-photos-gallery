@@ -68,7 +68,7 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE = range(17)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER = range(19)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -637,6 +637,7 @@ async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "Send as a file to preserve full quality.\n\n"
         "/galleries — list existing galleries\n"
         "/remove    — delete a photo or video\n"
+        "/reorder   — rearrange photo order in a gallery\n"
         "/sync      — post all existing photos to the channel\n"
         "/done      — finish a batch upload\n"
         "/cancel    — cancel current operation"
@@ -1880,6 +1881,108 @@ async def _apply_caption_edit(update: Update, context: ContextTypes.DEFAULT_TYPE
     return CAPTION_FILE
 
 
+async def cmd_reorder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        await update.message.reply_text("Not authorized.")
+        return ConversationHandler.END
+    galleries = await _existing_galleries()
+    if not galleries:
+        await update.message.reply_text("No galleries found.")
+        return ConversationHandler.END
+    context.user_data["reorder_galleries"] = galleries
+    keyboard = [[InlineKeyboardButton(g, callback_data=f"ro:{i}")] for i, g in enumerate(galleries)]
+    await update.message.reply_text("Reorder which gallery?", reply_markup=InlineKeyboardMarkup(keyboard))
+    return REORDER_GALLERY
+
+
+async def reorder_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    idx = int(query.data[3:])
+    gallery = context.user_data["reorder_galleries"][idx]
+    context.user_data["reorder_gallery"] = gallery
+
+    await query.edit_message_text(f"Loading {gallery}…")
+
+    current_html, _ = await _gh_get_file(_html_rel_path(gallery))
+    if not current_html:
+        await query.edit_message_text(f"Could not load {gallery} HTML.")
+        return ConversationHandler.END
+
+    text = current_html.decode("utf-8")
+    filenames = _get_js_array_entries(text, "filenames")
+    if not filenames:
+        await query.edit_message_text(
+            f"{gallery} doesn't use the slideshow format — can't reorder it here."
+        )
+        return ConversationHandler.END
+
+    context.user_data["reorder_filenames"] = filenames
+    n = len(filenames)
+    listing = "\n".join(f"{i + 1}. {fn}" for i, fn in enumerate(filenames))
+    await query.edit_message_text(
+        f"Current order in {gallery} ({n} photos):\n\n{listing}\n\n"
+        f"Reply with the new order as numbers — one line, space-separated.\n"
+        f"Example: <code>3 1 2 4 5</code>\n\n"
+        f"All {n} numbers required. /cancel to quit.",
+        parse_mode="HTML",
+    )
+    return REORDER_ORDER
+
+
+async def reorder_order_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    gallery = context.user_data.get("reorder_gallery", "")
+    filenames = context.user_data.get("reorder_filenames", [])
+    n = len(filenames)
+
+    try:
+        positions = [int(x) for x in update.message.text.strip().split()]
+    except ValueError:
+        await update.message.reply_text(
+            f"Numbers only please, e.g.: 3 1 2\nTry again:"
+        )
+        return REORDER_ORDER
+
+    if sorted(positions) != list(range(1, n + 1)):
+        await update.message.reply_text(
+            f"Need each number from 1 to {n} exactly once.\n"
+            f"Got {len(positions)} numbers. Try again:"
+        )
+        return REORDER_ORDER
+
+    status = await update.message.reply_text("Saving new order…")
+
+    current_html, html_sha = await _gh_get_file(_html_rel_path(gallery))
+    if not current_html:
+        await status.edit_text("Failed to fetch gallery HTML.")
+        return ConversationHandler.END
+
+    html_text = current_html.decode("utf-8")
+    captions = _get_js_array_entries(html_text, "captions")
+
+    new_filenames = [filenames[p - 1] for p in positions]
+    if captions and len(captions) == n:
+        new_captions = [captions[p - 1] for p in positions]
+    else:
+        new_captions = captions
+
+    html_text = _set_js_array(html_text, "filenames", new_filenames)
+    if new_captions and new_captions != captions:
+        html_text = _set_js_array(html_text, "captions", new_captions)
+
+    ok, err = await _gh_put_file(
+        _html_rel_path(gallery), html_text.encode("utf-8"),
+        f"Reorder photos in {gallery}",
+        sha=html_sha,
+    )
+    if not ok:
+        await status.edit_text(f"Save failed: {err}")
+        return ConversationHandler.END
+
+    await status.edit_text(f"✓ {gallery} reordered — {n} photos saved.")
+    return ConversationHandler.END
+
+
 async def cmd_cancel(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Cancelled.")
     return ConversationHandler.END
@@ -1903,6 +2006,7 @@ def main() -> None:
             CommandHandler("caption", cmd_caption),
             CommandHandler("feature", cmd_feature),
             CommandHandler("fcaption", cmd_fcaption),
+            CommandHandler("reorder", cmd_reorder),
         ],
         states={
             CHOOSING_GALLERY:        [
@@ -1941,6 +2045,8 @@ def main() -> None:
                 CommandHandler("done", feature_caption_done),
             ],
             FCAP_CHOOSE: [CallbackQueryHandler(fcap_page_chosen, pattern=r"^fc:")],
+            REORDER_GALLERY: [CallbackQueryHandler(reorder_gallery_chosen, pattern=r"^ro:")],
+            REORDER_ORDER:   [MessageHandler(filters.TEXT & ~filters.COMMAND, reorder_order_received)],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel)],
         name="main_conv",
@@ -1969,6 +2075,18 @@ def main() -> None:
     async def _run() -> None:
         async with app:
             await app.start()
+            from telegram import BotCommand
+            await app.bot.set_my_commands([
+                BotCommand("galleries", "List existing galleries"),
+                BotCommand("remove",    "Delete a photo or video from a gallery"),
+                BotCommand("caption",   "Edit photo captions in a gallery"),
+                BotCommand("reorder",   "Rearrange photo order in a gallery"),
+                BotCommand("feature",   "Create a featured page for Joyce Ultra"),
+                BotCommand("fcaption",  "Update caption on a featured page"),
+                BotCommand("sync",      "Post all existing photos to the channel"),
+                BotCommand("done",      "Finish a batch upload"),
+                BotCommand("cancel",    "Cancel current operation"),
+            ])
             await app.updater.start_polling(drop_pending_updates=True)
             logger.info("Bot polling · Portrait API on :%d", PORT)
             await web_server.serve()
