@@ -2076,13 +2076,20 @@ async def reorder_order_received(update: Update, context: ContextTypes.DEFAULT_T
     return ConversationHandler.END
 
 
-def _build_share_html(gallery: str, title: str, filenames: list[str]) -> bytes:
+def _build_share_html(gallery: str, title: str, filenames: list[str], share_url: str = "") -> bytes:
     safe_title = _safe_html(title)
     base_path = f"../assets/{gallery}/"
     first_img = ""
     if filenames:
-        first_img = f"{GITHUB_PAGES_URL}/assets/{gallery}/{urllib.parse.quote(filenames[0])}"
+        # Use raw.githubusercontent.com — guaranteed accessible to crawlers, no CDN caching delay
+        fn0 = filenames[0]
+        first_img = (
+            f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
+            f"/assets/{urllib.parse.quote(gallery)}/{urllib.parse.quote(fn0)}"
+        )
     files_json = json.dumps(filenames)
+    safe_url = _safe_html(share_url)
+    safe_img = _safe_html(first_img)
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2091,8 +2098,14 @@ def _build_share_html(gallery: str, title: str, filenames: list[str]) -> bytes:
   <title>{safe_title} · Sheryl Joyce</title>
   <meta property="og:title" content="{safe_title}">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="{_safe_html(first_img)}">
+  <meta property="og:url" content="{safe_url}">
+  <meta property="og:image" content="{safe_img}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="800">
   <meta property="og:description" content="A gallery by Sheryl Joyce">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{safe_title}">
+  <meta name="twitter:image" content="{safe_img}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Jost:wght@300&display=swap" rel="stylesheet">
   <style>
@@ -2200,15 +2213,15 @@ async def share_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYP
     title_m = re.search(r"<title>([^<]+)", text)
     title = title_m.group(1).split("·")[0].strip() if title_m else gallery.replace("-", " ").title()
 
-    share_html = _build_share_html(gallery, title, filenames)
     share_rel = f"s/{gallery.lower()}.html"
+    share_url = f"{GITHUB_PAGES_URL}/{share_rel}"
+    share_html = _build_share_html(gallery, title, filenames, share_url=share_url)
     _, existing_sha = await _gh_get_file(share_rel)
     ok, err = await _gh_put_file(share_rel, share_html, f"Share page: {gallery}", sha=existing_sha)
     if not ok:
         await query.edit_message_text(f"Failed to create share page: {err}")
         return ConversationHandler.END
 
-    share_url = f"{GITHUB_PAGES_URL}/{share_rel}"
     await query.edit_message_text(
         f"✓ Share page ready!\n\n"
         f"{share_url}\n\n"
