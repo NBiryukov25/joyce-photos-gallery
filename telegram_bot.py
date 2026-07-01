@@ -68,7 +68,7 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER = range(19)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY = range(20)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -640,6 +640,7 @@ async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "/galleries — list existing galleries\n"
         "/remove    — delete a photo or video\n"
         "/reorder   — rearrange photo order in a gallery\n"
+        "/share     — generate a standalone shareable gallery link\n"
         "/sync      — post all existing photos to the channel\n"
         "/done      — finish a batch upload\n"
         "/cancel    — cancel current operation"
@@ -2075,6 +2076,147 @@ async def reorder_order_received(update: Update, context: ContextTypes.DEFAULT_T
     return ConversationHandler.END
 
 
+def _build_share_html(gallery: str, title: str, filenames: list[str]) -> bytes:
+    safe_title = _safe_html(title)
+    base_path = f"../assets/{gallery}/"
+    first_img = ""
+    if filenames:
+        first_img = f"{GITHUB_PAGES_URL}/assets/{gallery}/{urllib.parse.quote(filenames[0])}"
+    files_json = json.dumps(filenames)
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{safe_title} · Sheryl Joyce</title>
+  <meta property="og:title" content="{safe_title}">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="{_safe_html(first_img)}">
+  <meta property="og:description" content="A gallery by Sheryl Joyce">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Jost:wght@300&display=swap" rel="stylesheet">
+  <style>
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    html, body {{ width: 100%; height: 100%; background: #060404; overflow: hidden; }}
+    .shell {{ position: relative; width: 100vw; height: 100vh; }}
+    .slide {{ position: absolute; inset: 0; opacity: 0; transition: opacity 0.7s ease; display: flex; align-items: center; justify-content: center; }}
+    .slide.active {{ opacity: 1; }}
+    .slide img {{ max-width: 100%; max-height: 100%; object-fit: contain; }}
+    .slide.active img {{ animation: kb 9s ease-in-out forwards; }}
+    @keyframes kb {{ from {{ transform: scale(1.0); }} to {{ transform: scale(1.08); }} }}
+    .top {{ position: absolute; top: 0; left: 0; right: 0; z-index: 10; padding: 1.2rem 1.5rem; background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent); pointer-events: none; }}
+    .top h1 {{ font-family: 'Cormorant Garamond', serif; font-size: 1rem; font-weight: 400; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.88); }}
+    .bottom {{ position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; padding: 1rem 1.5rem; background: linear-gradient(to top, rgba(0,0,0,0.6), transparent); display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; }}
+    .counter {{ font-family: 'Jost', sans-serif; font-size: 0.72rem; letter-spacing: 0.1em; color: rgba(255,255,255,0.38); }}
+    .credit {{ font-family: 'Cormorant Garamond', serif; font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.32); }}
+    .ctrl {{ position: absolute; top: 50%; transform: translateY(-50%); z-index: 10; width: 2.8rem; height: 2.8rem; border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; background: rgba(0,0,0,0.2); color: rgba(255,255,255,0.75); font-size: 1.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }}
+    .ctrl:hover {{ background: rgba(255,255,255,0.1); }}
+    #prev {{ left: 1rem; }}
+    #next {{ right: 1rem; }}
+    @media (max-width: 600px) {{ .ctrl {{ width: 2.2rem; height: 2.2rem; font-size: 1.2rem; }} }}
+  </style>
+</head>
+<body>
+  <div class="shell" id="shell">
+    <div class="top"><h1>{safe_title}</h1></div>
+    <button class="ctrl" id="prev" aria-label="Previous">&#8249;</button>
+    <button class="ctrl" id="next" aria-label="Next">&#8250;</button>
+    <div class="bottom">
+      <span class="counter" id="counter"></span>
+      <span class="credit">Sheryl Joyce</span>
+    </div>
+  </div>
+  <script>
+    (function () {{
+      var BASE = {json.dumps(base_path)};
+      var files = {files_json};
+      var shell = document.getElementById('shell');
+      var counter = document.getElementById('counter');
+      var top = document.querySelector('.top');
+      var cur = 0, slides = [];
+      files.forEach(function (fn, i) {{
+        var d = document.createElement('div');
+        d.className = 'slide' + (i === 0 ? ' active' : '');
+        var img = document.createElement('img');
+        img.src = BASE + encodeURIComponent(fn);
+        img.alt = '';
+        d.appendChild(img);
+        shell.insertBefore(d, top);
+        slides.push(d);
+      }});
+      function show(n) {{
+        slides[cur].classList.remove('active');
+        cur = (n + slides.length) % slides.length;
+        slides[cur].classList.add('active');
+        counter.textContent = (cur + 1) + ' / ' + slides.length;
+      }}
+      document.getElementById('prev').onclick = function () {{ show(cur - 1); }};
+      document.getElementById('next').onclick = function () {{ show(cur + 1); }};
+      window.addEventListener('keydown', function (e) {{
+        if (e.key === 'ArrowLeft') show(cur - 1);
+        if (e.key === 'ArrowRight') show(cur + 1);
+      }});
+      show(0);
+    }})();
+  </script>
+</body>
+</html>"""
+    return html.encode("utf-8")
+
+
+async def cmd_share(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        await update.message.reply_text("Not authorized.")
+        return ConversationHandler.END
+    galleries = await _existing_galleries()
+    if not galleries:
+        await update.message.reply_text("No galleries found.")
+        return ConversationHandler.END
+    context.user_data["share_galleries"] = galleries
+    keyboard = [[InlineKeyboardButton(g, callback_data=f"sh:{i}")] for i, g in enumerate(galleries)]
+    await update.message.reply_text("Share page for which gallery?", reply_markup=InlineKeyboardMarkup(keyboard))
+    return SHARE_GALLERY
+
+
+async def share_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    idx = int(query.data[3:])
+    gallery = context.user_data["share_galleries"][idx]
+
+    await query.edit_message_text(f"Building share page for {gallery}…")
+
+    current_html, _ = await _gh_get_file(_html_rel_path(gallery))
+    if not current_html:
+        await query.edit_message_text(f"Could not load {gallery} HTML.")
+        return ConversationHandler.END
+
+    text = current_html.decode("utf-8")
+    filenames = _get_js_array_entries(text, "filenames")
+    if not filenames:
+        await query.edit_message_text(f"{gallery} has no photos yet.")
+        return ConversationHandler.END
+
+    title_m = re.search(r"<title>([^<]+)", text)
+    title = title_m.group(1).split("·")[0].strip() if title_m else gallery.replace("-", " ").title()
+
+    share_html = _build_share_html(gallery, title, filenames)
+    share_rel = f"s/{gallery.lower()}.html"
+    _, existing_sha = await _gh_get_file(share_rel)
+    ok, err = await _gh_put_file(share_rel, share_html, f"Share page: {gallery}", sha=existing_sha)
+    if not ok:
+        await query.edit_message_text(f"Failed to create share page: {err}")
+        return ConversationHandler.END
+
+    share_url = f"{GITHUB_PAGES_URL}/{share_rel}"
+    await query.edit_message_text(
+        f"✓ Share page ready!\n\n"
+        f"{share_url}\n\n"
+        f"Just the photos — no navigation, no back links. Safe to pass around."
+    )
+    return ConversationHandler.END
+
+
 async def cmd_cancel(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Cancelled.")
     return ConversationHandler.END
@@ -2099,6 +2241,7 @@ def main() -> None:
             CommandHandler("feature", cmd_feature),
             CommandHandler("fcaption", cmd_fcaption),
             CommandHandler("reorder", cmd_reorder),
+            CommandHandler("share", cmd_share),
         ],
         states={
             CHOOSING_GALLERY:        [
@@ -2139,6 +2282,7 @@ def main() -> None:
             FCAP_CHOOSE: [CallbackQueryHandler(fcap_page_chosen, pattern=r"^fc:")],
             REORDER_GALLERY: [CallbackQueryHandler(reorder_gallery_chosen, pattern=r"^ro:")],
             REORDER_ORDER:   [MessageHandler(filters.TEXT & ~filters.COMMAND, reorder_order_received)],
+            SHARE_GALLERY:   [CallbackQueryHandler(share_gallery_chosen, pattern=r"^sh:")],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel)],
         name="main_conv",
@@ -2177,6 +2321,7 @@ def main() -> None:
                 BotCommand("fcaption",  "Update caption on a featured page"),
                 BotCommand("sync",      "Post all existing photos to the channel"),
                 BotCommand("done",      "Finish a batch upload"),
+                BotCommand("share",     "Generate a standalone shareable gallery link"),
                 BotCommand("cancel",    "Cancel current operation"),
             ])
             await app.updater.start_polling(drop_pending_updates=True)
