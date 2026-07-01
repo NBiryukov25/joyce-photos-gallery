@@ -2079,13 +2079,17 @@ async def reorder_order_received(update: Update, context: ContextTypes.DEFAULT_T
 def _build_share_html(gallery: str, title: str, filenames: list[str], share_url: str = "") -> bytes:
     safe_title = _safe_html(title)
     base_path = f"../assets/{gallery}/"
+    # Prefer a JPEG for the OG image — better scraper support than PNG
+    owner = _repo_owner.lower()
+    preview_file = next(
+        (f for f in filenames if f.lower().endswith((".jpg", ".jpeg"))),
+        filenames[0] if filenames else None,
+    )
     first_img = ""
-    if filenames:
-        # Use raw.githubusercontent.com — guaranteed accessible to crawlers, no CDN caching delay
-        fn0 = filenames[0]
+    if preview_file:
         first_img = (
-            f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
-            f"/assets/{urllib.parse.quote(gallery)}/{urllib.parse.quote(fn0)}"
+            f"https://{owner}.github.io/{_repo_name}"
+            f"/assets/{urllib.parse.quote(gallery, safe='')}/{urllib.parse.quote(preview_file, safe='')}"
         )
     files_json = json.dumps(filenames)
     safe_url = _safe_html(share_url)
@@ -2225,7 +2229,9 @@ async def share_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYP
     await query.edit_message_text(
         f"✓ Share page ready!\n\n"
         f"{share_url}\n\n"
-        f"Just the photos — no navigation, no back links. Safe to pass around."
+        f"⏱ Wait ~5 minutes for GitHub to deploy, then paste the link.\n"
+        f"If WhatsApp shows no preview, paste it in a brand-new chat — "
+        f"WhatsApp caches 'no preview' per conversation and won't re-check."
     )
     return ConversationHandler.END
 
