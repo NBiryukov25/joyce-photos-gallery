@@ -4,211 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Bedroom Suite · Sheryl Joyce</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
-  <style>
-    * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; background: #060404; color: #f7f1ee; font-family: 'Cormorant Garamond', serif; overflow: hidden; }
-    body { display: flex; align-items: stretch; justify-content: center; }
-    .slideshow-shell { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #060404; }
-
-    .topbar { position: absolute; z-index: 20; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; background: rgba(10, 8, 6, 0.45); }
-    .topbar h1 { margin: 0; font-size: 1.2rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 400; }
-    .topbar a { color: #f7f1ee; text-decoration: none; font-size: 0.9rem; letter-spacing: 0.12em; }
-    .topbar-actions { display: flex; align-items: center; gap: 0.65rem; }
-    .topbar-button { appearance: none; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.08); color: #f7f1ee; padding: 0.55rem 0.9rem; border-radius: 999px; font-size: 0.82rem; letter-spacing: 0.12em; cursor: pointer; transition: background 0.2s ease, border-color 0.2s ease; }
-    .topbar-button:hover { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.55); }
-    .slide-frame { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #080606; }
-    .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.6s ease; display: flex; align-items: center; justify-content: center; }
-    .slide.active { opacity: 1; }
-    .slide img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; transform-origin: center center; will-change: transform; }
-    .slide.active img { animation: suiteZoom 7s ease-in-out forwards; }
-    @keyframes suiteZoom { from { transform: scale(1.0); } to { transform: scale(1.08); } }
-    .controls, .footer { position: absolute; z-index: 20; width: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-    .controls { top: 50%; transform: translateY(-50%); gap: 1rem; }
-    .control { pointer-events: all; width: 3.2rem; height: 3.2rem; border: 1px solid rgba(255,255,255,0.55); border-radius: 50%; background: rgba(10, 8, 6, 0.45); color: #f7f1ee; font-size: 1.75rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s ease; }
-    .control:hover { background: rgba(255,255,255,0.12); }
-    .footer { bottom: 1.2rem; justify-content: space-between; padding: 0 1.5rem; font-size: 0.9rem; letter-spacing: 0.12em; color: rgba(247,241,238,0.8); }
-    .slide-number { font-family: 'Jost', sans-serif; }
-    .caption { position: absolute; left: 1.5rem; bottom: 4.5rem; max-width: 55vw; background: rgba(5, 4, 3, 0.55); padding: 0.95rem 1.1rem; border-radius: 4px; backdrop-filter: blur(6px); font-size: 0.96rem; line-height: 1.6; }
-    @media (max-width: 768px) {
-      .topbar { padding: 0.8rem 1rem; flex-direction: column; gap: 0.65rem; align-items: flex-start; }
-      .topbar-actions { flex-wrap: wrap; }
-      .control { width: 2.8rem; height: 2.8rem; font-size: 1.4rem; }
-      .caption { bottom: 4rem; max-width: 80vw; font-size: 0.88rem; }
-    }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../gallery.css">
+  <link rel="stylesheet" href="../lightbox.css">
 </head>
 <body>
-  <div class="slideshow-shell">
-    <div class="topbar">
-      <h1>The Bedroom Suite</h1>
-      <div class="topbar-actions">
-        <button class="topbar-button" id="autoplay-btn" type="button">Auto 7s OFF</button>
-        <button class="topbar-button" id="fullscreen-btn" type="button">Fullscreen</button>
-        <a href="../senza-veli.html">← Back to Senza Veli</a>
-      </div>
+  <header class="site-header">
+    <div class="site-nav">
+      <a href="../index.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="../index.html" class="nav-link active">Galleries</a>
+        <a href="../stories.html" class="nav-link">Stories</a>
+      </nav>
     </div>
-    <div class="slide-frame" id="slide-frame"></div>
-    <div class="controls">
-      <button class="control" id="prev-btn" aria-label="Previous slide">‹</button>
-      <button class="control" id="next-btn" aria-label="Next slide">›</button>
-    </div>
-    <div class="caption" id="caption"></div>
-    <div class="footer">
-      <span class="slide-number" id="slide-number">1 / 1</span>
-      <span class="slide-meta">Digital · Full Screen Slideshow</span>
-    </div>
-  </div>
-
-  <script>
-    (function () {
-      var IMAGE_BASE_PATH = '../assets/';
-
-      var filenames = [
-        'closer2u_001.jpeg',
-        'closer2u_002.jpeg',
-        'closer2u_003.jpeg',
-        'closer2u_004.jpeg',
-        'closer2u_005.jpeg',
-        'closer2u_006.jpeg',
-        'closer2u_007.jpeg',
-        'closer2u_008.jpeg',
-        'closer2u_009.jpeg',
-        'closer2u_010.jpeg',
-        'closer2u_011.jpeg',
-        'closer2u_012.png',
-        'closer2u_013.png',
-        'closer2u_014.png',
-        'closer2u_015.png',
-        'closer2u_016.png',
-        'closer2u_017.png',
-        'closer2u_018.png',
-        'closer2u_019.png',
-        'closer2u_020.png',
-        'closer2u_021.png',
-        'closer2u_022.png',
-        'closer2u_023.png',
-        'closer2u_024.png',
-        'closer2u_025.png',
-        'closer2u_026.png',
-        'closer2u_027.png',
-        'closer2u_028.png',
-        'closer2u_029.png',
-        'closer2u_030.png',
-        'closer2u_031.png',
-        'closer2u_032.png',
-        'closer2u_033.png',
-        'closer2u_034.png',
-        'closer2u_035.png',
-        'closer2u_036.png',
-        'closer2u_037.png',
-        'closer2u_038.png',
-        'closer2u_039.png',
-        'closer2u_040.png',
-        'closer2u_041.png',
-        'closer2u_042.png',
-      ];
-
-      var captions = filenames.map(function (name, index) {
-        return 'Slide ' + (index + 1) + ' of ' + filenames.length + ' — The Bedroom Suite';
-      });
-
-      var frame = document.getElementById('slide-frame');
-      var captionEl = document.getElementById('caption');
-      var numberEl = document.getElementById('slide-number');
-      var current = 0;
-      var autoplayTimer = null;
-      var slides = [];
-
-      filenames.forEach(function (filename, index) {
-        var slide = document.createElement('div');
-        slide.className = 'slide' + (index === 0 ? ' active' : '');
-
-        var img = document.createElement('img');
-        img.src = IMAGE_BASE_PATH + encodeURIComponent(filename);
-        img.alt = 'The Bedroom Suite ' + (index + 1);
-
-        slide.appendChild(img);
-        frame.appendChild(slide);
-        slides.push(slide);
-      });
-
-      function updateSlide(index) {
-        if (!slides.length) { return; }
-        slides[current].classList.remove('active');
-        current = (index + slides.length) % slides.length;
-        slides[current].classList.add('active');
-        captionEl.textContent = captions[current];
-        numberEl.textContent = (current + 1) + ' / ' + slides.length;
-      }
-
-      function advanceSlide(index) {
-        updateSlide(index);
-        if (autoplayTimer) {
-          stopAutoplay();
-          startAutoplay();
-        }
-      }
-
-      document.getElementById('prev-btn').addEventListener('click', function () { advanceSlide(current - 1); });
-      document.getElementById('next-btn').addEventListener('click', function () { advanceSlide(current + 1); });
-
-      function toggleAutoplay() {
-        if (autoplayTimer) {
-          stopAutoplay();
-        } else {
-          startAutoplay();
-        }
-      }
-
-      function startAutoplay() {
-        if (autoplayTimer) { return; }
-        autoplayBtn.textContent = 'Auto 7s ON';
-        autoplayTimer = setInterval(function () { advanceSlide(current + 1); }, 7000);
-      }
-
-      function stopAutoplay() {
-        if (!autoplayTimer) { return; }
-        clearInterval(autoplayTimer);
-        autoplayTimer = null;
-        autoplayBtn.textContent = 'Auto 7s OFF';
-      }
-
-      function enterFullscreen() {
-        var shell = document.querySelector('.slideshow-shell');
-        if (document.fullscreenElement) {
-          document.exitFullscreen();
-          return;
-        }
-        if (shell.requestFullscreen) {
-          shell.requestFullscreen();
-        } else if (shell.webkitRequestFullscreen) {
-          shell.webkitRequestFullscreen();
-        }
-      }
-
-      function updateFullscreenButton() {
-        fullscreenBtn.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
-      }
-
-      var autoplayBtn = document.getElementById('autoplay-btn');
-      var fullscreenBtn = document.getElementById('fullscreen-btn');
-      autoplayBtn.addEventListener('click', toggleAutoplay);
-      fullscreenBtn.addEventListener('click', enterFullscreen);
-      document.addEventListener('fullscreenchange', updateFullscreenButton);
-      document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
-
-      window.addEventListener('keydown', function (event) {
-        if (event.key === 'ArrowLeft') { advanceSlide(current - 1); }
-        if (event.key === 'ArrowRight') { advanceSlide(current + 1); }
-        if (event.key === 'f' || event.key === 'F') { enterFullscreen(); }
-        if (event.key === 'Escape' && document.fullscreenElement) { document.exitFullscreen(); }
-      });
-
-      updateSlide(0);
-    })();
-  </script>
+  </header>
+  <a class="back-link" href="../index.html">← Back to Galleries</a>
+  <div class="portfolio-title">The Bedroom Suite</div>
+  <div class="portfolio-subtitle">Series II — Landscapes</div>
+  <p class="portfolio-caption">Caught in the heat of the moment. The scent of her hair is intoxicating, and the warmth of her skin is the only thing that matters right now.</p>
+  <hr class="portfolio-divider">
+  <p class="empty-notice">Photos coming soon — check back after the next update.</p>
+  <script src="../lightbox.js"></script>
 </body>
 </html>
