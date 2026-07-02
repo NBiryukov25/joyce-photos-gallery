@@ -68,11 +68,13 @@
       var IMAGE_BASE_PATH = '../assets/Stashed-companion/';
 
       var filenames = [
+        'photo-20260629-221530.jpg',
         'photo-20260630-025116.jpg',
         'Stashed_companion.PNG',
         'Stashed_companion.JPG',
         'Stashed_companion 2.PNG',
         'Stashed_companion 2.JPG',
+        'Stashed_companion 2_8.JPG',
         'Stashed_companion 3.PNG',
         'Stashed_companion 4.PNG',
         'Stashed_companion 5.PNG',
@@ -184,7 +186,7 @@
         if (event.key === 'ArrowLeft') { advanceSlide(current - 1); }
         if (event.key === 'ArrowRight') { advanceSlide(current + 1); }
         if (event.key === 'f' || event.key === 'F') { enterFullscreen(); }
-        if (event.key === 'Escape') { finishIntro(); }
+        if (event.key === 'Escape' && document.fullscreenElement) { document.exitFullscreen(); }
       });
 
       updateSlide(0);
