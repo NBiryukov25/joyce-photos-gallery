@@ -9,7 +9,284 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="gallery.css">
-  <link rel="stylesheet" href="lightbox.css">
+  <style>
+    /* ============================================
+       JOYCE & FRIENDS — Split-screen dark modal gallery
+       Warm-charcoal lightbox · content-first palette
+       ============================================ */
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(12, 8, 7, 0.68);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 3vh 3vw;
+      opacity: 0;
+      transition: opacity 0.28s ease;
+    }
+    .modal-overlay.active { display: flex; opacity: 1; }
+
+    .gallery-modal {
+      display: flex;
+      width: 92vw;
+      max-width: 1200px;
+      height: 85vh;
+      background: #1b1715;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+      transform: translateY(14px) scale(0.985);
+      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .modal-overlay.active .gallery-modal { transform: none; }
+
+    .close-btn {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      z-index: 6;
+      width: 38px;
+      height: 38px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(20, 15, 13, 0.55);
+      color: rgba(255, 255, 255, 0.7);
+      font-family: 'Jost', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 200;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .close-btn:hover { background: rgba(20, 15, 13, 0.85); color: #fff; }
+
+    /* Left column — large feature display */
+    .gallery-main-view {
+      flex: 1.25;
+      position: relative;
+      background: #100c0b;
+      overflow: hidden;
+    }
+    .gallery-stage {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .gallery-stage img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+    .gallery-stage img.loaded { opacity: 1; }
+    .gallery-stage video {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      background: #000;
+    }
+
+    .nav-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 4;
+      width: 46px;
+      height: 46px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.88);
+      color: #1b1715;
+      font-size: 1.1rem;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .nav-arrow:hover { background: #fff; }
+    .nav-arrow:active { transform: translateY(-50%) scale(0.94); }
+    .prev-arrow { left: 20px; }
+    .next-arrow { right: 20px; }
+
+    /* Right column — details + vertical thumbnail sidebar */
+    .gallery-details-panel {
+      flex: 1;
+      padding: 44px 116px 40px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.035);
+      position: relative;
+      color: #f2ebe6;
+      min-width: 0;
+    }
+
+    .purchase-info { max-width: 100%; }
+    .purchase-overline {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.62rem;
+      font-weight: 300;
+      letter-spacing: 0.34em;
+      text-transform: uppercase;
+      color: #c79f92;
+      margin-bottom: 1.1em;
+    }
+    .purchase-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 2.5rem;
+      font-weight: 300;
+      line-height: 1.05;
+      letter-spacing: 0.01em;
+      margin-bottom: 0.5em;
+    }
+    .purchase-meta {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.66rem;
+      font-weight: 300;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(242, 235, 230, 0.5);
+      margin-bottom: 1.4em;
+    }
+    .purchase-text {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 1.12rem;
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1.7;
+      color: rgba(242, 235, 230, 0.78);
+      max-width: 42ch;
+    }
+
+    .purchase-cta-wrap {
+      display: flex;
+      align-items: center;
+      gap: 1.4em;
+      margin-top: 2em;
+    }
+    .purchase-count {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.62rem;
+      font-weight: 300;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(242, 235, 230, 0.4);
+      white-space: nowrap;
+    }
+    .purchase-cta {
+      display: inline-block;
+      font-family: 'Jost', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 400;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #1b1715;
+      background: #e4d3cc;
+      text-decoration: none;
+      padding: 0.95em 1.8em;
+      border-radius: 999px;
+      transition: background 0.2s, transform 0.2s;
+      white-space: nowrap;
+    }
+    .purchase-cta:hover { background: #fff; transform: translateY(-1px); }
+
+    /* Vertical thumbnail sidebar */
+    .thumbnail-sidebar {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      bottom: 20px;
+      width: 78px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      padding-right: 2px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.25) transparent;
+    }
+    .thumbnail-sidebar::-webkit-scrollbar { width: 3px; }
+    .thumbnail-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 2px; }
+
+    .thumb {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      padding: 0;
+      border: none;
+      border-radius: 6px;
+      overflow: hidden;
+      cursor: pointer;
+      background: #100c0b;
+      opacity: 0.55;
+      transition: opacity 0.2s, box-shadow 0.2s;
+      flex-shrink: 0;
+    }
+    .thumb:hover { opacity: 0.85; }
+    .thumb.active { opacity: 1; box-shadow: 0 0 0 2px #e4d3cc; }
+    .thumb img, .thumb video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .thumb-play {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      color: #fff;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+      background: rgba(0,0,0,0.2);
+      pointer-events: none;
+    }
+
+    .gallery-item a { cursor: pointer; }
+
+    @media (max-width: 820px) {
+      .modal-overlay { padding: 0; }
+      .gallery-modal {
+        flex-direction: column;
+        width: 100vw;
+        height: 100vh;
+        max-width: none;
+        border-radius: 0;
+      }
+      .gallery-main-view { flex: none; height: 52vh; }
+      .gallery-details-panel {
+        flex: 1;
+        padding: 26px 20px 20px;
+        overflow-y: auto;
+      }
+      .purchase-title { font-size: 2rem; }
+      .thumbnail-sidebar {
+        position: static;
+        flex-direction: row;
+        width: auto;
+        height: 66px;
+        margin-top: 1.6em;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+      .thumb { width: 66px; height: 66px; aspect-ratio: auto; }
+      .nav-arrow { width: 40px; height: 40px; }
+    }
+  </style>
 </head>
 <body>
 
@@ -35,15 +312,15 @@
 
   <hr class="gallery-divider">
 
-  <div class="gallery-row" id="friend-galleries"><div class="gallery-item"><a href="galleries/susan-and-joyce.html"><img loading="lazy" decoding="async" src="assets/Susan-and-Joyce/photo-20260612-172207.jpg" alt="Susan &amp; Joyce"></a><div class="gallery-caption"><p class="gallery-caption-title">Susan &amp; Joyce</p><a class="gallery-view-link" href="galleries/susan-and-joyce.html">View gallery →</a></div></div>
-<div class="gallery-item"><a href="galleries/friends-spreading-her-wings.html"><img loading="lazy" decoding="async" src="assets/Joyce-and-Friends/photo-20260612-023428.jpg" alt="Spreading Her Wings"></a><div class="gallery-caption"><p class="gallery-caption-title">Spreading Her Wings</p><a class="gallery-view-link" href="galleries/friends-spreading-her-wings.html">View gallery →</a></div></div>
-<div class="gallery-item"><a href="galleries/nichole-white-abandoned-car.html"><img loading="lazy" decoding="async" src="assets/Nichole-White-abandoned-car/photo-20260613-150400.jpg" alt="Nichole White Abandoned Car"></a><div class="gallery-caption"><p class="gallery-caption-title">Nichole White Abandoned Car</p><a class="gallery-view-link" href="galleries/nichole-white-abandoned-car.html">View gallery →</a></div></div>
-<div class="gallery-item"><a href="galleries/rest-stop-meeting.html"><img loading="lazy" decoding="async" src="assets/Rest-Stop-Meeting/photo-20260614-142031.jpg" alt="Rest Stop Meeting"></a><div class="gallery-caption"><p class="gallery-caption-title">Rest Stop Meeting</p><a class="gallery-view-link" href="galleries/rest-stop-meeting.html">View gallery →</a></div></div>
-<div class="gallery-item"><a href="galleries/nichole-pink-anticipation.html"><img loading="lazy" decoding="async" src="assets/Nichole-pink-anticipation/photo-20260614-172410.jpg" alt="Nichole Pink Anticipation"></a><div class="gallery-caption"><p class="gallery-caption-title">Nichole Pink Anticipation</p><a class="gallery-view-link" href="galleries/nichole-pink-anticipation.html">View gallery →</a></div></div>
-<div class="gallery-item"><a href="galleries/susan-pink-invites.html"><img loading="lazy" decoding="async" src="assets/Susan-pink-invites/photo-20260615-221118.jpg" alt="Susan Pink Invites"></a><div class="gallery-caption"><p class="gallery-caption-title">Susan Pink Invites</p><a class="gallery-view-link" href="galleries/susan-pink-invites.html">View gallery →</a></div></div>
-<div class="gallery-item"><a href="galleries/joyce-isabela-compromise.html"><img loading="lazy" decoding="async" src="assets/Joyce-Isabela-compromise/photo-20260616-065404.jpg" alt="Joyce Isabela Compromise"></a><div class="gallery-caption"><p class="gallery-caption-title">Joyce Isabela Compromise</p><a class="gallery-view-link" href="galleries/joyce-isabela-compromise.html">View gallery →</a></div></div>
-<div class="gallery-item"><a href="galleries/joyce-nichole-in-love.html"><img loading="lazy" decoding="async" src="assets/Joyce-nichole-in-love/photo-20260624-223300.jpg" alt="Joyce Nichole In Love"></a><div class="gallery-caption"><p class="gallery-caption-title">Joyce Nichole In Love</p><a class="gallery-view-link" href="galleries/joyce-nichole-in-love.html">View gallery →</a></div></div>
-<div class="gallery-item"><a href="galleries/friends-tastes-of-longing.html"><img src="assets/Friends-Tastes-of-Longing/video-20260630-041821.mp4" alt="Tastes Of Longing"></a><div class="gallery-caption"><p class="gallery-caption-title">Tastes Of Longing</p><a class="gallery-view-link" href="galleries/friends-tastes-of-longing.html">View gallery →</a></div></div>
+  <div class="gallery-row" id="friend-galleries"><div class="gallery-item"><a href="galleries/susan-and-joyce.html" data-collection="susan-and-joyce"><img loading="lazy" decoding="async" src="assets/Susan-and-Joyce/photo-20260612-172207.jpg" alt="Susan &amp; Joyce"></a><div class="gallery-caption"><p class="gallery-caption-title">Susan &amp; Joyce</p><a class="gallery-view-link" href="galleries/susan-and-joyce.html">View gallery →</a></div></div>
+<div class="gallery-item"><a href="galleries/friends-spreading-her-wings.html" data-collection="friends-spreading-her-wings"><img loading="lazy" decoding="async" src="assets/Joyce-and-Friends/photo-20260612-023428.jpg" alt="Spreading Her Wings"></a><div class="gallery-caption"><p class="gallery-caption-title">Spreading Her Wings</p><a class="gallery-view-link" href="galleries/friends-spreading-her-wings.html">View gallery →</a></div></div>
+<div class="gallery-item"><a href="galleries/nichole-white-abandoned-car.html" data-collection="nichole-white-abandoned-car"><img loading="lazy" decoding="async" src="assets/Nichole-White-abandoned-car/photo-20260613-150400.jpg" alt="Nichole White Abandoned Car"></a><div class="gallery-caption"><p class="gallery-caption-title">Nichole White Abandoned Car</p><a class="gallery-view-link" href="galleries/nichole-white-abandoned-car.html">View gallery →</a></div></div>
+<div class="gallery-item"><a href="galleries/rest-stop-meeting.html" data-collection="rest-stop-meeting"><img loading="lazy" decoding="async" src="assets/Rest-Stop-Meeting/photo-20260614-142031.jpg" alt="Rest Stop Meeting"></a><div class="gallery-caption"><p class="gallery-caption-title">Rest Stop Meeting</p><a class="gallery-view-link" href="galleries/rest-stop-meeting.html">View gallery →</a></div></div>
+<div class="gallery-item"><a href="galleries/nichole-pink-anticipation.html" data-collection="nichole-pink-anticipation"><img loading="lazy" decoding="async" src="assets/Nichole-pink-anticipation/photo-20260614-172410.jpg" alt="Nichole Pink Anticipation"></a><div class="gallery-caption"><p class="gallery-caption-title">Nichole Pink Anticipation</p><a class="gallery-view-link" href="galleries/nichole-pink-anticipation.html">View gallery →</a></div></div>
+<div class="gallery-item"><a href="galleries/susan-pink-invites.html" data-collection="susan-pink-invites"><img loading="lazy" decoding="async" src="assets/Susan-pink-invites/photo-20260615-221118.jpg" alt="Susan Pink Invites"></a><div class="gallery-caption"><p class="gallery-caption-title">Susan Pink Invites</p><a class="gallery-view-link" href="galleries/susan-pink-invites.html">View gallery →</a></div></div>
+<div class="gallery-item"><a href="galleries/joyce-isabela-compromise.html" data-collection="joyce-isabela-compromise"><img loading="lazy" decoding="async" src="assets/Joyce-Isabela-compromise/photo-20260616-065404.jpg" alt="Joyce Isabela Compromise"></a><div class="gallery-caption"><p class="gallery-caption-title">Joyce Isabela Compromise</p><a class="gallery-view-link" href="galleries/joyce-isabela-compromise.html">View gallery →</a></div></div>
+<div class="gallery-item"><a href="galleries/joyce-nichole-in-love.html" data-collection="joyce-nichole-in-love"><img loading="lazy" decoding="async" src="assets/Joyce-nichole-in-love/photo-20260624-223300.jpg" alt="Joyce Nichole In Love"></a><div class="gallery-caption"><p class="gallery-caption-title">Joyce Nichole In Love</p><a class="gallery-view-link" href="galleries/joyce-nichole-in-love.html">View gallery →</a></div></div>
+<div class="gallery-item"><a href="galleries/friends-tastes-of-longing.html" data-collection="friends-tastes-of-longing"><img src="assets/Friends-Tastes-of-Longing/video-20260630-041821.mp4" alt="Tastes Of Longing"></a><div class="gallery-caption"><p class="gallery-caption-title">Tastes Of Longing</p><a class="gallery-view-link" href="galleries/friends-tastes-of-longing.html">View gallery →</a></div></div>
 <!-- friend-gallery-insert --></div>
 
   <div style="text-align:center; padding: 2.5rem 0 3rem;">
@@ -59,7 +336,180 @@
     </a>
   </div>
 
-  <script src="lightbox.js"></script>
+  <!-- Split-screen dark modal gallery -->
+  <div class="modal-overlay" id="gallery-overlay" role="dialog" aria-modal="true" aria-label="Collection gallery" hidden>
+    <div class="gallery-modal">
+      <button class="close-btn" id="gallery-close" aria-label="Close gallery">&times;</button>
+
+      <div class="gallery-main-view">
+        <button class="nav-arrow prev-arrow" id="gallery-prev" aria-label="Previous">&#10094;</button>
+        <div class="gallery-stage" id="gallery-stage"></div>
+        <button class="nav-arrow next-arrow" id="gallery-next" aria-label="Next">&#10095;</button>
+      </div>
+
+      <div class="gallery-details-panel">
+        <div class="purchase-info">
+          <p class="purchase-overline">Joyce &amp; Friends</p>
+          <h3 class="purchase-title" id="gallery-title"></h3>
+          <p class="purchase-meta" id="gallery-meta"></p>
+          <p class="purchase-text" id="gallery-text"></p>
+          <div class="purchase-cta-wrap">
+            <span class="purchase-count" id="gallery-count"></span>
+            <a class="purchase-cta" id="gallery-cta" href="#">View full gallery</a>
+          </div>
+        </div>
+        <div class="thumbnail-sidebar" id="gallery-thumbs"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var META = 'Digital, 2026 · Candid moments';
+      var VIDEO_EXT = ['mp4', 'mov', 'webm', 'm4v'];
+
+      function enc(path) { return path.split('/').map(encodeURIComponent).join('/'); }
+      function isVideo(name) { return VIDEO_EXT.indexOf(name.split('.').pop().toLowerCase()) !== -1; }
+
+      var collections = {"susan-and-joyce":{"title":"Susan & Joyce","folder":"assets/Susan-and-Joyce/","link":"galleries/susan-and-joyce.html","files":["photo-20260612-172207.jpg","photo-20260613-040125.jpg"]},"friends-spreading-her-wings":{"title":"Spreading Her Wings","folder":"assets/Joyce-and-Friends/","link":"galleries/friends-spreading-her-wings.html","files":["photo-20260612-023428.jpg","photo-20260612-024353.jpg","photo-20260612-025035.jpg","photo-20260612-025107.jpg","photo-20260612-173834.jpg","photo-20260612-220452.jpg","photo-20260612-220710.jpg","photo-20260612-220920.jpg","photo-20260612-221311.jpg","photo-20260612-221356.jpg","photo-20260612-221655.jpg","photo-20260612-222047.jpg","photo-20260612-222120.jpg","photo-20260612-222146.jpg","photo-20260612-222345.jpg","photo-20260612-222431.jpg","photo-20260612-222643.jpg","photo-20260612-222701.jpg","photo-20260612-222730.jpg","photo-20260612-223930.jpg","photo-20260612-224003.jpg","photo-20260612-224057.jpg"]},"nichole-white-abandoned-car":{"title":"Nichole White Abandoned Car","folder":"assets/Nichole-White-abandoned-car/","link":"galleries/nichole-white-abandoned-car.html","files":["photo-20260613-150400.jpg","photo-20260613-151118.jpg","photo-20260613-151343.jpg","photo-20260613-151419.jpg","photo-20260613-151503.jpg","photo-20260613-151601.jpg","photo-20260614-133112.jpg","photo-20260614-133315.jpg","photo-20260614-133429.jpg","photo-20260614-171908.jpg"]},"rest-stop-meeting":{"title":"Rest Stop Meeting","folder":"assets/Rest-Stop-Meeting/","link":"galleries/rest-stop-meeting.html","files":["photo-20260614-142031.jpg","photo-20260614-142132.jpg","photo-20260614-142231.jpg","photo-20260614-142657.jpg","photo-20260614-142730.jpg","photo-20260614-150520.jpg","photo-20260614-150557.jpg","photo-20260614-150621.jpg","photo-20260614-171111.jpg","photo-20260614-171202.jpg","photo-20260614-171403.jpg","photo-20260615-050841.jpg","photo-20260615-050902.jpg","photo-20260615-050919.jpg","photo-20260615-050935.jpg","photo-20260615-050950.jpg"]},"nichole-pink-anticipation":{"title":"Nichole Pink Anticipation","folder":"assets/Nichole-pink-anticipation/","link":"galleries/nichole-pink-anticipation.html","files":["photo-20260614-172410.jpg","photo-20260614-172445.jpg","photo-20260614-172528.jpg","photo-20260614-172554.jpg","photo-20260614-172618.jpg"]},"susan-pink-invites":{"title":"Susan Pink Invites","folder":"assets/Susan-pink-invites/","link":"galleries/susan-pink-invites.html","files":["photo-20260615-221118.jpg","photo-20260615-222216.jpg","photo-20260615-222256.jpg","photo-20260615-223045.jpg","photo-20260615-224216.jpg","photo-20260616-004257.jpg","photo-20260616-004320.jpg","photo-20260616-004337.jpg","photo-20260616-004356.jpg","photo-20260616-222717.jpg","photo-20260616-222752.jpg"]},"joyce-isabela-compromise":{"title":"Joyce Isabela Compromise","folder":"assets/Joyce-Isabela-compromise/","link":"galleries/joyce-isabela-compromise.html","files":["photo-20260616-065404.jpg","photo-20260616-065445.jpg","photo-20260616-065533.jpg","photo-20260616-065808.jpg","photo-20260616-065928.jpg"]},"joyce-nichole-in-love":{"title":"Joyce Nichole In Love","folder":"assets/Joyce-nichole-in-love/","link":"galleries/joyce-nichole-in-love.html","files":["photo-20260624-223300.jpg","photo-20260624-223325.jpg","photo-20260624-223345.jpg","photo-20260624-223632.jpg","photo-20260624-223657.jpg","photo-20260624-223711.jpg","photo-20260624-223726.jpg","video-20260624-224040.mp4","video-20260624-224108.mp4"]},"friends-tastes-of-longing":{"title":"Tastes Of Longing","folder":"assets/Friends-Tastes-of-Longing/","link":"galleries/friends-tastes-of-longing.html","files":["video-20260630-041821.mp4"]}};
+
+      var overlay  = document.getElementById('gallery-overlay');
+      var stage    = document.getElementById('gallery-stage');
+      var thumbs   = document.getElementById('gallery-thumbs');
+      var titleEl  = document.getElementById('gallery-title');
+      var metaEl   = document.getElementById('gallery-meta');
+      var textEl   = document.getElementById('gallery-text');
+      var countEl  = document.getElementById('gallery-count');
+      var ctaEl    = document.getElementById('gallery-cta');
+      var btnClose = document.getElementById('gallery-close');
+      var btnPrev  = document.getElementById('gallery-prev');
+      var btnNext  = document.getElementById('gallery-next');
+
+      var active = null;
+      var index = 0;
+      var lastFocused = null;
+
+      function srcFor(i) { return enc(active.folder + active.files[i]); }
+
+      function renderFeature() {
+        stage.innerHTML = '';
+        var file = active.files[index];
+        var el;
+        if (isVideo(file)) {
+          el = document.createElement('video');
+          el.src = srcFor(index);
+          el.controls = true;
+          el.playsInline = true;
+          el.setAttribute('playsinline', '');
+        } else {
+          el = document.createElement('img');
+          el.alt = active.title + ' ' + (index + 1);
+          el.addEventListener('load', function () { el.classList.add('loaded'); });
+          el.src = srcFor(index);
+        }
+        stage.appendChild(el);
+
+        countEl.textContent = (index + 1) + ' / ' + active.files.length;
+        var single = active.files.length < 2;
+        btnPrev.style.display = single ? 'none' : '';
+        btnNext.style.display = single ? 'none' : '';
+
+        Array.prototype.forEach.call(thumbs.children, function (t, i) {
+          t.classList.toggle('active', i === index);
+        });
+        var activeThumb = thumbs.children[index];
+        if (activeThumb && activeThumb.scrollIntoView) {
+          activeThumb.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
+      }
+
+      function buildThumbs() {
+        thumbs.innerHTML = '';
+        active.files.forEach(function (file, i) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'thumb';
+          var media;
+          if (isVideo(file)) {
+            media = document.createElement('video');
+            media.src = enc(active.folder + file);
+            media.muted = true;
+            media.preload = 'metadata';
+            var play = document.createElement('span');
+            play.className = 'thumb-play';
+            play.textContent = '▶';
+            btn.appendChild(media);
+            btn.appendChild(play);
+          } else {
+            media = document.createElement('img');
+            media.src = enc(active.folder + file);
+            media.loading = 'lazy';
+            media.alt = active.title + ' thumbnail ' + (i + 1);
+            btn.appendChild(media);
+          }
+          btn.addEventListener('click', function () { index = i; renderFeature(); });
+          thumbs.appendChild(btn);
+        });
+      }
+
+      function open(key, trigger) {
+        active = collections[key];
+        if (!active) return;
+        index = 0;
+        lastFocused = trigger || null;
+
+        titleEl.textContent = active.title;
+        metaEl.textContent = META;
+        textEl.style.display = 'none';
+        ctaEl.href = active.link;
+
+        buildThumbs();
+        renderFeature();
+
+        overlay.hidden = false;
+        requestAnimationFrame(function () { overlay.classList.add('active'); });
+        document.body.style.overflow = 'hidden';
+        btnClose.focus();
+      }
+
+      function close() {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+        window.setTimeout(function () {
+          overlay.hidden = true;
+          stage.innerHTML = '';   // stops any playing video
+        }, 280);
+        if (lastFocused && lastFocused.focus) lastFocused.focus();
+      }
+
+      function step(delta) {
+        if (!active) return;
+        var n = active.files.length;
+        index = (index + delta + n) % n;
+        renderFeature();
+      }
+
+      Array.prototype.forEach.call(document.querySelectorAll('[data-collection]'), function (a) {
+        a.addEventListener('click', function (e) {
+          e.preventDefault();
+          open(a.getAttribute('data-collection'), a);
+        });
+      });
+
+      btnClose.addEventListener('click', close);
+      btnPrev.addEventListener('click', function () { step(-1); });
+      btnNext.addEventListener('click', function () { step(1); });
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+      document.addEventListener('keydown', function (e) {
+        if (overlay.hidden) return;
+        if (e.key === 'Escape') close();
+        else if (e.key === 'ArrowLeft') step(-1);
+        else if (e.key === 'ArrowRight') step(1);
+      });
+    })();
+  </script>
 
 </body>
 </html>
