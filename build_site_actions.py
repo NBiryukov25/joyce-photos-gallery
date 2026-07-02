@@ -259,7 +259,7 @@ def main():
         if not gallery_photos and os.path.exists(out_path):
             with open(out_path, encoding="utf-8") as fh:
                 existing = fh.read()
-            if "photo-grid" in existing or "photo-item" in existing:
+            if "photo-grid" in existing or "photo-item" in existing or "slide-frame" in existing:
                 print(f"Skipping {out_path} — manual photo content preserved.")
                 continue
         page_html = build_portfolio_page(g, gallery_photos)
