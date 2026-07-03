@@ -508,6 +508,14 @@ h1, h2, .hero-name, .page-hero-title {
   transition: color 0.2s;
 }
 .back-link:hover { color: var(--rose); }
+.back-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.4em;
+  margin-bottom: 2.8em;
+}
+.back-nav .back-link { margin-bottom: 0; }
 .portfolio-title {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: 2.6em;

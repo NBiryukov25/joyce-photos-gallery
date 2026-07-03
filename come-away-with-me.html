@@ -56,6 +56,15 @@
       background: radial-gradient(ellipse 70% 70% at 50% 45%, rgba(245,236,232,0.55), transparent 75%);
       pointer-events: none;
     }
+    .map-svg {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      display: block; pointer-events: none;
+    }
+    .map-land {
+      fill: rgba(200, 170, 158, 0.5);
+      stroke: rgba(168, 112, 96, 0.55);
+      stroke-width: 0.4; stroke-linejoin: round;
+    }
     .map-equator {
       position: absolute; left: 0; right: 0; top: 50%; height: 1px;
       background: repeating-linear-gradient(90deg, var(--blush) 0 8px, transparent 8px 16px);
@@ -276,6 +285,30 @@
 
   <div class="map-wrap">
     <div class="map-panel" id="mapPanel">
+      <svg class="map-svg" viewBox="0 0 360 180" preserveAspectRatio="none" aria-hidden="true">
+        <g class="map-land">
+          <!-- North America -->
+          <polygon points="14,26 45,19 90,17 122,21 129,40 118,45 104,52 100,62 92,68 84,70 80,64 72,58 60,52 55,44 48,34 34,29"/>
+          <!-- Central America -->
+          <polygon points="92,68 100,66 108,74 100,80 96,78 88,72"/>
+          <!-- South America -->
+          <polygon points="101,80 118,78 130,84 142,96 140,110 128,124 118,132 110,143 106,141 108,128 110,112 104,98 99,90"/>
+          <!-- Greenland -->
+          <polygon points="134,10 150,9 156,16 148,24 138,22 132,16"/>
+          <!-- Africa -->
+          <polygon points="166,74 176,55 192,54 212,58 224,78 218,96 206,118 198,124 192,110 184,96 176,86 170,80"/>
+          <!-- Europe -->
+          <polygon points="170,52 178,42 190,37 202,31 214,31 221,36 212,45 200,46 194,52 186,51 178,53"/>
+          <!-- British Isles -->
+          <polygon points="168,40 172,38 173,43 169,45"/>
+          <!-- Asia -->
+          <polygon points="222,36 238,21 275,15 322,16 352,22 360,27 360,42 338,45 320,47 302,50 296,58 292,66 287,74 282,82 277,84 273,76 270,68 264,66 260,78 252,80 248,66 242,60 234,62 228,58 224,50 229,45 225,40"/>
+          <!-- Japan -->
+          <polygon points="315,47 325,48 329,54 325,61 319,59 314,53"/>
+          <!-- Australia -->
+          <polygon points="294,112 312,102 324,101 331,110 330,122 320,128 304,126 297,120"/>
+        </g>
+      </svg>
       <span class="map-label">Come Away · Vol. 1</span>
       <div class="map-equator"></div>
       <!-- pins injected by script -->
@@ -310,7 +343,7 @@
     "blurb": "Wooden boats, canal light, and fresh coconut water at dawn — the quiet comfort of finally being together.",
     "pin": {
       "left": 77.8,
-      "top": 62.5
+      "top": 42.5
     },
     "photos": [
       {
@@ -546,7 +579,7 @@
     "blurb": "Sun-drenched terraces and azure water — the unhurried grace of a woman the island seems arranged around.",
     "pin": {
       "left": 53.9,
-      "top": 40.5
+      "top": 27.5
     },
     "photos": [
       {
@@ -679,7 +712,7 @@
     "blurb": "Silk, skyline, and Tokyo Tower burning in the dark — luminous in every frame, forty floors above the city.",
     "pin": {
       "left": 88.8,
-      "top": 33
+      "top": 30.2
     },
     "photos": [
       {
