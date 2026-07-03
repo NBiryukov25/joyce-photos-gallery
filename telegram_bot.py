@@ -67,7 +67,7 @@ GITHUB_BRANCH   = os.environ.get("GITHUB_BRANCH", "main")
 TELEGRAM_CHANNEL = os.environ.get("TELEGRAM_CHANNEL", "@filipina_allure")
 ALLOWED_USER_ID   = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-OPENAI_API_KEY      = os.environ.get("OPENAI_API_KEY", "")
+GROQ_API_KEY        = os.environ.get("GROQ_API_KEY", "")
 TRANSCRIBE_API_TOKEN = os.environ.get("TRANSCRIBE_API_TOKEN", "")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "tools"))
@@ -626,7 +626,7 @@ async def _generate_portrait(req: _PortraitRequest):
 
 # ---------------------------------------------------------------------------
 # Transcription API  (long .mp3/.mov -> verbatim .txt, chunked through
-# OpenAI's Whisper API so hour-plus recordings stay under its 25 MB cap)
+# Groq's Whisper API so hour-plus recordings stay under its 25 MB cap)
 # ---------------------------------------------------------------------------
 
 _TRANSCRIBE_JOBS: dict[str, dict] = {}
@@ -644,9 +644,9 @@ def _check_transcribe_auth(authorization: str) -> None:
 async def _whisper_transcribe_chunk(client: httpx.AsyncClient, chunk_path: Path) -> str:
     audio_bytes = await asyncio.to_thread(chunk_path.read_bytes)
     resp = await client.post(
-        "https://api.openai.com/v1/audio/transcriptions",
-        headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
-        data={"model": "whisper-1", "response_format": "text"},
+        "https://api.groq.com/openai/v1/audio/transcriptions",
+        headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+        data={"model": "whisper-large-v3", "response_format": "text"},
         files={"file": (chunk_path.name, audio_bytes, "audio/mpeg")},
     )
     resp.raise_for_status()
