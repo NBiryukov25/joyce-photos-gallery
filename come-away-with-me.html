@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Come Away with Me by Sheryl — a travel experience. Choose a destination on the map and take a turn: left, straight, or right.">
+  <title>Come Away with Me · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="gallery.css">
+  <style>
+    /* ---- COME AWAY — travel experience ---- */
+    .come-hero { text-align: center; padding: 3.4em 1.5em 1.4em; }
+    .come-overline {
+      font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.72em;
+      letter-spacing: 0.42em; text-transform: uppercase; color: var(--rose);
+      margin-bottom: 1em;
+    }
+    .come-title {
+      font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 300;
+      font-size: clamp(2.4em, 6vw, 4em); line-height: 1.05; color: var(--text);
+    }
+    .come-title em { font-style: italic; color: var(--rose); }
+    .come-by {
+      font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic;
+      font-weight: 300; font-size: 1.15em; color: var(--text-soft); margin-top: 0.5em;
+    }
+    .come-lede {
+      max-width: 640px; margin: 1.6em auto 0; font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 300; font-size: 1.08em; line-height: 1.85; color: var(--text-soft);
+    }
+    .come-instruction {
+      font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.74em;
+      letter-spacing: 0.24em; text-transform: uppercase; color: var(--rose);
+      margin-top: 1.8em;
+    }
+
+    /* ---- MAP + PIN GRID ---- */
+    .map-wrap {
+      max-width: 1000px; margin: 2.2em auto 4em; padding: 0 1.2em;
+    }
+    .map-panel {
+      position: relative; width: 100%; aspect-ratio: 2 / 1;
+      border: 1px solid var(--border);
+      background-color: rgba(250, 247, 244, 0.5);
+      background-image:
+        linear-gradient(rgba(224, 204, 198, 0.28) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(224, 204, 198, 0.28) 1px, transparent 1px);
+      background-size: 8.333% 8.333%, 8.333% 8.333%;
+      box-shadow: 0 24px 60px -32px rgba(60, 40, 34, 0.45);
+      overflow: visible;
+    }
+    .map-panel::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 70% at 50% 45%, rgba(245,236,232,0.55), transparent 75%);
+      pointer-events: none;
+    }
+    .map-equator {
+      position: absolute; left: 0; right: 0; top: 50%; height: 1px;
+      background: repeating-linear-gradient(90deg, var(--blush) 0 8px, transparent 8px 16px);
+      opacity: 0.6;
+    }
+    .map-label {
+      position: absolute; top: 0.7em; left: 0.9em;
+      font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.62em;
+      letter-spacing: 0.3em; text-transform: uppercase; color: var(--blush);
+    }
+
+    /* pins */
+    .pin {
+      position: absolute; transform: translate(-50%, -100%);
+      background: none; border: none; cursor: pointer; padding: 0;
+      display: flex; flex-direction: column; align-items: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pin-drop {
+      width: 26px; height: 26px; border-radius: 50% 50% 50% 0;
+      background: var(--rose); transform: rotate(-45deg);
+      border: 2px solid var(--cream);
+      box-shadow: 0 6px 14px -4px rgba(125, 82, 69, 0.7);
+      transition: transform 0.25s ease, background 0.25s ease;
+      position: relative;
+    }
+    .pin-drop::after {
+      content: ''; position: absolute; top: 50%; left: 50%;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--cream); transform: translate(-50%, -50%);
+    }
+    .pin-pulse {
+      position: absolute; top: 26px; left: 50%; transform: translate(-50%, -50%);
+      width: 10px; height: 5px; border-radius: 50%;
+      background: rgba(125, 82, 69, 0.28); filter: blur(1px);
+    }
+    .pin-tag {
+      margin-top: 0.55em; text-align: center; white-space: nowrap;
+      background: rgba(250, 247, 244, 0.85); padding: 0.25em 0.6em;
+      border: 1px solid var(--border); backdrop-filter: blur(2px);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .pin-tag .pt-name {
+      display: block; font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 0.98em; color: var(--text); line-height: 1.1;
+    }
+    .pin-tag .pt-place {
+      display: block; font-family: 'Jost', sans-serif; font-weight: 300;
+      font-size: 0.58em; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--rose); margin-top: 0.25em;
+    }
+    .pin:hover .pin-drop, .pin:focus-visible .pin-drop {
+      transform: rotate(-45deg) scale(1.18); background: var(--rose-hover);
+    }
+    .pin:hover .pin-tag, .pin:focus-visible .pin-tag {
+      transform: translateY(2px); box-shadow: 0 10px 24px -14px rgba(60,40,34,0.6);
+    }
+    .pin:focus { outline: none; }
+
+    /* stacked fallback for small screens */
+    .dest-grid { display: none; }
+    @media (max-width: 640px) {
+      .map-panel { display: none; }
+      .dest-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 0.9em;
+        max-width: 560px; margin: 0 auto;
+      }
+      .dest-card {
+        text-align: left; padding: 1.1em 1em; cursor: pointer;
+        background: rgba(250,247,244,0.7); border: 1px solid var(--border);
+      }
+      .dest-card .dc-place {
+        font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.58em;
+        letter-spacing: 0.22em; text-transform: uppercase; color: var(--rose);
+      }
+      .dest-card .dc-name {
+        font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.3em;
+        color: var(--text); margin: 0.2em 0 0.4em;
+      }
+      .dest-card .dc-blurb {
+        font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic;
+        font-weight: 300; font-size: 0.92em; line-height: 1.6; color: var(--text-soft);
+      }
+    }
+
+    /* ---- CHOICE CAROUSEL ---- */
+    .carousel-overlay {
+      position: fixed; inset: 0; z-index: 100; display: none;
+      flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(28, 22, 20, 0.94); padding: 1.2em;
+    }
+    .carousel-overlay.open { display: flex; }
+    .cc-close {
+      position: absolute; top: 1.1em; right: 1.3em; background: none; border: none;
+      color: rgba(250,247,244,0.7); font-size: 2em; line-height: 1; cursor: pointer;
+      font-family: 'Jost', sans-serif; font-weight: 200;
+    }
+    .cc-close:hover { color: #fff; }
+    .cc-head { text-align: center; margin-bottom: 0.4em; }
+    .cc-place {
+      font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.66em;
+      letter-spacing: 0.34em; text-transform: uppercase; color: var(--rose);
+    }
+    .cc-name {
+      font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 300;
+      font-style: italic; font-size: 1.7em; color: #f6efe9; margin-top: 0.15em;
+    }
+
+    /* fanned stage */
+    .cc-stage {
+      position: relative; width: 100%; max-width: 900px; height: 58vh;
+      display: flex; align-items: center; justify-content: center;
+      perspective: 1400px;
+    }
+    .cc-card {
+      position: absolute; top: 50%; left: 50%; width: 44vh; max-width: 82vw;
+      aspect-ratio: 3 / 4; transform: translate(-50%, -50%);
+      transition: transform 0.45s cubic-bezier(.22,.61,.36,1), opacity 0.45s ease, filter 0.45s ease;
+      will-change: transform, opacity;
+    }
+    .cc-card img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      box-shadow: 0 30px 70px -30px rgba(0,0,0,0.8);
+    }
+    .cc-card.is-left {
+      transform: translate(-118%, -50%) rotateY(28deg) scale(0.78);
+      opacity: 0.5; filter: brightness(0.6); z-index: 1; cursor: pointer;
+    }
+    .cc-card.is-right {
+      transform: translate(18%, -50%) rotateY(-28deg) scale(0.78);
+      opacity: 0.5; filter: brightness(0.6); z-index: 1; cursor: pointer;
+    }
+    .cc-card.is-center {
+      transform: translate(-50%, -50%) rotateY(0) scale(1);
+      opacity: 1; filter: none; z-index: 3;
+    }
+    .cc-card.is-hidden {
+      transform: translate(-50%, -50%) scale(0.6); opacity: 0; z-index: 0;
+      pointer-events: none;
+    }
+    /* "straight" — step into the photo, full and large */
+    .cc-card.is-center.zoomed {
+      width: auto; height: 88vh; max-width: 96vw; aspect-ratio: auto; cursor: zoom-out;
+      z-index: 6;
+    }
+    .cc-card.is-center.zoomed img { object-fit: contain; aspect-ratio: auto; }
+
+    .cc-caption {
+      max-width: 620px; min-height: 3.2em; margin: 0.9em auto 0; text-align: center;
+      font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 300;
+      font-style: italic; font-size: 1.02em; line-height: 1.7; color: rgba(246,239,233,0.85);
+    }
+    .cc-caption .cc-cap-title {
+      display: block; font-style: normal; font-size: 0.66em; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--rose); margin-bottom: 0.5em;
+      font-family: 'Jost', sans-serif;
+    }
+
+    /* Left / Straight / Right controls */
+    .cc-controls {
+      display: flex; align-items: stretch; gap: 0.7em; margin-top: 1.1em;
+    }
+    .cc-btn {
+      background: rgba(250,247,244,0.06); border: 1px solid rgba(224,204,198,0.35);
+      color: #f2e9e3; cursor: pointer; padding: 0.75em 1.4em;
+      display: flex; flex-direction: column; align-items: center; gap: 0.25em;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+      min-width: 92px;
+    }
+    .cc-btn:hover { background: rgba(168,112,96,0.28); border-color: var(--rose); }
+    .cc-btn:active { transform: translateY(1px); }
+    .cc-btn .cc-arrow { font-size: 1.5em; line-height: 1; font-weight: 200; }
+    .cc-btn .cc-word {
+      font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.62em;
+      letter-spacing: 0.24em; text-transform: uppercase;
+    }
+    .cc-btn.cc-straight { background: rgba(168,112,96,0.22); border-color: var(--rose); }
+    .cc-counter {
+      margin-top: 1em; font-family: 'Jost', sans-serif; font-weight: 300;
+      font-size: 0.66em; letter-spacing: 0.28em; color: rgba(246,239,233,0.55);
+    }
+    @media (max-width: 640px) {
+      .cc-stage { height: 50vh; }
+      .cc-card { width: 60vw; }
+      .cc-card.is-left { transform: translate(-135%, -50%) rotateY(30deg) scale(0.7); opacity: 0.35; }
+      .cc-card.is-right { transform: translate(35%, -50%) rotateY(-30deg) scale(0.7); opacity: 0.35; }
+      .cc-btn { padding: 0.6em 0.9em; min-width: 72px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-nav">
+      <a href="gallery.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="gallery.html" class="nav-link">Galleries</a>
+        <a href="come-away-with-me.html" class="nav-link active">Come Away</a>
+        <a href="senza-veli.html" class="nav-link">Senza Veli</a>
+        <a href="stories.html" class="nav-link">Stories</a>
+        <a href="friends.html" class="nav-link">Friends</a>
+        <a href="portrait.html" class="nav-link">Portrait</a>
+        <a href="joyce-ultra.html" class="nav-link">Ultra</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="come-hero">
+    <p class="come-overline">A Travel Experience</p>
+    <h1 class="come-title">Come Away <em>with Me</em></h1>
+    <p class="come-by">by Sheryl</p>
+    <p class="come-lede">
+      Four places, four different versions of the same feeling. Pick a pin on the map and
+      we'll go together — then at every photo you choose the turn: <em>left</em>, <em>straight</em>,
+      or <em>right</em>. Wherever you go, I'll be there when you arrive.
+    </p>
+    <p class="come-instruction">Choose a destination ↓</p>
+  </section>
+
+  <div class="map-wrap">
+    <div class="map-panel" id="mapPanel">
+      <span class="map-label">Come Away · Vol. 1</span>
+      <div class="map-equator"></div>
+      <!-- pins injected by script -->
+    </div>
+    <div class="dest-grid" id="destGrid"><!-- mobile cards injected by script --></div>
+  </div>
+
+  <!-- Choice Carousel -->
+  <div class="carousel-overlay" id="carousel" role="dialog" aria-modal="true" aria-label="Photo carousel">
+    <button class="cc-close" id="ccClose" aria-label="Close">×</button>
+    <div class="cc-head">
+      <p class="cc-place" id="ccPlace"></p>
+      <p class="cc-name" id="ccName"></p>
+    </div>
+    <div class="cc-stage" id="ccStage"><!-- cards injected --></div>
+    <p class="cc-caption" id="ccCaption"></p>
+    <div class="cc-controls">
+      <button class="cc-btn cc-left" id="ccLeft"><span class="cc-arrow">←</span><span class="cc-word">Left</span></button>
+      <button class="cc-btn cc-straight" id="ccStraight"><span class="cc-arrow">↑</span><span class="cc-word">Straight</span></button>
+      <button class="cc-btn cc-right" id="ccRight"><span class="cc-arrow">→</span><span class="cc-word">Right</span></button>
+    </div>
+    <p class="cc-counter" id="ccCounter"></p>
+  </div>
+
+  <script>
+    const DESTINATIONS = [
+  {
+    "id": "thailand",
+    "name": "Floating Market",
+    "place": "Thailand",
+    "coord": "Damnoen Saduak · 13.5°N",
+    "blurb": "Wooden boats, canal light, and fresh coconut water at dawn — the quiet comfort of finally being together.",
+    "pin": {
+      "left": 77.8,
+      "top": 62.5
+    },
+    "photos": [
+      {
+        "src": "assets/Joyce-Floating-Market/Joyce_gf_flt_market_.PNG",
+        "title": "I",
+        "caption": "Joyce reaches out her hand with an inviting smile, encouraging me to come with her as we begin exploring the floating market together. First-person perspective that emphasizes trust, excitement, and the beginning of our Thailand vacation.",
+        "type": "image"
+      },
+      {
+        "src": "assets/Joyce-Floating-Market/Joyce_gf_flt_market_.JPG",
+        "title": "II",
+        "caption": "Our first quiet moment together at the floating market. Joyce leans across the wooden table with a warm, affectionate smile, making direct eye contact as if we're about to share our first kiss. A fresh coconut sits beside us, soft morning light reflects off the canal, and the bustling Thai market fades into a dreamy background. The feeling is relief, comfort, and finally being together after months apart.",
+        "type": "image"
+      },
+      {
+        "src": "assets/Joyce-Floating-Market/Joyce_gf_flt_market_%202.JPG",
+        "title": "III",
+        "caption": "Our first breakfast together overlooking the canal. Joyce sits patiently across from me with a gentle smile while we enjoy fresh coconut water and watch boats drift past. Peaceful, relaxed, authentic, romantic vacation atmosphere.",
+        "type": "image"
+      },
+      {
+        "src": "assets/Joyce-Floating-Market/Joyce_gf_flt_market_%203.JPG",
+        "title": "IV",
+        "caption": "A candid portrait of Joyce after spending hours wandering the floating market together. She looks genuinely happy, relaxed, and thankful to finally share this long-awaited vacation with me.",
+        "type": "image"
+      },
+      {
+        "src": "assets/Joyce-Floating-Market/Joyce_gf_flt_market_%203.PNG",
+        "title": "V",
+        "caption": "Joyce pauses beside the canal after shopping for souvenirs, giving me a quiet smile reserved for someone she deeply cares about. Warm afternoon light, authentic Thai floating market, romantic travel memories.",
+        "type": "image"
+      },
+      {
+        "src": "assets/Joyce-Floating-Market/Joyce_gf_flt_market_%204.JPG",
+        "title": "VI",
+        "caption": "Joyce poses playfully beside one of the wooden market posts while waiting for our boat ride. Her relaxed body language reflects the comfort and happiness of a couple finally together after a long-distance relationship.",
+        "type": "image"
+      },
+      {
+        "src": "assets/Joyce-Floating-Market/Joyce_gf_flt_market_%204.PNG",
+        "title": "VII",
+        "caption": "Walking ahead of me along the wooden boardwalk, Joyce turns over her shoulder with a warm smile to make sure I'm still beside her. A spontaneous, affectionate travel memory from our Thailand adventure.",
+        "type": "image"
+      },
+      {
+        "src": "assets/Joyce-Floating-Market/Joyce_gf_flt_market_%206.PNG",
+        "title": "VIII",
+        "caption": "Joyce extends her hand toward me with a loving smile, inviting me to continue exploring hidden corners of the floating market together. First-person perspective that makes the viewer feel like her boyfriend.",
+        "type": "image"
+      },
+      {
+        "src": "assets/Joyce-Floating-Market/Joyce_gf_flt_market_%207.PNG",
+        "title": "IX",
+        "caption": "An artistic overhead angle captures Joyce sitting along the edge of the wooden boardwalk beside the canal. She glances upward with a spontaneous smile, creating a candid travel photograph full of warmth and personality.",
+        "type": "image"
+      },
+      {
+        "src": "assets/Joyce-Floating-Market/Joyce_gf_flt_market_%208.PNG",
+        "title": "X",
+        "caption": "We pause for fresh coconut drinks overlooking the canal. Joyce rests her chin on her hand and smiles softly while enjoying our conversation. An intimate, peaceful moment that perfectly captures the joy of finally sharing this Thailand vacation together.",
+        "type": "image"
+      },
+      {
+        "src": "assets/Joyce-Floating-Market/Joyce_gf_flt_market_%205.PNG",
+        "title": "XI",
+        "caption": "As the afternoon winds down, Joyce looks back with a gentle farewell wave before we continue toward the boat dock. A bittersweet end to another perfect day exploring the floating market together.",
+        "type": "image"
+      }
+    ]
+  },
+  {
+    "id": "boston",
+    "name": "A Quiet Distance",
+    "place": "Boston, USA",
+    "coord": "Beacon Hill · 42.4°N",
+    "blurb": "Brownstone streets and autumn light — a woman in the city but never quite of it, keeping her own counsel.",
+    "pin": {
+      "left": 30.3,
+      "top": 26.5
+    },
+    "photos": [
+      {
+        "src": "assets/from-drive/1zhbcIdWQVnagBaPPSzODSrWaVkRxvCSI.png",
+        "title": "I",
+        "caption": "The streets of Boston are loud with history, but Joyce moves through them with a quiet, unhurried grace. Her hands tucked away, her smile polite but distant — she is here, walking the brownstone sidewalks, yet she remains entirely her own island. The city demands engagement; she offers only her calm, steady presence.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1gsoYt4shX1HjFQNjj_c7JJSAfksddVJd.png",
+        "title": "II",
+        "caption": "Autumn strips the trees bare, leaving the iron fences cold to the touch. Joyce leans against the city's edge, guarded and self-contained. The leaves at her feet speak of transition and the passage of time far from home, but her posture remains unchanged — a protective shell against the shifting seasons and the chill of a foreign place.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1ILDNyvmd3h0jLR0KeIk5iLo8RoIvypOB.png",
+        "title": "III",
+        "caption": "A backward glance on a summer afternoon. It is the look of someone caught between moving forward and remembering what she left behind. The smile is gentle, almost apologetic, as if she knows she cannot stay. In Boston, she is always walking away, always leaving a quiet space where she just stood.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1_Ll8jeNnXTmCOTIA3be56CZCc5mw8naB.png",
+        "title": "IV",
+        "caption": "Mid-stride on the terracotta steps, she pauses. The dappled sunlight warms the brick, but Joyce's gaze holds a subtle distance. It is the poise of a woman who has learned to be light on her feet, ready to adapt, yet careful never to lay down roots too deeply in unfamiliar soil.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1jFDL9lREU0e3UOhaLqTw_vLQybPK4AtG.png",
+        "title": "V",
+        "caption": "Away from the city's gaze, the hotel room offers a different kind of silence. In the warm amber light, she is intimate yet profoundly guarded. Her hands folded neatly under her chin suggest self-containment even in vulnerability. She smiles for the camera, but her eyes keep their secrets safe.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1hDnV6dfUXaKENuWnAj1jzZiWfGdRPxV7.png",
+        "title": "VI",
+        "caption": "The dark curtains are drawn against the Boston night, sealing off the world outside. Reclining in the soft lamplight, Joyce allows a rare, relaxed moment. Yet, even here, there is a sense of a private fortress — a quiet refusal to let the chaos of the city, or the ache of distance, breach her inner walls.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1kJ-P7G6OyFaUVd8miJF4bBnE8SJljeGd.png",
+        "title": "VII",
+        "caption": "A playful pose, feet raised, chin resting on her hand. But the stillness of the room echoes the deeper stillness within her. It is the quiet afternoon of a woman who has learned to keep her own company, finding peace in the solitude of a foreign city where no one truly knows her name.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1SS5M4BlkZ3ivCgi7sajof0WwB7nFBGci.png",
+        "title": "VIII",
+        "caption": "The lamplight casts a warm halo, but her expression is one of calm resignation. She is present, looking directly into the lens, yet part of her seems miles away — perhaps across an ocean. It is the look of someone who has compartmentalized her longing, keeping it hidden beneath a composed, beautiful surface.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1MURtqdOe_6RQegLkpsrbURLLLKrEGEYL.png",
+        "title": "IX",
+        "caption": "A genuine, unguarded smile breaks through the careful composure. For a moment, the heavy armor of politeness and emotional restraint lifts. The raised foot adds a touch of lightness to the heavy quiet of the room — a fleeting glimpse of the warmth she so carefully protects from the world.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1Wv6u6Rw499aNQqmJ7KpljqY04mxM1-3X.png",
+        "title": "X",
+        "caption": "Looking up from the white sheets, her gaze is direct and slightly challenging. The upward angle and fanned hair create a sense of quiet power. She may be far from the Philippines, navigating the isolation of a new country, but she is unbroken. Her vulnerability is a choice, not a surrender.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1siSR3IwEK9hUa5AzOxP2O5hzo-imSmdQ.png",
+        "title": "XI",
+        "caption": "Faneuil Hall is a blur of motion and noise, a sea of strangers rushing past. In the center of it all stands Joyce — sharp, still, and entirely separate. The crowd surrounds her but does not include her. She is in the city but not of it, the sharpest focus in a world that constantly moves without her.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1w-Zfsh-JWRSvEDnAeUcudIjJ4uX7EqLa.png",
+        "title": "XII",
+        "caption": "Dusk falls on Boston, and the wet pavement reflects the melancholic amber of the streetlights. Joyce grips the lapels of her coat — a self-protective gesture against the evening chill and the profound loneliness of the hour. The city glows behind her, but she is her own warmth, her own quiet refuge.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1YD4CFq70saIUZG1guvn4yR3lpaxtPMdV.png",
+        "title": "XIII",
+        "caption": "Standing still as the city glows around her, Joyce is a quiet center in a moving world. Her hands hold her blazer close, maintaining the emotional homeostasis she so deeply values. The receding streetlamps create a beautiful depth, mirroring the vast distance between where she is and where she belongs.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/11NUTogo9DwZhv2eyrn_lK3SWz7pmrbQG.png",
+        "title": "XIV",
+        "caption": "Walking into the amber light, she repeats the protective gesture of holding her coat closed. The fallen leaves and the taillights of parked cars suggest a city that is always leaving, always moving on. She walks into it anyway, carrying her solitude with a dignified, silent strength.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1zkFKOiXoUh_qz-rEwYkvfSM4Dc3FApS_.png",
+        "title": "XV",
+        "caption": "The most cinematic of moments: the wet street mirroring the corridor of lights behind her. She walks toward the camera, the only sharp thing in a city of blurs and reflections. It is the portrait of a woman alone but not lost, navigating the vast, glowing isolation of life abroad.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1mHwiOg9VilB5_m9OMaGDWLOJYRc8chNk.png",
+        "title": "XVI",
+        "caption": "No smile, no performance — just a steady, quiet gaze in the middle of a rain-slicked street. The blue and amber reflections pool at her feet. This is the rawest expression of her journey: the emotional restraint, the self-preservation, and the profound, beautiful weight of standing entirely on her own.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1e2nGcmfI4bzTXx-0l4hV9Gjnu1DPpwRA.jpg",
+        "title": "XVII",
+        "caption": "A bright summer day, a backward glance over the shoulder. In the background, a stranger walks away, mirroring her own perpetual state of departure. Joyce is always mid-leave, mid-arrival — a woman whose heart is guarded, keeping a polite distance from a city that will only ever be a temporary home.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/14T-IT1o54XtSj1vHMi1UiROldfzsFelw.png",
+        "title": "XVIII",
+        "caption": "Moving through the dense, diverse crowd of Quincy Market, she glances back. The people around her are close, but she remains emotionally untouched by them. Her backward glance is a quiet act of self-assertion — a reminder that she is here, moving through their world, but keeping her own intact.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/13-7knwaegHoqvKj13uw0hJoZd8UTBlX7.png",
+        "title": "XIX",
+        "caption": "The recurring backward glance, the perpetual in-between. Clean, quiet summer light washes over the red brick, but Joyce remains a step apart. It is the posture of a woman who avoids emotional enmeshment, preferring the safety of the surface to the unpredictable depths of true connection.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1i9vPD06NyAXHjcV8n6z2wwsfNJmkyDL9.png",
+        "title": "XX",
+        "caption": "The crowd is the same, the city is the same, but she looks back once more. It is as if she is confirming she is still seen, still here, despite the vast, quiet loneliness of being a stranger. She walks on, self-contained and guarded, a beautiful mirror reflecting the world but keeping her soul safely hidden away.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1wQ5uDF7mz64Y6mFXA8WFhlKy_6ooYvef.png",
+        "title": "XXI",
+        "caption": "She sits across from him in the intimate glow of the restaurant, her hand delicately tracing the stem of her wine glass. The city's cold exterior is replaced by the warmth of his presence — a man who sees her in a way no one else has. As the conversation deepens, she leans in, her eyes meeting his with a newfound vulnerability. She's no longer just a stranger in the city; she's here, with him, and she feels it deeply.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1-Ts584cALAeeGVwd3a2CxyqfEYclYTD5.png",
+        "title": "XXII",
+        "caption": "The formalities of their first meeting have given way to a more relaxed, intimate atmosphere. He looks at her with a gaze that tells her he sees the real her, the one she's been hiding from the world. She returns his gaze, her hand resting on his — the gesture no longer about warmth; it's about desire.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1wgQ5yZLh7cDwAcLMadqVjDFQ194MZtzS.png",
+        "title": "XXIII",
+        "caption": "She's spent countless nights in this city, alone, wrapped in her coat, watching the world go by without her. But tonight, as he stands beside her, draping his jacket over her shoulders, the world shifts. She looks up at him, and for the first time, she doesn't look away. The city's lights blur into a kaleidoscope of colors, and the only thing that matters is the heat of their bodies and the beating of their hearts.",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1YqeAX8t9dt9TnA-iMqVlfWVUtPtCvLmM.png",
+        "title": "XXIV",
+        "caption": "The loneliness of being a stranger in a foreign city doesn't end with a grand gesture; sometimes, it ends in a quiet, intimate moment like this one. They're in a cozy corner booth, the city's lights twinkling through the arched windows, and the glasses of wine are nearly empty. She gives him a piece of her heart she's guarded for so long. The kiss they share is not just a kiss; it's a promise, a beginning, and a surrender to the connection they've both been searching for.",
+        "type": "image"
+      }
+    ]
+  },
+  {
+    "id": "capri",
+    "name": "Capri",
+    "place": "Capri, Italy",
+    "coord": "Tyrrhenian Sea · 40.5°N",
+    "blurb": "Sun-drenched terraces and azure water — the unhurried grace of a woman the island seems arranged around.",
+    "pin": {
+      "left": 53.9,
+      "top": 40.5
+    },
+    "photos": [
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%2014.PNG",
+        "title": "I",
+        "caption": "\"You'd look at me like this for too long and suddenly the trip wouldn't feel casual anymore.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%202.PNG",
+        "title": "II",
+        "caption": "\"The ocean's beautiful… but I know that's not why you'd stay out here with me.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%203.PNG",
+        "title": "III",
+        "caption": "\"I'd pretend not to notice how quiet you get when you're staring at me.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%204.PNG",
+        "title": "IV",
+        "caption": "\"There's something dangerous about finally getting the soft version of me.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%205.PNG",
+        "title": "V",
+        "caption": "\"You'd sit beside me here and start telling me things you don't normally say out loud.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%206.PNG",
+        "title": "VI",
+        "caption": "\"I like moments where nobody's rushing… where attraction gets to breathe a little.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%207.PNG",
+        "title": "VII",
+        "caption": "\"You'd wonder if I was thinking about you too. I would be.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%208.PNG",
+        "title": "VIII",
+        "caption": "\"That look over my shoulder? That's the exact moment you got attached.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%209.PNG",
+        "title": "IX",
+        "caption": "\"I don't flirt loudly. I just make people feel wanted in very quiet ways.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%2010.PNG",
+        "title": "X",
+        "caption": "\"You'd sit quietly beside me here and start thinking about keeping me longer than you planned.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%2011.PNG",
+        "title": "XI",
+        "caption": "\"I like walking toward someone slowly enough to let the tension build first.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%2012.PNG",
+        "title": "XII",
+        "caption": "\"That smile means I already know the effect I'm having on you.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%2013.PNG",
+        "title": "XIII",
+        "caption": "\"You'd keep replaying this moment later… the dress, the sunlight, the way I looked back at you.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%2014.PNG",
+        "title": "XIV",
+        "caption": "\"I think part of you would fall for how peaceful this feels with me.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%2015.PNG",
+        "title": "XV",
+        "caption": "\"The softest girls leave the deepest marks.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%2016.PNG",
+        "title": "XVI",
+        "caption": "\"You'd start confusing attraction with comfort around me.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%2017.PNG",
+        "title": "XVII",
+        "caption": "\"I'd let you admire me a little longer before I looked back.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%2018.PNG",
+        "title": "XVIII",
+        "caption": "\"The dangerous part is how naturally I could fit into your life.\"",
+        "type": "image"
+      },
+      {
+        "src": "https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/Capri/Capri_%2019.PNG",
+        "title": "XIX",
+        "caption": "\"You don't invite a woman like me into your thoughts for one night. That's the problem.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/Capri/photo-20260626-120956.jpg",
+        "title": "",
+        "caption": "Let’s make love …together",
+        "type": "image"
+      }
+    ]
+  },
+  {
+    "id": "tokyo",
+    "name": "Suite 2308",
+    "place": "Tokyo, Japan",
+    "coord": "Forty floors up · 35.7°N",
+    "blurb": "Silk, skyline, and Tokyo Tower burning in the dark — luminous in every frame, forty floors above the city.",
+    "pin": {
+      "left": 88.8,
+      "top": 33
+    },
+    "photos": [
+      {
+        "src": "assets/from-drive/1HljdxGfPcJPvElnGfMnvHQN-5DZsEUMh.png",
+        "title": "Black Lace, Blue City",
+        "caption": "\"The whole city lit up behind you, and all I could see was you. That look you give me — like you already know what I'm thinking.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1ihHC1tcJHsnl-92Q_80pm6oESOXE_DeN.png",
+        "title": "Balcony at Dusk",
+        "caption": "\"Leaning into the night like it belongs to you. The lace, the city, those eyes... there's no version of this moment I'd trade.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1akmdvo46rfs6AWXAvhmmaVBysRbit3db.png",
+        "title": "Cream Silk by the Railing",
+        "caption": "\"You stepped out in that ivory lace and the entire skyline became backdrop. You've always been the main attraction.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1u0dEgywcPQN8OIP_osEK7yAHCrXn_dgH.png",
+        "title": "Golden Hour, City Below",
+        "caption": "\"Champagne silk against a million city lights. You look like a dream I keep choosing to stay inside.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1rG65WXmpwPYpTwGDMFhkz8Bwra0qm9jR.png",
+        "title": "Warm Glow at the Door",
+        "caption": "\"The amber light behind you, the way your hands rest — soft and certain. There's nowhere I'd rather come home to.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/13DjpR2jQaTkgNb_tcAbtohORfceKJi-q.png",
+        "title": "Neon Behind Her",
+        "caption": "\"Neon signs and a midnight skyline, and you standing there like none of it compares to you. It doesn't.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1vEC3-mnA37gAvgtwDxQmKitFBPaZk-pa.png",
+        "title": "City Skyline, Wide Open",
+        "caption": "\"The whole city spread out like an offering behind you — and you lean on that railing like a woman who's earned every view she takes.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1nQe_5JuzyxSBSjG3mQBGgjEMP8kuK2p5.png",
+        "title": "One Finger to the Sky",
+        "caption": "\"'One more thing,' you say — and whatever it is, the answer is already yes. That smile knows exactly what it does to me.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1GbMM5pOb0C4frTHE341c3e9ODxlq1vwe.png",
+        "title": "Hand on the Glass",
+        "caption": "\"You pressed your hand to the window and looked out like you were reading the city's secrets. I was reading you.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1tBieNxkw2Qt6h3ZpAUPcqLgUKd5F1O_M.jpg",
+        "title": "Silk &amp; the Tower",
+        "caption": "\"Silk from shoulder to ankle, a city tower glowing just for you. You sat like royalty and looked at me like I was the view.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1OKajBXweYgY5oFztJVh8nNapdJ0qoFLX.png",
+        "title": "The Window's Pull",
+        "caption": "\"You touched the frame like you were holding the night still. I wanted to hold you still. Just like that. Forever.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1jBqJ0BUxCZXxHHGhDJrp2jSMQtRTLN4H.png",
+        "title": "Amber &amp; City Blue",
+        "caption": "\"Half warm light, half cold city — and all of you impossibly beautiful between them. The contrast never stood a chance.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1ITUleiIdVC2ZsULIC2IvAz84TuUiKr2R.png",
+        "title": "Between Two Windows",
+        "caption": "\"Hand at your chin, eyes just past the lens — thinking something I want you to say out loud. Take your time. I'm not going anywhere.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1YOwaRhWFTK8j4k4iBQ0JVORXGnwpr8GE.png",
+        "title": "Cross-Legged, Silk Set",
+        "caption": "\"Barefoot on hotel sheets in a full silk set, with the city lit up behind you. You made the suite feel like a world I never want to leave.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1G1BlniE2yGwDLK6duXbA8M0CCQmgrCGl.png",
+        "title": "Tokyo Tower in the Frame",
+        "caption": "\"Tokyo Tower burning orange behind you, you sitting on the bed like a painting. I've never been more grateful to be in the same room.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1pNehV9S6vPa6W8EWmM_Uaihx38UWWPHp.png",
+        "title": "Lounging, Barefoot, Yours",
+        "caption": "\"Legs crossed, shoes off, completely at ease — and still the most stunning woman in any room, any city, any hour.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1f_MZXlOeAfOJpBjz2pC8MZjxgzamaPIE.png",
+        "title": "Knee Up, City Behind",
+        "caption": "\"That easy confidence — one knee up, chin tilted, like you're deciding whether to let me stare a little longer. Please. Let me.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1paw8sZa5B4kvE7UShwmYfMTfZe-OLtjX.png",
+        "title": "Blue Glow, Black Silk",
+        "caption": "\"The city turned blue behind you and you sat there glowing against it. Effortless. Every single time.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1lpiV4CDEQEkmmtQZERx-7iXeaNdNtIM9.png",
+        "title": "Chopsticks &amp; That Smile",
+        "caption": "\"You picked up those chopsticks and looked at me like a question I'd spend all night answering. Yes. Always yes.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1Aj1uN_WOkkAG90hKg7nVxu8N_VxaaEyl.png",
+        "title": "Dusk Light, Ivory Lace",
+        "caption": "\"Early morning light pushing through the curtains, you sitting on the bed like you haven't decided yet if the day gets to start. Stay.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1BBpbWnYf_FG50LAk-jnqDHwS_Cgst6dy.png",
+        "title": "Holding the Sash",
+        "caption": "\"The sash still in your hand, the city just beginning to darken outside — and that smile that says you know exactly how this night ends.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/13MZbejic4196TYw73VzQh-9azNHlX11W.png",
+        "title": "Fingers in Her Hair",
+        "caption": "\"You ran your fingers through your hair and the lamplight caught every strand. I caught my breath.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1tA2psZndIsk7KIZwXtwOWZlv82JK00-F.png",
+        "title": "The Brush, the Look",
+        "caption": "\"That playful tilt, the way you hold the brush like a secret. You're thinking something mischievous and I love every second of it.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1L-_vSLGXo6a_MJKVOXLFQL9dHRmss7A8.png",
+        "title": "Dark Pen, Parted Lips",
+        "caption": "\"You look at me like that and every coherent thought I had just... leaves. Stay exactly as you are.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1V-txQCsNCrlvYFjoK976fXysX2aaMp8f.png",
+        "title": "Satin &amp; That Smirk",
+        "caption": "\"That smirk. You know what that smirk does. You've always known.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1zu2kU_zzjI2RMQDtw5B88m3tNPN4L9LQ.png",
+        "title": "Pulling the Strap",
+        "caption": "\"One finger hooked on the strap, eyes holding mine — you could pull the whole world undone with a look like that.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1jfjO35brIivoBGLgGu1gKRDVIizF1zSy.png",
+        "title": "Soft Light, Softer Smile",
+        "caption": "\"The lamp behind you warm and low, your smile even warmer. The city outside had no idea how much light was inside this room.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1vPP-QB8AZiYrUlZMhmnY6KP8NcxgW1FF.png",
+        "title": "Lips Parted, Looking Through Me",
+        "caption": "\"You looked straight through the camera and into something only I'm supposed to see. I'll keep it safe.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1UWDjwqrYrVLFM083NrW9kq3UQLT5K3-e.png",
+        "title": "Finger at Her Lips",
+        "caption": "\"Finger to your lips — half shush, half invitation. Either way I'm listening. I'm always listening to you.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1iIctp1-ciOnX9MO8ulOeqK_zDbwdUsRn.png",
+        "title": "Still, Certain, Mine",
+        "caption": "\"No pose, no pretense. Just you, at ease in the room we shared, looking like everything I wanted to come back to.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1VFtrKMLWpiLHl7_bRVbfshyUy7iQ_LEV.png",
+        "title": "Quiet &amp; Complete",
+        "caption": "\"There's something about the way you sit when you think no one's watching — open, unhurried, entirely yourself. That version of you undoes me.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1adrO7uKjPc6YlXxjy07GVSfxvMyHaQr2.png",
+        "title": "Gold Elevator, Marble Wall",
+        "caption": "\"Champagne silk against cold marble, gold doors behind you — you made the hotel look like it was dressed for you.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/14HJ6YdEfXkCPcK2rRKjZ-wnjcfuwAS4a.png",
+        "title": "Blush Lace, Touching the Strap",
+        "caption": "\"That blush lace, that touch at the strap — like you're about to say something or undo something. My heart can't pick which it wants more.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1EMqImkRkeFyiNzCN2330hFr0MjF4TTVS.png",
+        "title": "The Lobby, Again &amp; Always",
+        "caption": "\"Every time I turn a corner and see you, it hits the same. Like the first time. Like I never get used to how beautiful you are.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/15BlFI_gdcu0jwc9uvcbpBS8jEH5D9itg.png",
+        "title": "Necklace, Bracelet, Hers",
+        "caption": "\"A thin gold necklace, a delicate bracelet, silk the color of warm sand — and that look like you've been waiting for me to notice. I always notice.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1J1RJh-wcOc2aajTbVTPzlzV7FZv9nVD8.png",
+        "title": "Side Profile, The Corridor",
+        "caption": "\"You glanced back over your shoulder in that hallway and the whole hotel fell away. Just you, just that look, just that curve of your smile.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1rpGDh8-1jjcRcy4YbtpVqSiX5qnS3D4T.png",
+        "title": "Back Turned, Turning to Me",
+        "caption": "\"You were walking away and looked back — and I realized I'd follow that look anywhere it led.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1yOxhBDMqGumnbQTbHjnqqOVTegrISra_.png",
+        "title": "By the Door, Amber Hall",
+        "caption": "\"Half-turned at the door, the amber corridor stretching behind you, gold silk on your skin — you looked like a secret I was lucky enough to know.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1qw0pBDYw3t7FLlidJrS9mrXAWZySig48.png",
+        "title": "All Gold, Walking Toward Me",
+        "caption": "\"Head to toe in gold silk, walking through that corridor like the whole night was choreographed just for this. For you. It was.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/186dbwF1WyqidXuYmAJ-z1lDTierL-Thf.png",
+        "title": "Two Lamps, One Woman",
+        "caption": "\"Two lamps trying to compete with you. They lost.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/15XWPnbfTQ0jg-Oy9iQJGcp3-iCJr94iB.png",
+        "title": "Skytree Behind Her",
+        "caption": "\"Tokyo Skytree rising blue into the night, and you — white lace, dark eyes, soft mouth — outshining every light in the frame.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1lZvfL7yGOto2fmFPCF0srtxTnsdOXJc7.png",
+        "title": "The Suite, the Sky, the Her",
+        "caption": "\"The city never sleeps and neither does the way I feel standing across a room from you. Tokyo in the window. You in the light. Perfect.\"",
+        "type": "image"
+      },
+      {
+        "src": "assets/from-drive/1C-CcUMM7jj1r6Eiwh2yRIb_rWSEcfOUz.jpg",
+        "title": "Black Lace, Bare Skin, Open Sky",
+        "caption": "\"Black lace, a sliver of skin, and the whole electric city spread out beneath you. You smiled at me and I forgot every skyline I've ever seen.\"",
+        "type": "image"
+      }
+    ]
+  }
+];
+
+    /* ---------- build the map + mobile grid ---------- */
+    const mapPanel = document.getElementById('mapPanel');
+    const destGrid = document.getElementById('destGrid');
+    DESTINATIONS.forEach((d, i) => {
+      const pin = document.createElement('button');
+      pin.className = 'pin';
+      pin.style.left = d.pin.left + '%';
+      pin.style.top = d.pin.top + '%';
+      pin.setAttribute('aria-label', d.name + ' — ' + d.place);
+      pin.innerHTML =
+        '<span class="pin-pulse"></span>' +
+        '<span class="pin-drop"></span>' +
+        '<span class="pin-tag"><span class="pt-name">' + d.name + '</span>' +
+        '<span class="pt-place">' + d.place + '</span></span>';
+      pin.addEventListener('click', () => openCarousel(i));
+      mapPanel.appendChild(pin);
+
+      const card = document.createElement('div');
+      card.className = 'dest-card';
+      card.innerHTML =
+        '<div class="dc-place">' + d.place + '</div>' +
+        '<div class="dc-name">' + d.name + '</div>' +
+        '<div class="dc-blurb">' + d.blurb + '</div>';
+      card.addEventListener('click', () => openCarousel(i));
+      destGrid.appendChild(card);
+    });
+
+    /* ---------- choice carousel ---------- */
+    const overlay = document.getElementById('carousel');
+    const stage = document.getElementById('ccStage');
+    const elPlace = document.getElementById('ccPlace');
+    const elName = document.getElementById('ccName');
+    const elCap = document.getElementById('ccCaption');
+    const elCount = document.getElementById('ccCounter');
+    let current = null;   // destination index
+    let idx = 0;          // photo index
+    let zoomed = false;
+
+    function romanOrTitle(p, i) {
+      return p.title && p.title.length ? p.title : 'No. ' + (i + 1);
+    }
+
+    function openCarousel(destIndex) {
+      current = destIndex;
+      idx = 0;
+      zoomed = false;
+      const d = DESTINATIONS[destIndex];
+      elPlace.textContent = d.place;
+      elName.textContent = d.name;
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      render();
+    }
+
+    function closeCarousel() {
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+      stage.innerHTML = '';
+      current = null;
+    }
+
+    function render() {
+      const d = DESTINATIONS[current];
+      const n = d.photos.length;
+      const prev = (idx - 1 + n) % n;
+      const next = (idx + 1) % n;
+      const roles = [
+        { i: prev, cls: 'is-left' },
+        { i: idx, cls: 'is-center' + (zoomed ? ' zoomed' : '') },
+        { i: next, cls: 'is-right' },
+      ];
+      stage.innerHTML = '';
+      roles.forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'cc-card ' + r.cls;
+        const img = document.createElement('img');
+        img.src = d.photos[r.i].src;
+        img.alt = romanOrTitle(d.photos[r.i], r.i);
+        img.loading = 'eager';
+        card.appendChild(img);
+        if (r.cls.indexOf('is-left') === 0) card.addEventListener('click', goLeft);
+        else if (r.cls === 'is-right') card.addEventListener('click', goRight);
+        else card.addEventListener('click', goStraight);
+        stage.appendChild(card);
+      });
+      const p = d.photos[idx];
+      elCap.innerHTML = '<span class="cc-cap-title">' + romanOrTitle(p, idx) + '</span>' +
+        (p.caption || '');
+      elCount.textContent = (idx + 1) + ' / ' + n + '  ·  ' + d.place.toUpperCase();
+    }
+
+    function goLeft() { if (current === null) return; zoomed = false;
+      const n = DESTINATIONS[current].photos.length; idx = (idx - 1 + n) % n; render(); }
+    function goRight() { if (current === null) return; zoomed = false;
+      const n = DESTINATIONS[current].photos.length; idx = (idx + 1) % n; render(); }
+    function goStraight() { if (current === null) return; zoomed = !zoomed; render(); }
+
+    document.getElementById('ccLeft').addEventListener('click', goLeft);
+    document.getElementById('ccRight').addEventListener('click', goRight);
+    document.getElementById('ccStraight').addEventListener('click', goStraight);
+    document.getElementById('ccClose').addEventListener('click', closeCarousel);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeCarousel(); });
+    document.addEventListener('keydown', (e) => {
+      if (!overlay.classList.contains('open')) return;
+      if (e.key === 'Escape') closeCarousel();
+      else if (e.key === 'ArrowLeft') goLeft();
+      else if (e.key === 'ArrowRight') goRight();
+      else if (e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goStraight(); }
+    });
+  </script>
+</body>
+</html>
