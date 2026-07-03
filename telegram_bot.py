@@ -2306,6 +2306,7 @@ def main() -> None:
         fallbacks=[CommandHandler("cancel", cmd_cancel)],
         name="main_conv",
         persistent=True,
+        allow_reentry=True,
         conversation_timeout=1800,
     )
 
