@@ -19,14 +19,17 @@ import json
 import os
 import re
 import logging
+import shutil
+import sys
 import tempfile
 import urllib.parse
+import uuid
 from datetime import datetime
 from pathlib import Path
 
 import httpx
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import anthropic as _anthropic_sdk
@@ -64,6 +67,11 @@ GITHUB_BRANCH   = os.environ.get("GITHUB_BRANCH", "main")
 TELEGRAM_CHANNEL = os.environ.get("TELEGRAM_CHANNEL", "@filipina_allure")
 ALLOWED_USER_ID   = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+GROQ_API_KEY        = os.environ.get("GROQ_API_KEY", "")
+TRANSCRIBE_API_TOKEN = os.environ.get("TRANSCRIBE_API_TOKEN", "")
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "tools"))
+import chunk_audio as _chunk_audio
 
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
@@ -614,6 +622,112 @@ async def _generate_portrait(req: _PortraitRequest):
     except Exception as exc:
         logger.exception("Portrait generation failed")
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ---------------------------------------------------------------------------
+# Transcription API  (long .mp3/.mov -> verbatim .txt, chunked through
+# Groq's Whisper API so hour-plus recordings stay under its 25 MB cap)
+# ---------------------------------------------------------------------------
+
+_TRANSCRIBE_JOBS: dict[str, dict] = {}
+_TRANSCRIBE_TMP_ROOT = Path(tempfile.gettempdir()) / "joyce_transcribe_jobs"
+
+
+def _check_transcribe_auth(authorization: str) -> None:
+    if not TRANSCRIBE_API_TOKEN:
+        raise HTTPException(status_code=503, detail="Transcription service not configured (TRANSCRIBE_API_TOKEN missing).")
+    token = authorization.removeprefix("Bearer ").strip()
+    if token != TRANSCRIBE_API_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid or missing token.")
+
+
+async def _whisper_transcribe_chunk(client: httpx.AsyncClient, chunk_path: Path) -> str:
+    audio_bytes = await asyncio.to_thread(chunk_path.read_bytes)
+    resp = await client.post(
+        "https://api.groq.com/openai/v1/audio/transcriptions",
+        headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+        data={"model": "whisper-large-v3", "response_format": "text"},
+        files={"file": (chunk_path.name, audio_bytes, "audio/mpeg")},
+    )
+    resp.raise_for_status()
+    return resp.text.strip()
+
+
+def _chunk_job_file(media_path: Path, chunks_dir: Path) -> list[Path]:
+    """Blocking ffmpeg work — run this inside asyncio.to_thread."""
+    _chunk_audio.check_ffmpeg()
+    chunks_dir.mkdir(parents=True, exist_ok=True)
+    tmp_audio = chunks_dir.parent / "extracted_full.mp3"
+    try:
+        _chunk_audio.extract_audio(media_path, tmp_audio, "64k")
+        duration = _chunk_audio.get_duration_seconds(tmp_audio)
+        chunk_seconds = int((24_000_000 * 8 * 0.9) / _chunk_audio.parse_bitrate("64k"))
+        return _chunk_audio.split_into_chunks(tmp_audio, chunks_dir, chunk_seconds)
+    finally:
+        tmp_audio.unlink(missing_ok=True)
+
+
+async def _process_transcription_job(job_id: str, media_path: Path) -> None:
+    job = _TRANSCRIBE_JOBS[job_id]
+    job_dir = media_path.parent
+    try:
+        job["status"] = "chunking"
+        chunks = await asyncio.to_thread(_chunk_job_file, media_path, job_dir / "chunks")
+        if not chunks:
+            raise RuntimeError("No audio chunks were produced.")
+
+        job["status"] = "transcribing"
+        job["total_chunks"] = len(chunks)
+        transcript_parts = []
+        async with httpx.AsyncClient(timeout=httpx.Timeout(600.0)) as client:
+            for i, chunk_path in enumerate(chunks, 1):
+                job["progress"] = f"{i}/{len(chunks)}"
+                text = await _whisper_transcribe_chunk(client, chunk_path)
+                if text:
+                    transcript_parts.append(text)
+
+        job["status"] = "done"
+        job["text"] = " ".join(transcript_parts)
+    except Exception as exc:
+        logger.exception("Transcription job %s failed", job_id)
+        job["status"] = "error"
+        job["error"] = str(exc)
+    finally:
+        shutil.rmtree(job_dir, ignore_errors=True)
+
+
+@portrait_api.post("/transcribe/start")
+async def _start_transcription(authorization: str = Header(default=""), file: UploadFile = File(...)):
+    _check_transcribe_auth(authorization)
+
+    suffix = Path(file.filename or "").suffix.lower()
+    if suffix not in _chunk_audio.SUPPORTED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {suffix}. Expected .mp3 or .mov")
+
+    job_id = uuid.uuid4().hex
+    job_dir = _TRANSCRIBE_TMP_ROOT / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+    media_path = job_dir / f"source{suffix}"
+
+    def _save():
+        with media_path.open("wb") as out_f:
+            shutil.copyfileobj(file.file, out_f)
+
+    await asyncio.to_thread(_save)
+
+    _TRANSCRIBE_JOBS[job_id] = {"status": "queued", "progress": "", "text": "", "error": ""}
+    asyncio.create_task(_process_transcription_job(job_id, media_path))
+
+    return {"job_id": job_id, "status": "queued"}
+
+
+@portrait_api.get("/transcribe/status/{job_id}")
+async def _transcription_status(job_id: str, authorization: str = Header(default="")):
+    _check_transcribe_auth(authorization)
+    job = _TRANSCRIBE_JOBS.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Unknown job_id.")
+    return job
 
 
 # ---------------------------------------------------------------------------
