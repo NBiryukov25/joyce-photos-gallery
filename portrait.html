@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="The Three Faces — build and collect character portraits.">
-  <title>The Three Faces · Sheryl Joyce</title>
+  <meta name="description" content="Tools — Three Faces character portraits and audio/video transcription.">
+  <title>Tools · Sheryl Joyce</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
@@ -141,14 +141,37 @@
         <a href="senza-veli.html" class="nav-link">Senza Veli</a>
         <a href="stories.html" class="nav-link">Stories</a>
         <a href="friends.html" class="nav-link">Friends</a>
-        <a href="portrait.html" class="nav-link active">Portrait</a>
+        <a href="portrait.html" class="nav-link active">Tools</a>
         <a href="joyce-ultra.html" class="nav-link">Ultra</a>
       </nav>
     </div>
   </header>
 
+  <!-- ═══════════════════════════════════ TOOLS HUB ═══════════════════════════════════ -->
+  <div id="view-tools-home" hidden>
+    <section class="portrait-hero">
+      <p class="portrait-overline">Sheryl Joyce</p>
+      <h1 class="portrait-title">Tools</h1>
+      <p class="portrait-subtitle">Small utilities for building the site</p>
+    </section>
+    <hr class="portrait-divider">
+    <div class="char-grid">
+      <div class="char-card" id="tool-card-three-faces">
+        <p class="char-card-name">Three Faces</p>
+        <p class="char-card-snippet">Build character portraits — Persona, Ego, Shadow — from a few notes or freeform observations.</p>
+      </div>
+      <div class="char-card" id="tool-card-transcribe">
+        <p class="char-card-name">Transcribe</p>
+        <p class="char-card-snippet">Upload an .mp3 or .mov and get back a verbatim text transcript. Any length — long recordings are chunked automatically.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════════════════════════════ COLLECTION VIEW ═══════════════════════════════════ -->
   <div id="view-collection" hidden>
+    <div class="view-header" style="border-bottom:none; padding-bottom:0; margin-bottom:0.5rem;">
+      <button class="back-btn" id="collection-back-to-tools-btn">← Tools</button>
+    </div>
     <section class="portrait-hero">
       <p class="portrait-overline">Character Study</p>
       <h1 class="portrait-title">The Three Faces</h1>
@@ -285,9 +308,41 @@
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════ TRANSCRIBE VIEW ═══════════════════════════════════ -->
+  <div id="view-transcribe" hidden>
+    <div class="view-header">
+      <button class="back-btn" id="transcribe-back-btn">← Tools</button>
+      <span class="view-title">Transcribe</span>
+    </div>
+
+    <div class="char-form" style="max-width:720px">
+      <div class="field-group">
+        <label class="field-label" for="transcribe-file-input">Audio or video file <span class="field-hint">.mp3 or .mov, any length</span></label>
+        <input type="file" id="transcribe-file-input" accept=".mp3,.mov,audio/mpeg,video/quicktime" class="field-input" style="padding:0.6rem 0.7rem;">
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="pill-btn primary" id="transcribe-submit-btn" disabled>Transcribe</button>
+      </div>
+
+      <p id="transcribe-status" style="font-family:'Jost',sans-serif; font-size:0.72rem; color:rgba(247,241,238,0.45); margin-top:1.2rem;"></p>
+
+      <div id="transcribe-result-wrap" style="display:none; margin-top:1.5rem;">
+        <label class="field-label">Transcript</label>
+        <textarea id="transcribe-result-text" class="field-textarea" style="min-height:260px" readonly></textarea>
+        <div class="form-actions">
+          <button type="button" class="pill-btn" id="transcribe-copy-btn">Copy</button>
+          <button type="button" class="pill-btn" id="transcribe-download-btn">Download .txt</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     var API_BASE = 'https://worker-production-7184.up.railway.app';
     var STORAGE_KEY = 'joyce_portraits_v1';
+    var TRANSCRIBE_TOKEN = 'D2uCUAHstMee2EV-0c-_YBHNQ7hDivV11QdPRja8azY';
+    var TRANSCRIBE_PASSWORD = 'sherylonly';
 
     // ── state ──────────────────────────────────────────────────────────────────
     var _editingId   = null;   // id of character being edited (null = new)
@@ -321,7 +376,7 @@
 
     // ── views ──────────────────────────────────────────────────────────────────
     function showView(name) {
-      ['collection', 'form', 'portrait'].forEach(function(v) {
+      ['tools-home', 'collection', 'form', 'portrait', 'transcribe'].forEach(function(v) {
         document.getElementById('view-' + v).hidden = (v !== name);
       });
       window.scrollTo(0, 0);
@@ -534,12 +589,153 @@
       showView('form');
     });
 
-    document.getElementById('form-back-btn').addEventListener('click', function() {
+    // ── tools hub ──────────────────────────────────────────────────────────────
+    document.getElementById('tool-card-three-faces').addEventListener('click', function() {
       renderCollection();
     });
-    document.getElementById('form-cancel-btn').addEventListener('click', function() {
-      renderCollection();
+    document.getElementById('collection-back-to-tools-btn').addEventListener('click', function() {
+      showView('tools-home');
     });
+
+    document.getElementById('tool-card-transcribe').addEventListener('click', function() {
+      if (!ensureTranscribeUnlocked()) return;
+      resetTranscribeUI();
+      showView('transcribe');
+    });
+    document.getElementById('transcribe-back-btn').addEventListener('click', function() {
+      showView('tools-home');
+    });
+
+    function ensureTranscribeUnlocked() {
+      if (sessionStorage.getItem('transcribe_unlocked') === '1') return true;
+      var pw = prompt('Enter password to use this tool:');
+      if (pw === null) return false;
+      if (pw === TRANSCRIBE_PASSWORD) {
+        sessionStorage.setItem('transcribe_unlocked', '1');
+        return true;
+      }
+      alert('Incorrect password.');
+      return false;
+    }
+
+    // ── transcribe ─────────────────────────────────────────────────────────────
+    var _transcribeFile = null;
+
+    function resetTranscribeUI() {
+      _transcribeFile = null;
+      document.getElementById('transcribe-file-input').value = '';
+      document.getElementById('transcribe-submit-btn').disabled = true;
+      document.getElementById('transcribe-submit-btn').textContent = 'Transcribe';
+      document.getElementById('transcribe-status').textContent = '';
+      document.getElementById('transcribe-result-wrap').style.display = 'none';
+      document.getElementById('transcribe-result-text').value = '';
+    }
+
+    function setTranscribeStatus(text, isError) {
+      var el = document.getElementById('transcribe-status');
+      el.textContent = text;
+      el.style.color = isError ? '#c05050' : 'rgba(247,241,238,0.45)';
+    }
+
+    document.getElementById('transcribe-file-input').addEventListener('change', function(e) {
+      _transcribeFile = e.target.files[0] || null;
+      document.getElementById('transcribe-submit-btn').disabled = !_transcribeFile;
+      document.getElementById('transcribe-result-wrap').style.display = 'none';
+      setTranscribeStatus('', false);
+    });
+
+    document.getElementById('transcribe-submit-btn').addEventListener('click', function() {
+      if (!_transcribeFile) return;
+      var ext = (_transcribeFile.name.split('.').pop() || '').toLowerCase();
+      if (ext !== 'mp3' && ext !== 'mov') {
+        setTranscribeStatus('Unsupported file type — please choose an .mp3 or .mov file.', true);
+        return;
+      }
+      startTranscription(_transcribeFile);
+    });
+
+    function startTranscription(file) {
+      var btn = document.getElementById('transcribe-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Uploading…';
+      document.getElementById('transcribe-result-wrap').style.display = 'none';
+      setTranscribeStatus('Uploading file…', false);
+
+      var form = new FormData();
+      form.append('file', file);
+
+      fetch(API_BASE + '/transcribe/start', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + TRANSCRIBE_TOKEN },
+        body: form,
+      })
+      .then(function(res) {
+        if (!res.ok) return res.json().then(function(b) { throw new Error(b.detail || 'Upload failed'); });
+        return res.json();
+      })
+      .then(function(data) {
+        btn.textContent = 'Transcribe';
+        pollTranscription(data.job_id);
+      })
+      .catch(function(err) {
+        btn.disabled = false;
+        btn.textContent = 'Transcribe';
+        setTranscribeStatus(err.message, true);
+      });
+    }
+
+    function pollTranscription(jobId) {
+      setTranscribeStatus('Processing…', false);
+      var poll = function() {
+        fetch(API_BASE + '/transcribe/status/' + jobId, {
+          headers: { 'Authorization': 'Bearer ' + TRANSCRIBE_TOKEN },
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(job) {
+          if (job.status === 'done') {
+            setTranscribeStatus('Done.', false);
+            document.getElementById('transcribe-result-text').value = job.text;
+            document.getElementById('transcribe-result-wrap').style.display = '';
+            document.getElementById('transcribe-submit-btn').disabled = false;
+          } else if (job.status === 'error') {
+            setTranscribeStatus('Failed: ' + job.error, true);
+            document.getElementById('transcribe-submit-btn').disabled = false;
+          } else {
+            var progress = job.progress ? ' (' + job.progress + ')' : '';
+            setTranscribeStatus((job.status === 'chunking' ? 'Chunking audio…' : 'Transcribing…') + progress, false);
+            setTimeout(poll, 4000);
+          }
+        })
+        .catch(function() { setTimeout(poll, 6000); });
+      };
+      poll();
+    }
+
+    document.getElementById('transcribe-copy-btn').addEventListener('click', function() {
+      var ta = document.getElementById('transcribe-result-text');
+      ta.select();
+      document.execCommand('copy');
+    });
+
+    document.getElementById('transcribe-download-btn').addEventListener('click', function() {
+      var text = document.getElementById('transcribe-result-text').value;
+      var blob = new Blob([text], { type: 'text/plain' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = (_transcribeFile ? _transcribeFile.name.replace(/\.[^.]+$/, '') : 'transcript') + '.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    function backFromForm() {
+      if (getCollection().length === 0) { showView('tools-home'); }
+      else { renderCollection(); }
+    }
+    document.getElementById('form-back-btn').addEventListener('click', backFromForm);
+    document.getElementById('form-cancel-btn').addEventListener('click', backFromForm);
 
     document.getElementById('portrait-back-btn').addEventListener('click', function() {
       renderCollection();
@@ -675,7 +871,7 @@
     }
 
     // ── boot ───────────────────────────────────────────────────────────────────
-    renderCollection();
+    showView('tools-home');
   </script>
 
 </body>
