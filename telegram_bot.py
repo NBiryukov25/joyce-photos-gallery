@@ -470,7 +470,7 @@ portrait_api.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 _PORTRAIT_SYSTEM = """\
