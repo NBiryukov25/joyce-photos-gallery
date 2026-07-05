@@ -76,7 +76,7 @@ import chunk_audio as _chunk_audio
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY = range(20)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY = range(22)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -459,6 +459,25 @@ def _update_ultra_index(ultra_html: bytes, gallery: str, filename: str) -> bytes
         f'</div></div>\n'
     )
     return text.replace('<!-- ultra-gallery-insert -->', card + '<!-- ultra-gallery-insert -->').encode("utf-8")
+
+
+def _update_senza_index(senza_html: bytes, gallery: str, filename: str) -> bytes:
+    text = senza_html.decode("utf-8")
+    html_path = _html_rel_path(gallery)
+    if html_path in text:
+        return senza_html  # card already present
+    name = gallery.replace("-", " ").title()
+    img_src = f"assets/{gallery}/{filename}"
+    card = (
+        f'    <div class="gallery-item">'
+        f'<a href="{html_path}" data-collection="{gallery.lower()}">'
+        f'<img loading="lazy" decoding="async" src="{img_src}" alt="{_safe_html(name)}"></a>'
+        f'<div class="gallery-caption">'
+        f'<p class="gallery-caption-title">{_safe_html(name)}</p>'
+        f'<a class="gallery-view-link" href="{html_path}">View full series →</a>'
+        f'</div></div>\n'
+    )
+    return text.replace('<!-- senza-gallery-insert -->', card + '<!-- senza-gallery-insert -->').encode("utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -932,6 +951,7 @@ async def photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         keyboard.append([
             InlineKeyboardButton("Friends →", callback_data="g:__friends__"),
             InlineKeyboardButton("Joyce Ultra →", callback_data="g:__ultra__"),
+            InlineKeyboardButton("Senza Veli →", callback_data="g:__senza__"),
         ])
         keyboard.append([InlineKeyboardButton("+ New Gallery", callback_data="g:__new__")])
         await update.message.reply_text(
@@ -976,7 +996,16 @@ async def gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await query.edit_message_text("Which Ultra gallery?", reply_markup=InlineKeyboardMarkup(keyboard))
         return CHOOSING_ULTRA_GALLERY
 
+    if choice == "__senza__":
+        all_galleries = await _existing_galleries()
+        senza_galleries = [g for g in all_galleries if not g.startswith("Friends-") and not g.startswith("Ultra-")]
+        keyboard = [[InlineKeyboardButton(g.replace("-", " "), callback_data=f"z:{g}")] for g in senza_galleries]
+        keyboard.append([InlineKeyboardButton("+ New Senza Veli Gallery", callback_data="z:__new__")])
+        await query.edit_message_text("Which Senza Veli gallery?", reply_markup=InlineKeyboardMarkup(keyboard))
+        return CHOOSING_SENZA_GALLERY
+
     context.user_data["gallery"] = choice
+    context.user_data["target_page"] = "gallery"
     n = len(context.user_data.get("pending_album") or [])
     count = f"{n} photos" if n > 1 else "photo"
     await query.edit_message_text(f"Adding {count} to {choice}.\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
@@ -991,6 +1020,7 @@ async def friend_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TY
         await query.edit_message_text("Name this friend group (e.g. Nicole, Maria):")
         return NAMING_FRIEND_GALLERY
     context.user_data["gallery"] = choice
+    context.user_data["target_page"] = "friends"
     name = choice.replace("Friends-", "").replace("-", " ").title()
     n = len(context.user_data.get("pending_album") or [])
     count = f"{n} photos" if n > 1 else "photo"
@@ -1003,6 +1033,7 @@ async def friend_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYP
     name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "Friend"
     gallery = f"Friends-{name}"
     context.user_data["gallery"] = gallery
+    context.user_data["target_page"] = "friends"
     await update.message.reply_text(f"New friend gallery: {name.replace('-', ' ')}\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
 
@@ -1015,6 +1046,7 @@ async def ultra_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.edit_message_text("Name this Ultra gallery (e.g. Night-Session):")
         return NAMING_ULTRA_GALLERY
     context.user_data["gallery"] = choice
+    context.user_data["target_page"] = "ultra"
     name = choice.replace("Ultra-", "").replace("-", " ").title()
     n = len(context.user_data.get("pending_album") or [])
     count = f"{n} photos" if n > 1 else "photo"
@@ -1027,7 +1059,33 @@ async def ultra_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE
     name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "Ultra"
     gallery = f"Ultra-{name}"
     context.user_data["gallery"] = gallery
+    context.user_data["target_page"] = "ultra"
     await update.message.reply_text(f"New Ultra gallery: {name.replace('-', ' ')}\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
+    return ADDING_CAPTION
+
+
+async def senza_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    choice = query.data[2:]  # strips "z:"
+    if choice == "__new__":
+        await query.edit_message_text("Name this Senza Veli gallery (e.g. Night-Moves):")
+        return NAMING_SENZA_GALLERY
+    context.user_data["gallery"] = choice
+    context.user_data["target_page"] = "senza"
+    name = choice.replace("-", " ").title()
+    n = len(context.user_data.get("pending_album") or [])
+    count = f"{n} photos" if n > 1 else "photo"
+    await query.edit_message_text(f"Adding {count} to {name} (Senza Veli).\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
+    return ADDING_CAPTION
+
+
+async def senza_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    raw = update.message.text.strip()
+    name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "New-Gallery"
+    context.user_data["gallery"] = name
+    context.user_data["target_page"] = "senza"
+    await update.message.reply_text(f"New Senza Veli gallery: {name.replace('-', ' ')}\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
 
 
@@ -1035,6 +1093,7 @@ async def gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     raw = update.message.text.strip()
     name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "New-Gallery"
     context.user_data["gallery"] = name
+    context.user_data["target_page"] = "gallery"
     await update.message.reply_text(f"Gallery: {name}\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
 
@@ -1210,6 +1269,7 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     # New gallery → add card to the appropriate index page
     if is_new_gallery:
         first_filename = uploaded_files[0][0]
+        target_page = context.user_data.get("target_page", "")
         if gallery.startswith("Friends-"):
             friends_html, friends_sha = await _gh_get_file("friends.html")
             if friends_html:
@@ -1222,6 +1282,18 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 updated = _update_ultra_index(ultra_html, gallery, first_filename)
                 if updated != ultra_html:
                     await _gh_put_file("joyce-ultra.html", updated, f"Add {gallery} to Joyce Ultra", sha=ultra_sha)
+        elif target_page == "senza":
+            senza_html, senza_sha = await _gh_get_file("senza-veli.html")
+            if senza_html:
+                updated = _update_senza_index(senza_html, gallery, first_filename)
+                if updated != senza_html:
+                    await _gh_put_file("senza-veli.html", updated, f"Add {gallery} to Senza Veli", sha=senza_sha)
+        else:
+            gallery_html, gallery_sha = await _gh_get_file("gallery.html")
+            if gallery_html:
+                updated = _update_gallery_index(gallery_html, gallery, first_filename)
+                if updated != gallery_html:
+                    await _gh_put_file("gallery.html", updated, f"Add {gallery} to gallery index", sha=gallery_sha)
 
     gallery_url = f"{GITHUB_PAGES_URL}/{html_rel}"
     if gallery.startswith("Friends-"):
@@ -2386,6 +2458,8 @@ def main() -> None:
             NAMING_FRIEND_GALLERY:   [MessageHandler(filters.TEXT & ~filters.COMMAND, friend_gallery_named)],
             CHOOSING_ULTRA_GALLERY:  [CallbackQueryHandler(ultra_gallery_chosen, pattern=r"^u:")],
             NAMING_ULTRA_GALLERY:    [MessageHandler(filters.TEXT & ~filters.COMMAND, ultra_gallery_named)],
+            CHOOSING_SENZA_GALLERY:  [CallbackQueryHandler(senza_gallery_chosen, pattern=r"^z:")],
+            NAMING_SENZA_GALLERY:    [MessageHandler(filters.TEXT & ~filters.COMMAND, senza_gallery_named)],
             ADDING_CAPTION:          [
                 CommandHandler("skip", caption_skipped),
                 CallbackQueryHandler(skip_caption_button, pattern=rf"^{_SKIP_CB}$"),
