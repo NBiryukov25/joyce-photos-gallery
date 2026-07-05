@@ -1,0 +1,84 @@
+name: Build and Deploy to Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.set_url.outputs.page_url }}
+    steps:
+      - name: Deploy attempt 1
+        id: d1
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+
+      - name: Wait before retry 2
+        if: steps.d1.outcome == 'failure'
+        run: |
+          echo "Attempt 1 failed — waiting 30s before retry..."
+          sleep 30
+
+      - name: Deploy attempt 2
+        id: d2
+        if: steps.d1.outcome == 'failure'
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+
+      - name: Wait before retry 3
+        if: steps.d1.outcome == 'failure' && steps.d2.outcome == 'failure'
+        run: |
+          echo "Attempt 2 failed — waiting 60s before final retry..."
+          sleep 60
+
+      - name: Deploy attempt 3
+        id: d3
+        if: steps.d1.outcome == 'failure' && steps.d2.outcome == 'failure'
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+
+      - name: Fail if all attempts failed
+        if: steps.d1.outcome == 'failure' && steps.d2.outcome == 'failure' && steps.d3.outcome == 'failure'
+        run: |
+          echo "All 3 deploy attempts failed."
+          exit 1
+
+      - name: Set page URL output
+        id: set_url
+        run: |
+          if [ "${{ steps.d1.outcome }}" == "success" ]; then
+            echo "page_url=${{ steps.d1.outputs.page_url }}" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.d2.outcome }}" == "success" ]; then
+            echo "page_url=${{ steps.d2.outputs.page_url }}" >> $GITHUB_OUTPUT
+          else
+            echo "page_url=${{ steps.d3.outputs.page_url }}" >> $GITHUB_OUTPUT
+          fi
