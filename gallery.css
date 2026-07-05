@@ -1098,3 +1098,83 @@ h1, h2, .hero-name, .page-hero-title {
     grid-row: span 1;
   }
 }
+
+/* ---- SCROLL-REVEAL (progressive enhancement) ----
+   Cards fade + rise as they enter the viewport. Nothing is hidden
+   unless JS added `.js-reveal` to <html>, so no-JS users see everything.
+   Fully disabled under prefers-reduced-motion. */
+.js-reveal .reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  will-change: opacity, transform;
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.js-reveal .reveal.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .js-reveal .reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* ---- LIGHTBOX ZOOM STATE ----
+   While zoomed, drop the zoom-out cursor on the backdrop and let the
+   image own the pointer for grab/pan. */
+.lb-overlay.lb-zoomed { cursor: default; }
+.lb-overlay.lb-zoomed .lb-img-wrap { touch-action: none; }
+.lb-img { touch-action: none; transform-origin: center center; }
+
+/* ---- LIGHTBOX THUMBNAIL FILMSTRIP ---- */
+.lb-thumbs {
+  position: fixed;
+  bottom: 4.4em;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  max-width: 92vw;
+  overflow-x: auto;
+  padding: 6px 4px;
+  z-index: 1001;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.25) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.lb-thumbs::-webkit-scrollbar { height: 5px; }
+.lb-thumbs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+.lb-thumb {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 2px;
+  background-color: #1a1412;
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  opacity: 0.42;
+  transition: opacity 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.lb-thumb:hover { opacity: 0.8; }
+.lb-thumb.active {
+  opacity: 1;
+  border-color: rgba(224,120,120,0.85);
+  transform: translateY(-2px);
+}
+/* When the filmstrip is shown, lift the caption above it. */
+.lb-overlay:not(.lb-zoomed) .lb-caption { bottom: 8.6em; }
+/* Hide the filmstrip while zoomed so it doesn't clutter the panning view. */
+.lb-overlay.lb-zoomed .lb-thumbs { opacity: 0; pointer-events: none; }
+
+@media (max-width: 600px) {
+  .lb-thumb { width: 44px; height: 44px; }
+  .lb-thumbs { bottom: 4.2em; }
+  .lb-overlay:not(.lb-zoomed) .lb-caption { bottom: 8.2em; font-size: 0.8em; }
+}
+@media (max-height: 520px) {
+  /* Very short viewports: drop the filmstrip to keep the photo usable. */
+  .lb-thumbs { display: none !important; }
+  .lb-overlay:not(.lb-zoomed) .lb-caption { bottom: 4.6em; }
+}
