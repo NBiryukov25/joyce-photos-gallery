@@ -162,7 +162,7 @@
       </div>
       <div class="char-card" id="tool-card-transcribe">
         <p class="char-card-name">Transcribe</p>
-        <p class="char-card-snippet">Upload an .mp3 or .mov and get back a verbatim text transcript. Any length — long recordings are chunked automatically.</p>
+        <p class="char-card-snippet">Upload an .mp3, .mov, or .mp4 and get back a verbatim text transcript. Any length — long recordings are chunked automatically.</p>
       </div>
     </div>
   </div>
@@ -317,8 +317,8 @@
 
     <div class="char-form" style="max-width:720px">
       <div class="field-group">
-        <label class="field-label" for="transcribe-file-input">Audio or video file <span class="field-hint">.mp3 or .mov, any length</span></label>
-        <input type="file" id="transcribe-file-input" accept=".mp3,.mov,audio/mpeg,video/quicktime" class="field-input" style="padding:0.6rem 0.7rem;">
+        <label class="field-label" for="transcribe-file-input">Audio or video file <span class="field-hint">.mp3, .mov, or .mp4, any length</span></label>
+        <input type="file" id="transcribe-file-input" accept=".mp3,.mov,.mp4,audio/mpeg,video/quicktime,video/mp4" class="field-input" style="padding:0.6rem 0.7rem;">
       </div>
 
       <div class="form-actions">
@@ -647,8 +647,8 @@
     document.getElementById('transcribe-submit-btn').addEventListener('click', function() {
       if (!_transcribeFile) return;
       var ext = (_transcribeFile.name.split('.').pop() || '').toLowerCase();
-      if (ext !== 'mp3' && ext !== 'mov') {
-        setTranscribeStatus('Unsupported file type — please choose an .mp3 or .mov file.', true);
+      if (ext !== 'mp3' && ext !== 'mov' && ext !== 'mp4') {
+        setTranscribeStatus('Unsupported file type — please choose an .mp3, .mov, or .mp4 file.', true);
         return;
       }
       startTranscription(_transcribeFile);
