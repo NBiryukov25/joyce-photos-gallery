@@ -949,11 +949,13 @@ async def photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         regular = [g for g in galleries if not g.startswith("Friends-")]
         keyboard = [[InlineKeyboardButton(g, callback_data=f"g:{g}")] for g in regular]
         keyboard.append([
+            InlineKeyboardButton("Galleries →", callback_data="g:__galleries__"),
             InlineKeyboardButton("Friends →", callback_data="g:__friends__"),
+        ])
+        keyboard.append([
             InlineKeyboardButton("Joyce Ultra →", callback_data="g:__ultra__"),
             InlineKeyboardButton("Senza Veli →", callback_data="g:__senza__"),
         ])
-        keyboard.append([InlineKeyboardButton("+ New Gallery", callback_data="g:__new__")])
         await update.message.reply_text(
             "Which gallery?",
             reply_markup=InlineKeyboardMarkup(keyboard),
@@ -973,6 +975,14 @@ async def gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if choice == "__new__":
         await query.edit_message_text("New gallery name? (e.g. Paris-Summer)")
         return NAMING_GALLERY
+
+    if choice == "__galleries__":
+        all_galleries = await _existing_galleries()
+        main_galleries = [g for g in all_galleries if not g.startswith("Friends-") and not g.startswith("Ultra-")]
+        keyboard = [[InlineKeyboardButton(g.replace("-", " "), callback_data=f"g:{g}")] for g in main_galleries]
+        keyboard.append([InlineKeyboardButton("+ New Gallery", callback_data="g:__new__")])
+        await query.edit_message_text("Which gallery? (added to gallery.html)", reply_markup=InlineKeyboardMarkup(keyboard))
+        return CHOOSING_GALLERY
 
     if choice == "__friends__":
         all_galleries = await _existing_galleries()
