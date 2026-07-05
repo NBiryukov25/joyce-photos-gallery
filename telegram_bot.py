@@ -702,7 +702,7 @@ async def _start_transcription(authorization: str = Header(default=""), file: Up
 
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in _chunk_audio.SUPPORTED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {suffix}. Expected .mp3 or .mov")
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {suffix}. Expected .mp3, .mov, or .mp4")
 
     job_id = uuid.uuid4().hex
     job_dir = _TRANSCRIBE_TMP_ROOT / job_id

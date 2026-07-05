@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Split the audio from a long .mp3/.mov file into sequential chunks small
-enough for cloud transcription APIs (e.g. OpenAI Whisper's 25 MB upload
-limit).
+Split the audio from a long .mp3/.mov/.mp4 file into sequential chunks
+small enough for cloud transcription APIs (e.g. OpenAI Whisper's 25 MB
+upload limit).
 
 Usage:
     python3 tools/chunk_audio.py input.mov
@@ -26,7 +26,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-SUPPORTED_EXTENSIONS = {".mp3", ".mov"}
+SUPPORTED_EXTENSIONS = {".mp3", ".mov", ".mp4"}
 
 
 def check_ffmpeg():
@@ -95,8 +95,8 @@ def split_into_chunks(audio_path: Path, output_dir: Path, chunk_seconds: int) ->
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Split audio from an .mp3/.mov file into sequential chunks under a size limit.")
-    parser.add_argument("input", help="Path to a .mp3 or .mov file")
+    parser = argparse.ArgumentParser(description="Split audio from an .mp3/.mov/.mp4 file into sequential chunks under a size limit.")
+    parser.add_argument("input", help="Path to a .mp3, .mov, or .mp4 file")
     parser.add_argument("--output-dir", "-o", default=None, help="Folder to write chunks to (default: <input-name>_chunks/ next to the source file)")
     parser.add_argument("--max-mb", type=float, default=24, help="Maximum size per chunk in MB (default: 24, safely under OpenAI's 25 MB limit)")
     parser.add_argument("--bitrate", default="64k", help="Audio bitrate for the extracted track (default: 64k -- plenty for speech, keeps chunks small)")
@@ -108,7 +108,7 @@ def main():
     if not input_path.is_file():
         sys.exit(f"No such file: {input_path}")
     if input_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
-        sys.exit(f"Unsupported file type: {input_path.suffix}. Expected .mp3 or .mov")
+        sys.exit(f"Unsupported file type: {input_path.suffix}. Expected .mp3, .mov, or .mp4")
 
     output_dir = Path(args.output_dir).expanduser().resolve() if args.output_dir else input_path.parent / f"{input_path.stem}_chunks"
     output_dir.mkdir(parents=True, exist_ok=True)

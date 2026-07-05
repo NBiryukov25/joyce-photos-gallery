@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Transcribe spoken audio from .mp3 or .mov files into verbatim .txt transcripts.
+Transcribe spoken audio from .mp3, .mov, or .mp4 files into verbatim .txt transcripts.
 
 Usage:
     python3 tools/transcribe_video.py <file_or_folder> [options]
@@ -26,13 +26,13 @@ import argparse
 import sys
 from pathlib import Path
 
-SUPPORTED_EXTENSIONS = {".mp3", ".mov"}
+SUPPORTED_EXTENSIONS = {".mp3", ".mov", ".mp4"}
 
 
 def find_input_files(input_path: Path) -> list[Path]:
     if input_path.is_file():
         if input_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
-            raise ValueError(f"Unsupported file type: {input_path.suffix}. Expected .mp3 or .mov")
+            raise ValueError(f"Unsupported file type: {input_path.suffix}. Expected .mp3, .mov, or .mp4")
         return [input_path]
     if input_path.is_dir():
         files = sorted(
@@ -40,7 +40,7 @@ def find_input_files(input_path: Path) -> list[Path]:
             if p.suffix.lower() in SUPPORTED_EXTENSIONS and p.is_file()
         )
         if not files:
-            raise ValueError(f"No .mp3 or .mov files found in {input_path}")
+            raise ValueError(f"No .mp3, .mov, or .mp4 files found in {input_path}")
         return files
     raise FileNotFoundError(f"No such file or folder: {input_path}")
 
@@ -71,8 +71,8 @@ def transcribe_file(model, media_path: Path, output_dir: Path, language: str | N
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Transcribe .mp3/.mov files to verbatim .txt transcripts.")
-    parser.add_argument("input", help="Path to a single .mp3/.mov file, or a folder to scan for them")
+    parser = argparse.ArgumentParser(description="Transcribe .mp3/.mov/.mp4 files to verbatim .txt transcripts.")
+    parser.add_argument("input", help="Path to a single .mp3/.mov/.mp4 file, or a folder to scan for them")
     parser.add_argument("--output", "-o", default=None, help="Folder to write .txt files to (default: same folder as each source file)")
     parser.add_argument("--model", default="small", choices=["tiny", "base", "small", "medium", "large-v3"], help="Whisper model size (default: small). Larger = more accurate, slower.")
     parser.add_argument("--language", default=None, help="Force a language code (e.g. 'en'). Default: auto-detect.")
