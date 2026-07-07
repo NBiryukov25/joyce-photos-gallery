@@ -31,6 +31,7 @@ import httpx
 import uvicorn
 from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import anthropic as _anthropic_sdk
 from PIL import Image
@@ -747,6 +748,260 @@ async def _transcription_status(job_id: str, authorization: str = Header(default
     if not job:
         raise HTTPException(status_code=404, detail="Unknown job_id.")
     return job
+
+
+# ---------------------------------------------------------------------------
+# Open-media downloader API
+#
+# Search + download from platforms that grant redistribution rights —
+# Wikimedia Commons, the Internet Archive, and Openverse — as opposed to
+# scraping YouTube/Instagram/X, which their Terms of Service prohibit.
+#
+# /media/download never takes a raw URL from the client: it re-resolves the
+# file server-side from the source's own API using an opaque id, so this
+# endpoint can't be repurposed into a general-purpose downloading proxy.
+# ---------------------------------------------------------------------------
+
+_MEDIA_UA = "SherylJoyceGallery-MediaTool/1.0 (static-site utility; no scraping)"
+_MEDIA_SOURCES = {"wikimedia", "archive", "openverse"}
+
+_ARCHIVE_EXT_BY_TYPE = {
+    "image": ["jpg", "jpeg", "png", "gif", "webp", "tif", "tiff"],
+    "video": ["mp4", "ogv", "webm", "mov", "mpeg", "mpg"],
+    "audio": ["mp3", "ogg", "oga", "flac", "wav", "m4a"],
+}
+_WIKIMEDIA_FILETYPE = {"image": "bitmap", "video": "video", "audio": "audio"}
+
+
+class _MediaResult(BaseModel):
+    id: str
+    source: str
+    title: str
+    thumbnail: str | None = None
+    license: str | None = None
+    type: str
+    page_url: str | None = None
+
+
+async def _search_wikimedia(client: httpx.AsyncClient, q: str, media_type: str) -> list[_MediaResult]:
+    search_q = f"{q} filetype:{_WIKIMEDIA_FILETYPE[media_type]}" if media_type in _WIKIMEDIA_FILETYPE else q
+    r = await client.get(
+        "https://commons.wikimedia.org/w/api.php",
+        params={
+            "action": "query",
+            "generator": "search",
+            "gsrsearch": search_q,
+            "gsrnamespace": 6,
+            "gsrlimit": 24,
+            "prop": "imageinfo",
+            "iiprop": "url|mime|extmetadata",
+            "iiurlwidth": 320,
+            "format": "json",
+        },
+    )
+    r.raise_for_status()
+    pages = ((r.json().get("query") or {}).get("pages")) or {}
+    results = []
+    for page in pages.values():
+        infos = page.get("imageinfo") or []
+        if not infos:
+            continue
+        info = infos[0]
+        mime = info.get("mime", "")
+        kind = ("image" if mime.startswith("image") else
+                "video" if mime.startswith("video") else
+                "audio" if mime.startswith("audio") else "unknown")
+        meta = info.get("extmetadata") or {}
+        title = page["title"]
+        results.append(_MediaResult(
+            id=title,
+            source="wikimedia",
+            title=title.removeprefix("File:"),
+            thumbnail=info.get("thumburl") or info.get("url"),
+            license=(meta.get("LicenseShortName") or {}).get("value", "See file page"),
+            type=kind,
+            page_url=f"https://commons.wikimedia.org/wiki/{urllib.parse.quote(title.replace(' ', '_'))}",
+        ))
+    return results
+
+
+async def _resolve_wikimedia(client: httpx.AsyncClient, page_title: str) -> tuple[str, str]:
+    r = await client.get(
+        "https://commons.wikimedia.org/w/api.php",
+        params={"action": "query", "titles": page_title, "prop": "imageinfo", "iiprop": "url", "format": "json"},
+    )
+    r.raise_for_status()
+    pages = ((r.json().get("query") or {}).get("pages")) or {}
+    for page in pages.values():
+        infos = page.get("imageinfo") or []
+        if infos:
+            return infos[0]["url"], page_title.removeprefix("File:")
+    raise HTTPException(status_code=404, detail="File not found on Wikimedia Commons.")
+
+
+async def _search_archive(client: httpx.AsyncClient, q: str, media_type: str) -> list[_MediaResult]:
+    mediatype_clause = {"image": "image", "video": "movies", "audio": "audio"}.get(media_type, "movies OR audio OR image")
+    r = await client.get(
+        "https://archive.org/advancedsearch.php",
+        params={
+            "q": f"{q} AND mediatype:({mediatype_clause})",
+            "fl[]": ["identifier", "title", "mediatype", "licenseurl"],
+            "rows": 24,
+            "page": 1,
+            "output": "json",
+        },
+    )
+    r.raise_for_status()
+    docs = ((r.json().get("response") or {}).get("docs")) or []
+    results = []
+    for doc in docs:
+        identifier = doc.get("identifier")
+        if not identifier:
+            continue
+        kind = {"image": "image", "movies": "video", "audio": "audio"}.get(doc.get("mediatype"), "unknown")
+        results.append(_MediaResult(
+            id=f"{kind}:{identifier}",
+            source="archive",
+            title=doc.get("title") or identifier,
+            thumbnail=f"https://archive.org/services/img/{identifier}",
+            license=doc.get("licenseurl") or "Internet Archive — check item page",
+            type=kind,
+            page_url=f"https://archive.org/details/{identifier}",
+        ))
+    return results
+
+
+async def _resolve_archive(client: httpx.AsyncClient, item_id: str) -> tuple[str, str]:
+    kind, sep, identifier = item_id.partition(":")
+    if not sep:
+        kind, identifier = "unknown", item_id
+    r = await client.get(f"https://archive.org/metadata/{urllib.parse.quote(identifier, safe='')}")
+    r.raise_for_status()
+    files = r.json().get("files") or []
+    # Search the requested type's extensions first so a video result can't resolve
+    # to a thumbnail frame just because thumbs sort earlier in the fallback order.
+    ext_groups = [_ARCHIVE_EXT_BY_TYPE[kind]] if kind in _ARCHIVE_EXT_BY_TYPE else list(_ARCHIVE_EXT_BY_TYPE.values())
+    for ext_group in ext_groups:
+        for ext in ext_group:
+            for f in files:
+                name = f.get("name", "")
+                if "/" in name or "thumbs" in name.lower():
+                    continue  # skip generated thumbnail-frame subdirectories
+                if name.lower().endswith(f".{ext}"):
+                    url = f"https://archive.org/download/{urllib.parse.quote(identifier, safe='')}/{urllib.parse.quote(name)}"
+                    return url, name
+    raise HTTPException(status_code=404, detail="No downloadable file found for this item.")
+
+
+_OPENVERSE_ENDPOINT = {"image": "images", "audio": "audio"}
+
+
+async def _search_openverse(client: httpx.AsyncClient, q: str, media_type: str) -> list[_MediaResult]:
+    kinds = [media_type] if media_type in ("image", "audio") else (["image", "audio"] if media_type == "all" else [])
+    results = []
+    for kind in kinds:
+        r = await client.get(f"https://api.openverse.org/v1/{_OPENVERSE_ENDPOINT[kind]}/", params={"q": q, "page_size": 20})
+        if r.status_code != 200:
+            continue
+        for item in r.json().get("results") or []:
+            license_bits = f"CC {item.get('license', '').upper()} {item.get('license_version', '')}".strip()
+            results.append(_MediaResult(
+                id=f"{kind}:{item['id']}",
+                source="openverse",
+                title=item.get("title") or "Untitled",
+                thumbnail=item.get("thumbnail") or item.get("url"),
+                license=license_bits,
+                type=kind,
+                page_url=item.get("foreign_landing_url"),
+            ))
+    return results
+
+
+async def _resolve_openverse(client: httpx.AsyncClient, item_id: str) -> tuple[str, str]:
+    kind, _, uuid = item_id.partition(":")
+    if kind not in ("image", "audio") or not uuid:
+        raise HTTPException(status_code=400, detail="Invalid id.")
+    r = await client.get(f"https://api.openverse.org/v1/{_OPENVERSE_ENDPOINT[kind]}/{urllib.parse.quote(uuid, safe='')}/")
+    if r.status_code != 200:
+        raise HTTPException(status_code=404, detail="File not found on Openverse.")
+    data = r.json()
+    url = data.get("url")
+    if not url:
+        raise HTTPException(status_code=404, detail="No direct file URL available for this item.")
+    last_seg = url.rsplit("/", 1)[-1]
+    ext = last_seg.rsplit(".", 1)[-1].split("?")[0] if "." in last_seg else ("jpg" if kind == "image" else "mp3")
+    title = re.sub(r"[^\w\-]", "-", data.get("title") or uuid).strip("-") or uuid
+    return url, f"{title}.{ext}"
+
+
+@portrait_api.get("/media/search", response_model=list[_MediaResult])
+async def _media_search(source: str, q: str, type: str = "all"):
+    if source not in _MEDIA_SOURCES:
+        raise HTTPException(status_code=400, detail="Unknown source.")
+    q = q.strip()
+    if not q:
+        raise HTTPException(status_code=400, detail="Search query is required.")
+    if type not in ("all", "image", "video", "audio"):
+        type = "all"
+    try:
+        async with httpx.AsyncClient(timeout=20, http2=True, headers={"User-Agent": _MEDIA_UA}) as client:
+            if source == "wikimedia":
+                return await _search_wikimedia(client, q, type)
+            if source == "archive":
+                return await _search_archive(client, q, type)
+            return await _search_openverse(client, q, type)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Media search failed")
+        raise HTTPException(status_code=502, detail=f"Search failed: {exc}")
+
+
+@portrait_api.get("/media/download")
+async def _media_download(source: str, id: str):
+    if source not in _MEDIA_SOURCES:
+        raise HTTPException(status_code=400, detail="Unknown source.")
+    try:
+        async with httpx.AsyncClient(timeout=30, http2=True, headers={"User-Agent": _MEDIA_UA}) as client:
+            if source == "wikimedia":
+                url, filename = await _resolve_wikimedia(client, id)
+            elif source == "archive":
+                url, filename = await _resolve_archive(client, id)
+            else:
+                url, filename = await _resolve_openverse(client, id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Media resolve failed")
+        raise HTTPException(status_code=502, detail=f"Could not resolve file: {exc}")
+
+    stream_client = httpx.AsyncClient(
+        timeout=httpx.Timeout(300.0), http2=True, follow_redirects=True, headers={"User-Agent": _MEDIA_UA},
+    )
+    upstream_cm = stream_client.stream("GET", url)
+    upstream = await upstream_cm.__aenter__()
+    if upstream.status_code != 200:
+        await upstream_cm.__aexit__(None, None, None)
+        await stream_client.aclose()
+        raise HTTPException(status_code=502, detail="Upstream file fetch failed.")
+
+    async def _stream():
+        try:
+            async for chunk in upstream.aiter_bytes():
+                yield chunk
+        finally:
+            await upstream_cm.__aexit__(None, None, None)
+            await stream_client.aclose()
+
+    safe_filename = filename.replace('"', "").replace("\r", "").replace("\n", "")
+    ascii_fallback = safe_filename.encode("ascii", "ignore").decode("ascii").strip() or "download"
+    encoded_filename = urllib.parse.quote(safe_filename, safe="")
+    disposition = f'attachment; filename="{ascii_fallback}"; filename*=UTF-8\'\'{encoded_filename}'
+    return StreamingResponse(
+        _stream(),
+        media_type=upstream.headers.get("content-type", "application/octet-stream"),
+        headers={"Content-Disposition": disposition},
+    )
 
 
 # ---------------------------------------------------------------------------

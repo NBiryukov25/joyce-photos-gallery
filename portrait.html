@@ -129,6 +129,18 @@
     .fields-divider::before, .fields-divider::after { content: ''; flex: 1; height: 1px; background: rgba(247,241,238,0.07); }
     @keyframes fieldPop { 0% { border-color: rgba(139,58,58,0.7); background: rgba(139,58,58,0.07); } 100% { border-color: rgba(247,241,238,0.1); background: rgba(255,255,255,0.03); } }
     .field-populated { animation: fieldPop 1.8s ease forwards; }
+
+    /* ── media downloader ── */
+    .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+    .media-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(247,241,238,0.08); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
+    .media-card-thumb-wrap { width: 100%; height: 150px; background: #100c0b; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .media-card-thumb { width: 100%; height: 100%; object-fit: cover; }
+    .media-card-body { padding: 0.8rem 0.9rem 1rem; }
+    .media-card-title { font-family: 'Cormorant Garamond', serif; font-size: 1rem; color: #f7f1ee; margin-bottom: 0.3rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .media-card-license { font-family: 'Jost', sans-serif; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(247,241,238,0.3); margin-bottom: 0.7rem; }
+    .media-card-actions { display: flex; gap: 0.6rem; align-items: center; }
+    .media-card-actions .pill-btn { font-size: 0.6rem; padding: 0.4rem 1rem; }
+    .media-note { font-family: 'Jost', sans-serif; font-size: 0.72rem; color: rgba(247,241,238,0.4); line-height: 1.7; max-width: 640px; margin-bottom: 1.6rem; }
   </style>
 </head>
 <body>
@@ -163,6 +175,10 @@
       <div class="char-card" id="tool-card-transcribe">
         <p class="char-card-name">Transcribe</p>
         <p class="char-card-snippet">Upload an .mp3, .mov, or .mp4 and get back a verbatim text transcript. Any length — long recordings are chunked automatically.</p>
+      </div>
+      <div class="char-card" id="tool-card-media">
+        <p class="char-card-name">Media Downloader</p>
+        <p class="char-card-snippet">Search and download public-domain and Creative Commons photos, video, and audio from Wikimedia Commons, the Internet Archive, and Openverse.</p>
       </div>
     </div>
   </div>
@@ -338,6 +354,49 @@
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════ MEDIA DOWNLOADER VIEW ═══════════════════════════════════ -->
+  <div id="view-media" hidden>
+    <div class="view-header">
+      <button class="back-btn" id="media-back-btn">← Tools</button>
+      <span class="view-title">Media Downloader</span>
+    </div>
+
+    <p class="media-note">
+      Searches only sources that grant redistribution rights — public-domain works and Creative Commons–licensed
+      media. Nothing here is scraped from YouTube, Instagram, or X, and files are fetched straight from each
+      source's own API.
+    </p>
+
+    <form id="media-search-form" style="display:flex; gap:0.8rem; flex-wrap:wrap; margin-bottom:1.6rem; align-items:flex-end;">
+      <div class="field-group" style="margin-bottom:0; flex:2; min-width:220px;">
+        <label class="field-label" for="media-q">Search</label>
+        <input type="text" id="media-q" class="field-input" placeholder="e.g. lighthouse sunset, jazz piano…">
+      </div>
+      <div class="field-group" style="margin-bottom:0; min-width:170px;">
+        <label class="field-label" for="media-source">Source</label>
+        <select id="media-source" class="field-input">
+          <option value="wikimedia">Wikimedia Commons</option>
+          <option value="archive">Internet Archive</option>
+          <option value="openverse">Openverse</option>
+        </select>
+      </div>
+      <div class="field-group" style="margin-bottom:0; min-width:140px;">
+        <label class="field-label" for="media-type">Type</label>
+        <select id="media-type" class="field-input">
+          <option value="all">All</option>
+          <option value="image">Image</option>
+          <option value="video">Video</option>
+          <option value="audio">Audio</option>
+        </select>
+      </div>
+      <button type="submit" class="pill-btn primary" id="media-search-btn">Search</button>
+    </form>
+
+    <p id="media-status" style="font-family:'Jost',sans-serif; font-size:0.72rem; color:rgba(247,241,238,0.45); margin-bottom:1rem;"></p>
+
+    <div class="media-grid" id="media-results"></div>
+  </div>
+
   <script>
     var API_BASE = 'https://worker-production-7184.up.railway.app';
     var STORAGE_KEY = 'joyce_portraits_v1';
@@ -376,7 +435,7 @@
 
     // ── views ──────────────────────────────────────────────────────────────────
     function showView(name) {
-      ['tools-home', 'collection', 'form', 'portrait', 'transcribe'].forEach(function(v) {
+      ['tools-home', 'collection', 'form', 'portrait', 'transcribe', 'media'].forEach(function(v) {
         document.getElementById('view-' + v).hidden = (v !== name);
       });
       window.scrollTo(0, 0);
@@ -604,6 +663,80 @@
     });
     document.getElementById('transcribe-back-btn').addEventListener('click', function() {
       showView('tools-home');
+    });
+
+    // ── media downloader ───────────────────────────────────────────────────────
+    document.getElementById('tool-card-media').addEventListener('click', function() {
+      document.getElementById('media-results').innerHTML = '';
+      document.getElementById('media-status').textContent = '';
+      showView('media');
+    });
+    document.getElementById('media-back-btn').addEventListener('click', function() {
+      showView('tools-home');
+    });
+
+    document.getElementById('media-source').addEventListener('change', function() {
+      var isOpenverse = this.value === 'openverse';
+      var typeSelect = document.getElementById('media-type');
+      var videoOpt = typeSelect.querySelector('option[value="video"]');
+      videoOpt.disabled = isOpenverse;
+      if (isOpenverse && typeSelect.value === 'video') typeSelect.value = 'all';
+    });
+
+    document.getElementById('media-search-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var q = document.getElementById('media-q').value.trim();
+      if (!q) return;
+      var source = document.getElementById('media-source').value;
+      var type   = document.getElementById('media-type').value;
+      var btn      = document.getElementById('media-search-btn');
+      var statusEl = document.getElementById('media-status');
+      var grid     = document.getElementById('media-results');
+
+      btn.disabled = true;
+      btn.textContent = 'Searching…';
+      statusEl.textContent = '';
+      grid.innerHTML = '';
+
+      var url = API_BASE + '/media/search?source=' + encodeURIComponent(source) +
+                '&q=' + encodeURIComponent(q) + '&type=' + encodeURIComponent(type);
+
+      fetch(url)
+        .then(function(res) {
+          if (!res.ok) return res.json().then(function(b) { throw new Error(b.detail || 'Search failed'); });
+          return res.json();
+        })
+        .then(function(results) {
+          if (!results.length) {
+            statusEl.textContent = 'No results.' + (source === 'openverse' && type === 'video' ? ' Openverse does not index video.' : '');
+            return;
+          }
+          statusEl.textContent = results.length + ' result' + (results.length === 1 ? '' : 's');
+          grid.innerHTML = results.map(function(item) {
+            var dlUrl = API_BASE + '/media/download?source=' + encodeURIComponent(item.source) + '&id=' + encodeURIComponent(item.id);
+            var thumb = item.thumbnail
+              ? '<img class="media-card-thumb" src="' + esc(item.thumbnail) + '" loading="lazy" alt="">'
+              : '<span style="color:rgba(247,241,238,0.15); font-family:\'Jost\',sans-serif; font-size:0.6rem; letter-spacing:0.1em; text-transform:uppercase;">' + esc(item.type) + '</span>';
+            return '<div class="media-card">' +
+              '<div class="media-card-thumb-wrap">' + thumb + '</div>' +
+              '<div class="media-card-body">' +
+                '<p class="media-card-title">' + esc(item.title) + '</p>' +
+                '<p class="media-card-license">' + esc(item.license || '') + '</p>' +
+                '<div class="media-card-actions">' +
+                  '<a class="pill-btn primary" href="' + dlUrl + '" download>Download</a>' +
+                  (item.page_url ? '<a class="pill-btn" href="' + esc(item.page_url) + '" target="_blank" rel="noopener">Source</a>' : '') +
+                '</div>' +
+              '</div>' +
+            '</div>';
+          }).join('');
+        })
+        .catch(function(err) {
+          statusEl.textContent = err.message;
+        })
+        .finally(function() {
+          btn.disabled = false;
+          btn.textContent = 'Search';
+        });
     });
 
     function ensureTranscribeUnlocked() {
