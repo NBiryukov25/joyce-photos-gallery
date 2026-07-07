@@ -8,6 +8,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="gallery.css">
+  <style>
+    /* ── VIP page background ── */
+    html {
+      background-color: var(--cream);
+      background-image:
+        linear-gradient(rgba(250, 247, 244, 0.55), rgba(250, 247, 244, 0.82)),
+        url('https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/VIP_Cover_01.jpeg');
+      background-size: cover;
+      background-position: center top;
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+    }
+    @media (max-width: 600px) {
+      html { background-attachment: scroll; }
+    }
+  </style>
 </head>
 <body>
   <header class="site-header">
