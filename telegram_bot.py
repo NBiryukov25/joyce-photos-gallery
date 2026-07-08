@@ -377,7 +377,15 @@ def _updated_html(current: bytes, gallery: str, filename: str, caption: str, htm
     return text.encode("utf-8")
 
 
-def _new_gallery_html(template: bytes, gallery: str, filename: str, caption: str) -> bytes:
+_BACK_LINK_MAP = {
+    "gallery":  ("../gallery.html",       "← Galleries"),
+    "friends":  ("../friends.html",        "← Friends"),
+    "ultra":    ("../joyce-ultra.html",    "← Ultra"),
+    "senza":    ("../senza-veli.html",     "← Senza Veli"),
+}
+
+
+def _new_gallery_html(template: bytes, gallery: str, filename: str, caption: str, target_page: str = "") -> bytes:
     text = template.decode("utf-8")
     title = gallery.replace("-", " ").title()
     text = text.replace("GALLERY TITLE", title)
@@ -388,12 +396,24 @@ def _new_gallery_html(template: bytes, gallery: str, filename: str, caption: str
         text,
     )
     if caption:
-        # Match either array literal (var captions = [...];) or map() call (var captions = x.map(...});)
         text = re.sub(
             r"var captions\s*=[\s\S]*?(?:\]\s*;|\}\s*\)\s*;)",
             f"var captions = [\n        '{_safe_js(caption)}'\n      ];",
             text,
         )
+    # Set the correct back link based on target page
+    if gallery.startswith("Friends-"):
+        page_key = "friends"
+    elif gallery.startswith("Ultra-"):
+        page_key = "ultra"
+    else:
+        page_key = target_page if target_page in _BACK_LINK_MAP else "gallery"
+    back_href, back_label = _BACK_LINK_MAP[page_key]
+    text = re.sub(
+        r'<a class="topbar-btn" href="\.\./[^"]*">←[^<]*</a>',
+        f'<a class="topbar-btn" href="{back_href}">{back_label}</a>',
+        text,
+    )
     return text.encode("utf-8")
 
 
@@ -1202,6 +1222,7 @@ async def _upload_and_register(
     index: int,
     current_html: bytes | None,
     html_sha: str | None,
+    target_page: str = "",
 ) -> tuple[str, bytes, bytes, str | None]:
     """Download, compress, upload one photo/video. Returns (filename, upload_bytes, new_html, new_sha)."""
     file_id   = item["file_id"]
@@ -1231,7 +1252,7 @@ async def _upload_and_register(
         template, _ = await _gh_get_file("galleries/_template-gallery.html")
         if not template:
             raise RuntimeError("Could not find gallery template.")
-        new_html = _new_gallery_html(template, gallery, filename, caption)
+        new_html = _new_gallery_html(template, gallery, filename, caption, target_page=target_page)
 
     ok, err = await _gh_put_file(html_rel, new_html, f"Update {gallery} — add {filename}", sha=html_sha)
     if not ok:
@@ -1268,6 +1289,7 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     current_html, html_sha = await _gh_get_file(html_rel)
     first_html_sha = html_sha  # used to detect new gallery
     is_new_gallery = html_sha is None
+    target_page = context.user_data.get("target_page", "")
 
     uploaded_files: list[tuple[str, bytes, bool]] = []  # (filename, bytes, is_video)
     failed = 0
@@ -1280,7 +1302,7 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 pass
         try:
             filename, upload_bytes, current_html, html_sha = await _upload_and_register(
-                context, gallery, html_rel, item, caption, i, current_html, html_sha
+                context, gallery, html_rel, item, caption, i, current_html, html_sha, target_page=target_page
             )
             uploaded_files.append((filename, upload_bytes, item["is_video"]))
         except Exception as exc:
