@@ -401,6 +401,25 @@ def _html_rel_path(gallery: str) -> str:
     return SPECIAL_HTML.get(gallery) or f"galleries/{gallery.lower()}.html"
 
 
+async def _fix_index_covers(gallery: str, deleted_filename: str, new_html: bytes) -> None:
+    """After deleting a photo, update any index page that uses it as the gallery cover."""
+    new_filenames = _get_js_array_entries(new_html.decode("utf-8"), "filenames")
+    if not new_filenames:
+        return
+    new_cover = new_filenames[0]
+    old_src = f"assets/{gallery}/{deleted_filename}"
+    new_src = f"assets/{gallery}/{new_cover}"
+    for index_path in ("gallery.html", "friends.html", "joyce-ultra.html", "senza-veli.html"):
+        content, sha = await _gh_get_file(index_path)
+        if not content:
+            continue
+        text = content.decode("utf-8")
+        if old_src not in text:
+            continue
+        updated = text.replace(old_src, new_src).encode("utf-8")
+        await _gh_put_file(index_path, updated, f"Fix {gallery} cover after deleting {deleted_filename}", sha=sha)
+
+
 def _update_gallery_index(gallery_html: bytes, gallery: str, filename: str) -> bytes:
     text = gallery_html.decode("utf-8")
     html_path = _html_rel_path(gallery)
@@ -1983,6 +2002,7 @@ async def remove_file_action(update: Update, context: ContextTypes.DEFAULT_TYPE)
             new_html = _remove_from_gallery_html(current_html, gallery, filename)
             if new_html != current_html:
                 await _gh_put_file(html_rel, new_html, f"Remove {filename}", sha=html_sha)
+            await _fix_index_covers(gallery, filename, new_html)
 
         await deleting_msg.edit_text(f"✓ Deleted.")
         files.pop(file_idx)
