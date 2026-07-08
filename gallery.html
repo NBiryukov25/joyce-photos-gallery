@@ -7,6 +7,59 @@
   <title>Sheryl Joyce</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="gallery.css">
+  <style>
+    /* ── Promo Feature Section ── */
+    .promo-feature { margin: 2.2em 0 0.5em; }
+    .promo-overline {
+      font-family: 'Jost', sans-serif; font-size: 0.68rem; font-weight: 300;
+      letter-spacing: 0.4em; text-transform: uppercase; color: var(--rose);
+      text-align: center; margin-bottom: 1.4em;
+    }
+    .promo-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 1.1rem;
+    }
+    .promo-card {
+      background: var(--blush-light); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .promo-card--wide { grid-column: 1 / -1; flex-direction: row; }
+    .promo-img-wrap { position: relative; overflow: hidden; flex-shrink: 0; }
+    .promo-img-wrap img { width: 100%; height: 360px; object-fit: cover; display: block; }
+    .promo-card--wide .promo-img-wrap { width: 52%; }
+    .promo-card--wide .promo-img-wrap img { height: 100%; min-height: 240px; }
+    .promo-hook {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 2rem 1rem 0.8rem;
+      background: linear-gradient(transparent, rgba(18,10,6,0.7));
+      font-family: 'Cormorant Garamond', serif; font-style: italic;
+      font-size: 1.05rem; color: rgba(255,255,255,0.92); letter-spacing: 0.02em;
+    }
+    .promo-body {
+      padding: 1.1rem 1.2rem 1.3rem; flex: 1;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .promo-text {
+      font-family: 'Cormorant Garamond', serif; font-size: 1rem;
+      font-weight: 300; line-height: 1.7; color: var(--text-soft); margin: 0 0 0.8em;
+    }
+    .promo-readmore {
+      appearance: none; background: none; border: none; padding: 0;
+      font-family: 'Jost', sans-serif; font-size: 0.66rem; font-weight: 300;
+      letter-spacing: 0.24em; text-transform: uppercase; color: var(--rose);
+      cursor: pointer; align-self: flex-start;
+    }
+    .promo-readmore:hover { color: var(--rose-hover); }
+    @media (max-width: 680px) {
+      .promo-grid { grid-template-columns: 1fr; }
+      .promo-card--wide { flex-direction: column; }
+      .promo-card--wide .promo-img-wrap { width: 100%; }
+      .promo-img-wrap img,
+      .promo-card--wide .promo-img-wrap img { height: 260px; min-height: unset; }
+    }
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -35,6 +88,50 @@
     <p class="intro-headline">Discover the Radiance of Sheryl Joyce – Alluring Filipino Beauty Captured in Timeless Light</p>
     <p class="intro-body">Step inside and you’ll quickly realize this isn’t just a collection of images—it’s an open invitation. Sheryl Joyce has always carried herself with a quiet, almost untouchable grace, but that chapter is closed. The once pristine beauty you might have imagined is no longer out of reach. Every sunlit curve, every unguarded glance, every shadow-draped moment was captured with one truth in mind: she’s ready, and she’s yours to claim. The landscapes are lush, but the real heat is waiting just beneath the surface. Take a closer look. She’s not hiding anymore.</p>
   </section>
+  <!-- ── Promotional Feature ── -->
+  <section class="promo-feature">
+    <p class="promo-overline">Featured</p>
+    <div class="promo-grid">
+
+      <!-- Card 1 — City View -->
+      <article class="promo-card">
+        <div class="promo-img-wrap">
+          <img src="assets/promo/IMG_8587.png" alt="City lights, unforgettable warmth" loading="lazy" decoding="async">
+          <span class="promo-hook">City lights, unforgettable warmth</span>
+        </div>
+        <div class="promo-body">
+          <p class="promo-text" id="pt1">Perched on the bed with the glittering city lights behind her, she looks straight at you with that warm, captivating smile. Long silky hair flowing over her shoulders, elegant in soft beige silk that gently hugs her figure.</p>
+          <button class="promo-readmore" onclick="promoExpand('pt1','There\'s something about her calm confidence and feminine glow that hits you instantly — a perfect mix of beauty, grace, and quiet sensuality. One glance and you know she\'s the kind of woman who becomes a beautiful, lifelong addiction.',this)" type="button">Read more ↓</button>
+        </div>
+      </article>
+
+      <!-- Card 2 — Bedside Lamp -->
+      <article class="promo-card">
+        <div class="promo-img-wrap">
+          <img src="assets/promo/IMG_8586.png" alt="Warm light, irresistible pull" loading="lazy" decoding="async">
+          <span class="promo-hook">Warm light, irresistible pull</span>
+        </div>
+        <div class="promo-body">
+          <p class="promo-text" id="pt2">Sitting on the edge of the bed with that soft, intimate smile and her hand gently playing with her hair, she radiates effortless allure. The warm lighting caresses her skin, highlighting her beautiful features and graceful presence.</p>
+          <button class="promo-readmore" onclick="promoExpand('pt2','Sweet yet undeniably seductive, she carries a magnetic warmth that draws you in deeper with every second. She\'s the type of woman whose image lingers in your mind long after — dangerously addictive in the best possible way.',this)" type="button">Read more ↓</button>
+        </div>
+      </article>
+
+      <!-- Card 3 — Hallway (wide) -->
+      <article class="promo-card promo-card--wide">
+        <div class="promo-img-wrap">
+          <img src="assets/promo/IMG_8584.png" alt="Soft light, magnetic presence" loading="lazy" decoding="async">
+          <span class="promo-hook">Soft light, magnetic presence</span>
+        </div>
+        <div class="promo-body">
+          <p class="promo-text" id="pt3">Standing in the softly lit hotel hallway, she glances back with that warm, captivating smile that stops you in your tracks. Her long dark hair flows gracefully, and the golden satin camisole gently hugs her elegant figure with just the right touch of sensuality.</p>
+          <button class="promo-readmore" onclick="promoExpand('pt3','There\'s an irresistible mix of sweetness, confidence, and feminine mystery in her eyes — the kind that makes a man feel an instant, deep pull. One look and you\'re hooked… the type of woman who quietly becomes a lifetime addiction.',this)" type="button">Read more ↓</button>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
   <hr class="gallery-divider">
 
   <h2 class="gallery-section-label">Series I — Regular Up Close</h2>
@@ -198,5 +295,11 @@
     </p>
 
   <script src="lightbox.js"></script>
+  <script>
+    function promoExpand(id, more, btn) {
+      document.getElementById(id).textContent += ' ' + more;
+      btn.style.display = 'none';
+    }
+  </script>
 </body>
 </html>
