@@ -45,13 +45,13 @@
   </style>
 </head>
 <body>
-  <audio id="bg-audio" src="../assets/audio/ReverJ_01.mp3" loop autoplay muted preload="auto"></audio>
+  <audio id="bg-audio" src="../assets/audio/ReverJ_01.mp3" loop preload="auto"></audio>
   <div class="slideshow-shell">
 
     <div class="topbar">
       <h1>Ultra Yours</h1>
       <div class="topbar-actions">
-        <button class="topbar-btn" id="autoplay-btn" type="button">Auto OFF</button>
+        <button class="topbar-btn" id="autoplay-btn" type="button"><span style="color:#e53">★</span> Auto OFF (audio)</button>
         <button class="topbar-btn" id="fullscreen-btn" type="button">Fullscreen</button>
         <a class="topbar-btn" href="../joyce-ultra.html">← Ultra</a>
       </div>
@@ -144,16 +144,21 @@
 
       var autoplayBtn    = document.getElementById('autoplay-btn');
       var fullscreenBtn  = document.getElementById('fullscreen-btn');
+      var bgAudio        = document.getElementById('bg-audio');
+      var STAR           = '<span style="color:#e53">★</span> ';
 
       function startAutoplay() {
         if (autoplayTimer) { return; }
-        autoplayBtn.textContent = 'Auto ON';
+        autoplayBtn.innerHTML = STAR + 'Auto ON (audio)';
         autoplayTimer = setInterval(function () { advance(current + 1); }, 7000);
+        bgAudio.play();
       }
       function stopAutoplay() {
         clearInterval(autoplayTimer);
         autoplayTimer = null;
-        autoplayBtn.textContent = 'Auto OFF';
+        autoplayBtn.innerHTML = STAR + 'Auto OFF (audio)';
+        bgAudio.pause();
+        bgAudio.currentTime = 0;
       }
       autoplayBtn.addEventListener('click', function () {
         autoplayTimer ? stopAutoplay() : startAutoplay();
@@ -176,22 +181,6 @@
       });
 
       updateSlide(0);
-
-      // Start muted (browsers allow muted autoplay), then immediately unmute
-      var bgAudio = document.getElementById('bg-audio');
-      bgAudio.play().then(function () {
-        bgAudio.muted = false;
-      }).catch(function () {
-        // If even muted autoplay fails, unmute and play on first interaction
-        bgAudio.muted = false;
-        function startAudio() {
-          bgAudio.play();
-          document.removeEventListener('click', startAudio);
-          document.removeEventListener('touchstart', startAudio);
-        }
-        document.addEventListener('click', startAudio);
-        document.addEventListener('touchstart', startAudio);
-      });
     })();
   </script>
 </body>
