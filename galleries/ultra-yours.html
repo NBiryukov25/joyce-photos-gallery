@@ -45,7 +45,7 @@
   </style>
 </head>
 <body>
-  <audio id="bg-audio" src="../assets/audio/ReverJ_01.mp3" loop autoplay preload="auto"></audio>
+  <audio id="bg-audio" src="../assets/audio/ReverJ_01.mp3" loop autoplay muted preload="auto"></audio>
   <div class="slideshow-shell">
 
     <div class="topbar">
@@ -177,9 +177,13 @@
 
       updateSlide(0);
 
-      // Autoplay audio; resume on first interaction if browser blocked it
+      // Start muted (browsers allow muted autoplay), then immediately unmute
       var bgAudio = document.getElementById('bg-audio');
-      bgAudio.play().catch(function () {
+      bgAudio.play().then(function () {
+        bgAudio.muted = false;
+      }).catch(function () {
+        // If even muted autoplay fails, unmute and play on first interaction
+        bgAudio.muted = false;
         function startAudio() {
           bgAudio.play();
           document.removeEventListener('click', startAudio);
