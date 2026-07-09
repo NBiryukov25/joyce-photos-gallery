@@ -45,7 +45,6 @@
   </style>
 </head>
 <body>
-  <audio id="bg-audio" src="../assets/audio/ReverJ_01.mp3" loop autoplay preload="auto"></audio>
   <div class="slideshow-shell">
 
     <div class="topbar">
@@ -180,18 +179,6 @@
       });
 
       updateSlide(0);
-
-      // Autoplay audio; resume on first interaction if browser blocked it
-      var bgAudio = document.getElementById('bg-audio');
-      bgAudio.play().catch(function () {
-        function startAudio() {
-          bgAudio.play();
-          document.removeEventListener('click', startAudio);
-          document.removeEventListener('touchstart', startAudio);
-        }
-        document.addEventListener('click', startAudio);
-        document.addEventListener('touchstart', startAudio);
-      });
     })();
   </script>
 </body>
