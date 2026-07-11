@@ -76,7 +76,12 @@ import chunk_audio as _chunk_audio
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION = range(25)
+NETLIFY_TOKEN      = os.environ.get("NETLIFY_TOKEN", "")
+NETLIFY_SITE_ID    = os.environ.get("NETLIFY_SITE_ID", "")
+NETLIFY_ACCOUNT_ID = os.environ.get("NETLIFY_ACCOUNT_ID", "68d61f375be098f8af2ea6c6")
+NETLIFY_SITE_URL   = os.environ.get("NETLIFY_SITE_URL", "https://stalwart-crumble-e6035f.netlify.app")
+
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, REVOKE_TOKEN = range(26)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -174,6 +179,56 @@ async def _list_gallery_files(gallery: str) -> list[dict]:
     except Exception:
         pass
     return []
+
+
+# ---------------------------------------------------------------------------
+# Netlify share helpers
+# ---------------------------------------------------------------------------
+
+_NETLIFY_API = "https://api.netlify.com/api/v1"
+
+
+async def _netlify_set_token(gallery: str) -> tuple[str, str]:
+    """Create a share token, store SHARE_{token}=gallery in Netlify env, return (share_url, token)."""
+    token = uuid.uuid4().hex
+    key = f"SHARE_{token}"
+    url = f"{_NETLIFY_API}/accounts/{NETLIFY_ACCOUNT_ID}/env?site_id={NETLIFY_SITE_ID}"
+    headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}", "Content-Type": "application/json"}
+    payload = [{"key": key, "values": [{"value": gallery, "context": "all"}]}]
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(url, json=payload, headers=headers)
+    r.raise_for_status()
+    share_url = f"{NETLIFY_SITE_URL}/.netlify/functions/share?t={token}"
+    return share_url, token
+
+
+async def _netlify_revoke_token(token: str) -> bool:
+    """Delete the SHARE_{token} env var from Netlify."""
+    key = f"SHARE_{token}"
+    url = f"{_NETLIFY_API}/accounts/{NETLIFY_ACCOUNT_ID}/env/{key}?site_id={NETLIFY_SITE_ID}"
+    headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}"}
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.delete(url, headers=headers)
+    return r.status_code in (200, 204)
+
+
+async def _netlify_list_tokens() -> list[tuple[str, str]]:
+    """Return [(token, gallery)] for all active SHARE_ env vars."""
+    url = f"{_NETLIFY_API}/accounts/{NETLIFY_ACCOUNT_ID}/env?site_id={NETLIFY_SITE_ID}"
+    headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}"}
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.get(url, headers=headers)
+    if r.status_code != 200:
+        return []
+    result = []
+    for env in r.json():
+        key = env.get("key", "")
+        if key.startswith("SHARE_"):
+            token = key[6:]
+            vals = env.get("values", [])
+            gallery = vals[0].get("value", "") if vals else ""
+            result.append((token, gallery))
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -812,7 +867,8 @@ async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "/galleries — list existing galleries\n"
         "/remove    — delete a photo or video\n"
         "/reorder   — rearrange photo order in a gallery\n"
-        "/share     — generate a standalone shareable gallery link\n"
+        "/share     — generate a shareable gallery link\n"
+        "/revoke    — revoke a private Netlify share link\n"
         "/sync      — post all existing photos to the channel\n"
         "/done      — finish a batch upload\n"
         "/cancel    — cancel current operation"
@@ -2656,13 +2712,53 @@ async def share_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.edit_message_text(f"Failed to create share page: {err}")
         return ConversationHandler.END
 
+    netlify_line = ""
+    if NETLIFY_TOKEN and NETLIFY_SITE_ID:
+        try:
+            netlify_url, _ = await _netlify_set_token(gallery)
+            netlify_line = f"\n\n🔒 Private link (instant):\n{netlify_url}"
+        except Exception as exc:
+            netlify_line = f"\n\n(Private link failed: {exc})"
+
     await query.edit_message_text(
         f"✓ Share page ready!\n\n"
-        f"{share_url}\n\n"
-        f"⏱ Wait ~5 minutes for GitHub to deploy, then paste the link.\n"
-        f"If WhatsApp shows no preview, paste it in a brand-new chat — "
-        f"WhatsApp caches 'no preview' per conversation and won't re-check."
+        f"Public (GitHub):\n{share_url}\n"
+        f"⏱ Wait ~5 min for GitHub to deploy."
+        f"{netlify_line}"
     )
+    return ConversationHandler.END
+
+
+async def cmd_revoke(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        await update.message.reply_text("Not authorized.")
+        return ConversationHandler.END
+    if not NETLIFY_TOKEN or not NETLIFY_SITE_ID:
+        await update.message.reply_text("Netlify not configured.")
+        return ConversationHandler.END
+    tokens = await _netlify_list_tokens()
+    if not tokens:
+        await update.message.reply_text("No active private share links.")
+        return ConversationHandler.END
+    context.user_data["revoke_tokens"] = tokens
+    keyboard = [
+        [InlineKeyboardButton(f"{g}  ({t[:8]}…)", callback_data=f"rv:{i}")]
+        for i, (t, g) in enumerate(tokens)
+    ]
+    await update.message.reply_text("Revoke which private link?", reply_markup=InlineKeyboardMarkup(keyboard))
+    return REVOKE_TOKEN
+
+
+async def revoke_token_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    idx = int(query.data[3:])
+    token, gallery = context.user_data["revoke_tokens"][idx]
+    ok = await _netlify_revoke_token(token)
+    if ok:
+        await query.edit_message_text(f"✓ Private link for {gallery} revoked.")
+    else:
+        await query.edit_message_text(f"Failed to revoke link for {gallery}.")
     return ConversationHandler.END
 
 
@@ -2692,6 +2788,7 @@ def main() -> None:
             CommandHandler("reorder", cmd_reorder),
             CommandHandler("photo", cmd_photo),
             CommandHandler("share", cmd_share),
+            CommandHandler("revoke", cmd_revoke),
         ],
         states={
             CHOOSING_GALLERY:        [
@@ -2735,6 +2832,7 @@ def main() -> None:
             REORDER_GALLERY: [CallbackQueryHandler(reorder_gallery_chosen, pattern=r"^ro:")],
             REORDER_ORDER:   [MessageHandler(filters.TEXT & ~filters.COMMAND, reorder_order_received)],
             SHARE_GALLERY:   [CallbackQueryHandler(share_gallery_chosen, pattern=r"^sh:")],
+            REVOKE_TOKEN:    [CallbackQueryHandler(revoke_token_chosen, pattern=r"^rv:")],
             PHOTO_GALLERY:   [CallbackQueryHandler(photo_gallery_chosen, pattern=r"^pg:")],
             PHOTO_NUMBER:    [MessageHandler(filters.TEXT & ~filters.COMMAND, photo_number_received)],
             PHOTO_ACTION:    [
@@ -2781,7 +2879,8 @@ def main() -> None:
                 BotCommand("fcaption",  "Update caption on a featured page"),
                 BotCommand("sync",      "Post all existing photos to the channel"),
                 BotCommand("done",      "Finish a batch upload"),
-                BotCommand("share",     "Generate a standalone shareable gallery link"),
+                BotCommand("share",     "Generate a shareable gallery link"),
+                BotCommand("revoke",    "Revoke a private Netlify share link"),
                 BotCommand("cancel",    "Cancel current operation"),
             ])
             await app.updater.start_polling(drop_pending_updates=True)
