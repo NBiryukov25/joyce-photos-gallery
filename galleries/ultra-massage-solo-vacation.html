@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ultra Massage Solo Vacation · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #060404; color: #f7f1ee; font-family: 'Cormorant Garamond', serif; overflow: hidden; }
+    .slideshow-shell { position: relative; width: 100vw; height: 100vh; height: 100dvh; }
+
+    /* ── top bar ── */
+    .topbar { position: absolute; top: 0; left: 0; right: 0; z-index: 20; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 1.25rem; background: rgba(10,8,6,0.55); }
+    .topbar h1 { margin: 0; font-size: 1.1rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45vw; }
+    .topbar-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+    .topbar-btn { appearance: none; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.07); color: #f7f1ee; padding: 0.4rem 0.75rem; border-radius: 999px; font-size: 0.78rem; letter-spacing: 0.1em; cursor: pointer; transition: background 0.2s; text-decoration: none; display: inline-flex; align-items: center; }
+    .topbar-btn:hover { background: rgba(255,255,255,0.14); }
+
+    /* ── photo area ── */
+    .slide-frame { position: absolute; top: 52px; bottom: 54px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; background: #080606; overflow: hidden; }
+    .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.5s ease; display: flex; align-items: center; justify-content: center; }
+    .slide.active { opacity: 1; }
+    .slide img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+    .slide video { max-width: 100%; max-height: 100%; }
+
+    /* ── caption: gradient at the very bottom of the photo ── */
+    .caption-overlay { position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; padding: 2.5rem 1.25rem 0.85rem; background: linear-gradient(transparent, rgba(6,4,4,0.88)); max-height: 50%; overflow-y: auto; pointer-events: auto; }
+    .caption-text { font-size: 1.05rem; line-height: 1.5; color: rgba(247,241,238,0.95); text-align: center; }
+
+    /* ── controls bar ── */
+    .bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 54px; z-index: 20; display: flex; align-items: center; justify-content: space-between; padding: 0 1rem; background: rgba(6,4,4,0.92); }
+    .nav-btn { width: 2.5rem; height: 2.5rem; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; background: rgba(255,255,255,0.07); color: #f7f1ee; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; text-decoration: none; appearance: none; line-height: 1; }
+    .nav-btn:hover { background: rgba(255,255,255,0.15); }
+    .slide-counter { font-family: 'Jost', sans-serif; font-size: 0.72rem; letter-spacing: 0.18em; color: rgba(247,241,238,0.5); }
+
+    @media (max-width: 600px) {
+      .topbar h1 { font-size: 0.9rem; max-width: 38vw; }
+      .topbar-btn { padding: 0.35rem 0.55rem; font-size: 0.7rem; }
+      .nav-btn { width: 2.2rem; height: 2.2rem; font-size: 1.3rem; }
+      .caption-text { font-size: 0.95rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="slideshow-shell">
+
+    <div class="topbar">
+      <h1>Ultra Massage Solo Vacation</h1>
+      <div class="topbar-actions">
+        <button class="topbar-btn" id="autoplay-btn" type="button">Auto OFF</button>
+        <button class="topbar-btn" id="fullscreen-btn" type="button">Fullscreen</button>
+        <a class="topbar-btn" href="../joyce-ultra.html">← Ultra</a>
+      </div>
+    </div>
+
+    <div class="slide-frame" id="slide-frame">
+      <div class="caption-overlay" id="caption-overlay" style="display:none">
+        <div class="caption-text" id="caption"></div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <button class="nav-btn" id="prev-btn" aria-label="Previous">‹</button>
+      <span class="slide-counter" id="slide-number">1 / 1</span>
+      <a class="nav-btn" id="download-btn" title="Download" aria-label="Download">⬇</a>
+      <button class="nav-btn" id="next-btn" aria-label="Next">›</button>
+    </div>
+
+  </div>
+
+  <script>
+    (function () {
+      var galleryTitle = 'Ultra Massage Solo Vacation';
+      var assetFolder  = '../assets/Ultra-Massage-Solo-Vacation/';
+      var galleryMeta  = 'Digital, 2026 · Full Screen Slideshow';
+
+      var filenames = [
+        'photo-20260707-161721.jpg'
+      ];
+
+      var captions = [];
+
+      document.title = galleryTitle + ' · Sheryl Joyce';
+      document.querySelector('.topbar h1').textContent = galleryTitle;
+
+      var frame       = document.getElementById('slide-frame');
+      var captionEl   = document.getElementById('caption');
+      var captionWrap = document.getElementById('caption-overlay');
+      var numberEl    = document.getElementById('slide-number');
+      var downloadBtn = document.getElementById('download-btn');
+      var current    = 0;
+      var autoplayTimer = null;
+      var slides     = [];
+      var videoExts  = ['mp4', 'mov', 'webm', 'm4v', 'avi'];
+
+      filenames.forEach(function (filename, index) {
+        var slide = document.createElement('div');
+        slide.className = 'slide' + (index === 0 ? ' active' : '');
+        var ext = filename.split('.').pop().toLowerCase();
+        var media;
+        if (videoExts.indexOf(ext) !== -1) {
+          media = document.createElement('video');
+          media.src = assetFolder + encodeURIComponent(filename);
+          media.controls = true;
+        } else {
+          media = document.createElement('img');
+          media.src = assetFolder + encodeURIComponent(filename);
+          media.alt = galleryTitle + ' ' + (index + 1);
+        }
+        slide.appendChild(media);
+        frame.appendChild(slide);
+        slides.push(slide);
+      });
+
+      function updateSlide(index) {
+        if (!slides.length) { return; }
+        slides[current].classList.remove('active');
+        current = (index + slides.length) % slides.length;
+        slides[current].classList.add('active');
+        var cap = captions[current] || '';
+        captionEl.textContent = cap;
+        captionWrap.style.display = cap ? '' : 'none';
+        numberEl.textContent = (current + 1) + ' / ' + slides.length;
+        var src = assetFolder + encodeURIComponent(filenames[current]);
+        downloadBtn.href = src;
+        downloadBtn.setAttribute('download', filenames[current]);
+      }
+
+      function advance(index) {
+        updateSlide(index);
+        if (autoplayTimer) { stopAutoplay(); startAutoplay(); }
+      }
+
+      document.getElementById('prev-btn').addEventListener('click', function () { advance(current - 1); });
+      document.getElementById('next-btn').addEventListener('click', function () { advance(current + 1); });
+
+      var autoplayBtn    = document.getElementById('autoplay-btn');
+      var fullscreenBtn  = document.getElementById('fullscreen-btn');
+
+      function startAutoplay() {
+        if (autoplayTimer) { return; }
+        autoplayBtn.textContent = 'Auto ON';
+        autoplayTimer = setInterval(function () { advance(current + 1); }, 7000);
+      }
+      function stopAutoplay() {
+        clearInterval(autoplayTimer);
+        autoplayTimer = null;
+        autoplayBtn.textContent = 'Auto OFF';
+      }
+      autoplayBtn.addEventListener('click', function () {
+        autoplayTimer ? stopAutoplay() : startAutoplay();
+      });
+
+      function toggleFullscreen() {
+        var shell = document.querySelector('.slideshow-shell');
+        if (document.fullscreenElement) { document.exitFullscreen(); return; }
+        (shell.requestFullscreen || shell.webkitRequestFullscreen).call(shell);
+      }
+      fullscreenBtn.addEventListener('click', toggleFullscreen);
+      document.addEventListener('fullscreenchange', function () {
+        fullscreenBtn.textContent = document.fullscreenElement ? 'Exit Full' : 'Fullscreen';
+      });
+
+      window.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowLeft')           { advance(current - 1); }
+        if (e.key === 'ArrowRight')          { advance(current + 1); }
+        if (e.key === 'f' || e.key === 'F') { toggleFullscreen(); }
+      });
+
+      updateSlide(0);
+    })();
+  </script>
+</body>
+</html>

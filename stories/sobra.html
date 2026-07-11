@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sobra — a love letter by Sheryl Joyce">
+  <title>Sobra · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../gallery.css">
+  <style>
+    .audio-toggle {
+      position: fixed;
+      bottom: 1.8em;
+      right: 1.8em;
+      z-index: 100;
+      background: rgba(242,235,224,0.10);
+      border: 1px solid rgba(242,235,224,0.18);
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .audio-toggle:hover { background: rgba(242,235,224,0.22); }
+    .audio-toggle svg { width: 14px; height: 14px; fill: rgba(242,235,224,0.65); }
+  </style>
+</head>
+<body>
+
+  <!-- ── FIXED BACKGROUND PHOTO ── -->
+  <div class="story-immersive-bg"
+       style="background-image: url('../assets/Sheryl-Joyce-Sweetheart/photo-20260620-020253.jpg');">
+  </div>
+  <div class="story-immersive-overlay"></div>
+
+  <!-- ── NAVIGATION ── -->
+  <header class="site-header story-immersive-header">
+    <div class="site-nav">
+      <a href="../gallery.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="../gallery.html" class="nav-link">Galleries</a>
+        <a href="../stories.html" class="nav-link active">Stories</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── STORY CONTENT ── -->
+  <div class="story-immersive-wrap">
+    <a class="back-link" href="../stories.html">← Back to Stories</a>
+    <p class="story-detail-tag">Love Letter</p>
+    <h1 class="story-detail-title">Sobra</h1>
+    <p class="story-detail-chapter">A letter I should have written sooner</p>
+    <p class="story-detail-date">May 2026</p>
+    <hr class="gallery-divider">
+
+    <div class="story-detail-body">
+
+      <p>My love… I love you so much… more than I ever had the courage to show, and that truth alone already hurts my heart.</p>
+
+      <p>I'm sorry… sobra, sobra akong nagsisisi. I hurt you in ways you never deserved, and I know that now with a clarity that feels heavy inside me. I didn't handle us the way I should have. I walked away without giving you the respect, the honesty, and the closure you needed… and that left you confused, maybe even questioning everything we had.</p>
+
+      <p>I'm sorry for accepting your love… your time… even the ring that meant something so deep… and then failing to honor what it stood for. Kahit hindi ko hiningi, tinanggap ko… and that means I had a responsibility to you that I didn't protect the way I should have.</p>
+
+      <p>I'm sorry if it felt like my words were sweet but empty… like I made you believe in something real while I was slowly pulling away. Hindi iyon tama… you trusted me, and instead of being strong for you, I became uncertain and weak.</p>
+
+      <p>And baby… I need to confess this honestly.</p>
+
+      <p>I was scared. Natakot ako. Scared of commitment, scared of making the wrong choice, scared that I wouldn't be enough for you. But instead of telling you that… instead of trusting you with my fears… I shut down. I distanced myself. And in doing that, I hurt you more than the truth ever would have.</p>
+
+      <p>I'm also sorry for the silence… for the times I disappeared, for the moments I chose avoidance instead of facing you with honesty. I know that must have felt like abandonment… and that breaks my heart because you didn't deserve that kind of pain from me.</p>
+
+      <p>You gave me something real… something sincere… and I mishandled it. Hindi kita iningatan the way I should have. And for that… I am deeply, painfully sorry.</p>
+
+      <p>Please know this, my love.</p>
+
+      <p>You mattered to me. You still matter. None of what we had was fake to me… I just failed to love you in the way that was steady, brave, and deserving of you.</p>
+
+      <p>If I could go back… I would choose honesty over fear. I would choose you with clarity… hindi 'yung half-hearted, hindi 'yung confused. You deserved a woman who was sure… and I'm sorry I wasn't her when you needed me to be.</p>
+
+      <p>I love you… I truly, deeply love you… and I'm sorry for everything I've done.</p>
+
+    </div>
+
+    <p style="text-align:center; margin-top:3em;">
+      <a href="sobra-private.html"
+         style="font-family:'Cormorant Garamond',serif; font-size:0.85em;
+                font-style:italic; color:rgba(242,235,224,0.60);
+                text-decoration:none; letter-spacing:0.1em;">
+        E n t e r  M e
+      </a>
+    </p>
+  </div>
+
+  <!-- ── AUDIO ── -->
+  <audio id="bg-audio" loop>
+    <source src="../assets/audio/sobra.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- discreet toggle, bottom-right corner -->
+  <button class="audio-toggle" id="audio-btn" title="Toggle audio" aria-label="Toggle audio">
+    <svg id="icon-on" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:none">
+      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+    </svg>
+    <svg id="icon-off" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+    </svg>
+  </button>
+
+  <script>
+    (function () {
+      var audio  = document.getElementById('bg-audio');
+      var btn    = document.getElementById('audio-btn');
+      var iOn    = document.getElementById('icon-on');
+      var iOff   = document.getElementById('icon-off');
+
+      function setPlaying(on) {
+        iOn.style.display  = on ? ''     : 'none';
+        iOff.style.display = on ? 'none' : '';
+      }
+
+      function startAudio() {
+        audio.play().then(function () { setPlaying(true); }).catch(function () {});
+      }
+
+      // Start on first interaction (all modern browsers require this)
+      function onFirstInteraction() {
+        startAudio();
+        document.removeEventListener('click',      onFirstInteraction);
+        document.removeEventListener('touchstart', onFirstInteraction);
+      }
+      document.addEventListener('click',      onFirstInteraction);
+      document.addEventListener('touchstart', onFirstInteraction);
+
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (audio.paused) {
+          startAudio();
+        } else {
+          audio.pause();
+          setPlaying(false);
+        }
+      });
+    })();
+  </script>
+
+</body>
+</html>

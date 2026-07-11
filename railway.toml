@@ -1,0 +1,6 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "python3 telegram_bot.py"
+restartPolicyType = "NEVER"

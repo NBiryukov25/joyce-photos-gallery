@@ -1,0 +1,440 @@
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Employer's Playground — a story by Sheryl Joyce">
+  <title>Employer's Playground · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../gallery.css">
+  <link rel="stylesheet" href="../lightbox.css">
+  <style>
+    .story-carousel-shell {
+      margin: 0 auto 1.6em;
+      max-width: 1100px;
+      padding: 0 1rem;
+    }
+    .story-carousel-frame {
+      position: relative;
+      overflow: hidden;
+      border-radius: 24px;
+      background: #140f0d;
+      box-shadow: 0 18px 45px rgba(10, 8, 6, 0.25);
+    }
+    .story-carousel-track {
+      display: flex;
+      transition: transform 0.45s ease;
+    }
+    .story-carousel-slide {
+      min-width: 100%;
+      display: block;
+    }
+    .story-carousel-slide img {
+      width: 100%;
+      height: auto;
+      max-height: 640px;
+      object-fit: contain;
+      object-position: top center;
+      display: block;
+      background: #140f0d;
+    }
+    .story-carousel-copy {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.9rem 1rem 1.05rem;
+      background: linear-gradient(180deg, rgba(16,12,10,0.92), rgba(10,8,6,0.98));
+      color: #f7efe9;
+      font-family: 'Jost', sans-serif;
+      font-size: 0.78em;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .story-carousel-copy strong {
+      font-weight: 400;
+      color: #efe3db;
+      letter-spacing: 0.18em;
+    }
+    .story-carousel-nav {
+      display: flex;
+      gap: 0.45rem;
+    }
+    .story-carousel-nav button {
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      width: 2.2rem;
+      height: 2.2rem;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .story-carousel-nav button:hover { background: rgba(255,255,255,0.16); }
+    .story-lede-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 1rem;
+      align-items: start;
+      margin-bottom: 1rem;
+    }
+    .story-callout {
+      background: linear-gradient(145deg, rgba(255,255,255,0.18), rgba(245,236,232,0.12));
+      border: 1px solid rgba(255,255,255,0.25);
+      border-left: 3px solid var(--rose);
+      border-radius: 18px;
+      padding: 1rem 1rem 0.95rem;
+      box-shadow: 0 12px 30px rgba(90, 50, 40, 0.11);
+      color: var(--text-soft);
+      font-family: 'Jost', sans-serif;
+      font-size: 0.88em;
+      line-height: 1.7;
+    }
+    .story-callout strong {
+      display: block;
+      margin-bottom: 0.35rem;
+      color: var(--text-normal);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 0.72em;
+    }
+    .story-callout-panel {
+      background: linear-gradient(145deg, rgba(255,255,255,0.16), rgba(245,236,232,0.12));
+      border: 1px solid rgba(255,255,255,0.24);
+      border-left: 4px solid var(--rose);
+      border-radius: 18px;
+      padding: 1rem 1rem 1.05rem;
+      box-shadow: 0 14px 30px rgba(90, 50, 40, 0.14);
+      margin-bottom: 1rem;
+    }
+    .story-callout-panel strong {
+      display: block;
+      margin-bottom: 0.35rem;
+      color: var(--text-normal);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 0.72em;
+    }
+    .story-callout-panel p {
+      margin-bottom: 0;
+      font-size: 1.02em;
+      line-height: 1.85;
+    }
+    .story-wraparound-photo {
+      float: right;
+      width: 320px;
+      margin: 0.35rem 0 0.8rem 1rem;
+    }
+    .story-wraparound-photo img {
+      border-radius: 18px;
+      box-shadow: 0 16px 36px rgba(90, 50, 40, 0.18);
+    }
+    .story-epilogue {
+      margin: 3em auto;
+      max-width: 800px;
+      padding: 0 1.5em;
+    }
+    .story-epilogue p {
+      font-family: 'Jost', sans-serif;
+      font-size: 1em;
+      line-height: 1.85;
+      color: #d4c8be;
+      margin-bottom: 1.5em;
+      font-weight: 300;
+    }
+    @media (max-width: 980px) {
+      .story-lede-grid { grid-template-columns: 1fr; }
+      .story-wraparound-photo { float: none; width: 100%; margin: 0 0 1rem; }
+    }
+    @media (max-width: 640px) {
+      .story-carousel-slide img { max-height: 420px; }
+      .story-carousel-copy { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAVIGATION ── -->
+  <header class="site-header">
+    <div class="site-nav">
+      <a href="../gallery.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="../gallery.html" class="nav-link">Galleries</a>
+        <a href="../stories.html" class="nav-link active">Stories</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="story-carousel-shell">
+    <div class="story-carousel-frame">
+      <div class="story-carousel-track" id="story-carousel-track">
+        <article class="story-carousel-slide photo-item"><img loading="lazy" decoding="async" src="../Story_Assets/joyce_pov_kiss.PNG" alt="Face-forward portrait for the opening carousel"><div class="photo-info"><p class="photo-title">Face-first portrait</p><p class="photo-caption">A closer, more intimate opening image.</p></div></article>
+        <article class="story-carousel-slide photo-item"><img loading="lazy" decoding="async" src="../Story_Assets/Delicious_Fear_2.png" alt="Expression-focused image for the middle carousel"><div class="photo-info"><p class="photo-title">Expression-focused</p><p class="photo-caption">A stronger sense of presence and face in the frame.</p></div></article>
+        <article class="story-carousel-slide photo-item"><img loading="lazy" decoding="async" src="../Story_Assets/domestic-helper-12.PNG" alt="Portrait-close image to close the carousel"><div class="photo-info"><p class="photo-title">Portrait close</p><p class="photo-caption">A softer end frame with the face more clearly visible.</p></div></article>
+      </div>
+    </div>
+    <div class="story-carousel-copy">
+      <span><strong>Opening carousel</strong> · Tap or use the controls to move through the visual set.</span>
+      <div class="story-carousel-nav">
+        <button type="button" id="story-prev" aria-label="Previous image">←</button>
+        <button type="button" id="story-next" aria-label="Next image">→</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="story-detail-wrap story-feature-wrap">
+    <a class="back-link" href="../stories.html">← Back to Stories</a>
+    <p class="story-detail-tag">Feature Story</p>
+    <h1 class="story-detail-title">Employer's Playground</h1>
+    <p class="story-detail-date">A soft, personal fantasy role play · May 2026</p>
+    <div class="story-lede-grid">
+      <p class="story-feature-subtitle">You watch her work. You see the way her shoulders hunch over the mop, the way she scrubs the same spot for too long, like she’s trying to erase something invisible. You see her checking her phone, terrified of making a sound, waiting for the silence so she can disappear into her room. That hesitation—that fear—is delicious. It’s your currency.</p>
+      
+    </div>
+    <hr class="gallery-divider">
+
+    <article class="story-feature-article">
+      <section class="story-feature-block story-callout-panel">
+        <strong>Chapter note</strong>
+        <p class="story-detail-body">You know she’s tired. You know she’s lonely. She longs to see her LDR fiancé who lives abroad. You know she thinks she’s a burden to everyone around here. That is exactly where you want her. That is where she is most useful.</p>
+      </section>
+
+      <section class="story-photo-panel story-photo-panel-portrait story-wraparound-photo photo-item">
+        <img loading="lazy" decoding="async" src="../Story_Assets/domestic-helper-12.PNG" alt="Portrait image for the opening chapter">
+        <p class="story-photo-caption">A quiet worker at the end of the day.</p>
+      </section>
+
+      <section class="story-photo-grid story-photo-grid-two">
+        <figure class="story-photo-card"><img loading="lazy" decoding="async" src="../Story_Assets/domestic-helper-01.PNG" alt="Atmospheric image 1"><figcaption>Looks so Tired.</figcaption></figure>
+        <figure class="story-photo-card"><img loading="lazy" decoding="async" src="../Story_Assets/IMG_6750.PNG" alt="Atmospheric image 2"><figcaption>Your Propery, your rules, your playground.</figcaption></figure>
+      </section>
+
+      <section class="story-feature-block story-callout-panel">
+        <strong>Pressure point</strong>
+        <p class="story-detail-body">It’s late. The house is quiet. You call her into your office, not to discuss work, but to "help her relax." You tell her she’s been working too hard and that you want to spoil her a little. She’s used to doing things for you, but this is different. This is the lever you can pull. You use her guilt. "You’re so stressed, Joyce. But you’re so good at taking care of everyone else. Let me take care of you tonight. You don’t have to think about anything."</p>
+      </section>
+
+      <section class="story-media-panel">
+        <div class="story-video-frame">
+          <img loading="lazy" decoding="async" src="../Story_Assets/IMG_6752.PNG" alt="Film note image for the first reel">
+          <span class="story-media-label">Film note 1</span>
+        </div>
+        <p class="story-feature-caption">A slow reel of atmosphere, suspended between memory and anticipation.</p>
+      </section>
+
+      <section class="story-feature-block">
+        <p class="story-detail-body">She hesitates, her hand hovering over the doorknob. She tries to smile, but it’s weak. "Okay, Sir," she says, but her voice trembles. As she steps in, you lean in and touch her arm. It’s deliberate, lingering. You look down at the fitted black short-sleeve tee she’s wearing, the soft cotton hugging her frame, and the dark blue denim shorts that hug her hips. You make it clear you are looking at her not as a worker, but as a woman. She freezes, overwhelmed by the violation of her boundaries and the power you hold over her life.
+</p>
+      </section>
+
+      <section class="story-photo-panel story-photo-panel-centerpiece">
+        <img loading="lazy" decoding="async" src="../Story_Assets/Delicious_Fear_3.PNG" alt="Centerpiece image for the middle of the story">
+        <p class="story-photo-caption">The room gathers itself around the stillness.</p>
+      </section>
+
+      
+      <section class="story-feature-block story-callout-panel">
+        <strong>Control shift</strong>
+        <p class="story-detail-body">You don’t let her thaw. Your hand slides down to her wrist, your fingers closing around it. “Come with me,” you say, your tone leaving no room for refusal. You turn and lead her out of the office, your grip firm but not painful—yet. The hallway is dark, only the faint glow from the kitchen at the end lighting our way. Her footsteps are small, reluctant; yours are steady, owning the space between us. You can feel the fine tremor in her arm, the way she holds her breath.</p>
+      </section>
+
+      <section class="story-feature-block">
+        <p class="story-detail-body">“You’ve been so tense,” you murmur as you both pass the living room, your voice a low, practiced calm. “All that work. You deserve to let go.” She doesn’t answer. She just keeps her eyes on the floor, her free hand clenched at her side.</p>
+      </section>
+
+      <section class="story-feature-block">
+        <p class="story-detail-body">When you reach the kitchen, you release her wrist only to place your hand on the small of her back, steering her forward. But you don't let her get comfortable. You reach around her, fingers hooking into the hem of the fitted black short-sleeve tee she was wearing, and with a sharp, decisive tug, you pull the fabric over her head and toss it aside. She shivers in her jean shorts, confused by the sudden change, but you don't give her time to adjust. You move your hands to the waistband of her denim, unbuttoning and sliding the shorts down her legs in one fluid motion, stripping her bare.</p>
+      </section>
+
+      <section class="story-feature-block">
+	<p class="story-detail-body">Now, she stands there only in the sheer white underwear and you are prepared. The delicate lace contrasts starkly against the hard, cold granite counters and the harsh overhead light. You don't ask for permission; you assume it because you've trained her to. She tries to protest, "Sir, not here… it's cold," but you ignore her. She stands there shivering, the thin fabric of her underwear doing nothing to protect her from the biting kitchen air.</p>
+      </section>
+
+      <section class="story-feature-block">
+        <p class="story-detail-body">You guide her to the table and force her to lie back. She lies flat on her back on the cold, hard wood, her legs spread. She’s trembling violently, staring at the ceiling, unable to look at you. She looks like a broken doll.</p>
+      </section>
+
+      <section class="story-feature-block">
+        <p class="story-detail-body">You position yourself above her, your shadow falling across her body like a shroud. The room holds its breath. There is only the sound of her shallow, frightened gasps and the relentless tick of the clock on the wall. You lower yourself, not with passion, but with purpose—a deliberate, measured descent into the space she occupies. Her body goes rigid, a statue of fear. You feel the shudder that runs through her, a seismic tremor of violation, as you claim the territory of her silence.</p>
+      </section>
+
+      <section class="story-feature-block">
+        <p class="story-detail-body">There is no fight, only a terrible, yielding stillness. The table groans softly under your weight. Her eyes are fixed on the ceiling, seeing nothing, retreating into some interior distance where this cannot be happening. You move with a rhythm that is yours alone, a metronome of control in the quiet dark. Each motion is a sentence spoken without words, a decree written on her skin. She is a canvas, and you are painting her with your will.</p>
+      </section>
+
+      <section class="story-feature-block">
+        <p class="story-detail-body">A single tear escapes the corner of her eye, tracing a slow, silver path down her temple and into her hair. You taste the salty sweetness from the conquest. It is the only concession she allows herself, the only crack in the fortress of her silence. You savor it. This is the moment you have been working toward—not the act itself, but this absolute, uncontested surrender. The knowledge that she is here, under your hands, and that she will not speak of it, will not fight, will not even look at you. She has become a vessel for your authority, empty of everything but the fear you have put inside her.</p>
+      </section>
+
+      <section class="story-feature-block">
+        <p class="story-detail-body">As you mount her the first thrust is a brutal, grinding fight. You feel the absolute resistance of her inner walls clamping down, trying to push you back out. It’s like trying to force a fist into a clenched hand. You have to lean all your weight forward. You feel her gasp, a sharp intake of breath against your neck, and her body trembling violently as you force the barrier open. The friction is raw and agonizing because she’s so dry. You feel the resistance of her tissue stretching uncomfortably wide.</p>
+      </section>
+
+      <section class="story-feature-block">
+        <p class="story-detail-body">But then comes the blood. As you force through that last bit of resistance, you feel a warm, slick fluid coat the head of your cock and the walls of her passage. The friction turns from abrasive to slick. You can feel small tears or abrasions in her tissue, and the blood acts as a natural lubricant that coats both of us. You didn't need to pause. With the lubrication, you began to bludgeon her.</p>
+      </section>
+
+      <section class="story-feature-block">
+        <p class="story-detail-body">You pulled back almost all the way, savoring the tight ring of muscle at the base of your cock, before slamming forward with enough force to make her body bounce against the table. The impact echoed in the quiet room. You felt her inner muscles convulse around you, clamping down rhythmically, trying to milk you. The blood made a wet, squelching sound every time you pulled back and slammed forward, a wet, sticky friction that you could feel vibrating through your entire groin.
+By the third thrust, you had hit a rhythm. You were pounding into her small, upturned face, feeling the impact of your hips against her pelvis. The blood had made her incredibly slippery, allowing you to slide in and out with ease, battering her insides. You felt the ridges of her cervix with every deep stroke, a hard, pulsing nub you could feel bumping against the tip of your penis. It was a solid, fleshy collision that made her gasp, and you and you didn't stop. You wanted to see how much she could take. You gripped her hips, using them as leverage to drive yourself deeper, harder, punishing her body with every stroke. Her back arched off the table, her nails digging into your skin, but she didn't ask you to stop. You could feel the ridges of her cervix bumping against you with every deep thrust, a relentless, pulsing pressure that sent shocks of pleasure straight to your core. Her inner walls were convulsing around you, fluttering and clenching in a desperate attempt to milk you dry. The familiar heat was building in your balls, the pressure becoming too much to hold back, and you knew you were standing on the edge.</p>
+      </section>
+
+<section class="story-feature-block">
+        <p class="story-detail-body">When it is over, you stand up and look down at her. She does not move. She lies perfectly still, as if any motion might make it real. You reach down and brush a strand of hair from her forehead, a gesture that feels like a brand. "See?" you say, your voice soft, almost tender. "That wasn't so hard." She flinches at the sound, a tiny, involuntary recoil. You smile. You leave her there on the table, a sculpture of shame in the harsh kitchen light, and walk away. The house is quiet again. But it is a different quiet now. It is a quiet she owns, and you own her.</p>
+      </section>
+
+<div class="story-video-block">
+  <video controls playsinline preload="metadata" poster="../assets/videos/video-cover.jpg">
+    <source src="../assets/videos/IMG_6774.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <p class="story-video-caption">
+    Breaking Joyce.
+  </p>
+</div>
+
+<style>
+  .story-video-block {
+    max-width: 900px;
+    margin: 2.5em auto;
+    padding: 0 1em;
+  }
+
+  .story-video-block video {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 14px;
+    background: #080606;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+  }
+
+  .story-video-caption {
+    margin-top: 0.85em;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.05em;
+    font-style: italic;
+    line-height: 1.7;
+    color: var(--text-soft);
+    text-align: center;
+  }
+</style>
+
+
+<div class="story-video-block">
+  <video controls playsinline preload="metadata" poster="../assets/videos/video-cover.jpg">
+    <source src="../assets/videos/IMG_6776.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <p class="story-video-caption">
+    Breaking Joyce Pt 2.
+  </p>
+</div>
+
+<style>
+  .story-video-block {
+    max-width: 900px;
+    margin: 2.5em auto;
+    padding: 0 1em;
+  }
+
+  .story-video-block video {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 14px;
+    background: #080606;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+  }
+
+  .story-video-caption {
+    margin-top: 0.85em;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.05em;
+    font-style: italic;
+    line-height: 1.7;
+    color: var(--text-soft);
+    text-align: center;
+  }
+</style>
+
+
+        
+      <section class="story-strip">
+        <figure class="story-strip-card"><img loading="lazy" decoding="async" src="../Story_Assets/plaything (1).jpg" alt="Strip image 1"><figcaption>Evidence in soft focus.</figcaption></figure>
+        <figure class="story-strip-card"><img loading="lazy" decoding="async" src="../Story_Assets/plaything (2).jpg" alt="Strip image 2"><figcaption>Warm details in motion.</figcaption></figure>
+        <figure class="story-strip-card"><img loading="lazy" decoding="async" src="../Story_Assets/plaything (7).JPG" alt="Strip image 3"><figcaption>A final glimmer before the turn.</figcaption></figure>
+      </section>
+
+      <section class="story-media-panel">
+        <div class="story-video-frame">
+          <img loading="lazy" decoding="async" src="../Story_Assets/plaything (5).JPG" alt="Film note image for the second reel">
+          <span class="story-media-label">Film note 2</span>
+        </div>
+        <p class="story-feature-caption">A second passage of light, designed to keep the story moving forward.</p>
+      </section>
+
+      <section class="story-final-photo">
+        <img loading="lazy" decoding="async" src="../Story_Assets/plaything (6).JPG" alt="Final large image for the continuation moment">
+        <p class="story-final-note">To be continued…</p>
+      </section>
+      
+      <section class="story-epilogue">
+        <p class="story-detail-body">Silence fell over the kitchen like a physical weight, settling into the corners and pressing down on Joyce’s lungs. She lay on the cold, hard wood of the table, staring up at the harsh overhead light, her vision blurring slightly as tears pricked her eyes. The sting of the cold air against her bare skin mixed with a deep, hollow ache in her lower body. She could hear the faint, rhythmic ticking of the wall clock, taunting her with the passage of time while she remained frozen, a statue of spent energy.</p>
+        
+        <p class="story-detail-body">It wasn't just the pain; it was the sheer, terrifying reality of her own powerlessness. She was a worker—a helper, an OFW whose job was to serve, to clean, to obey. And in that moment, stripped of her clothes and her dignity, she had been used exactly as she had been trained to be used. There was a strange, twisted comfort in that realization. Perhaps, she thought with a heavy heart, this was simply part of the job. Perhaps this was what was expected of her. The thought didn't make her angry; it just made her feel small, which was exactly where she wanted to be.</p>
+        
+        <p class="story-detail-body">She tried to move, but her limbs felt heavy, uncoordinated. The sheer white underwear she had been left in was cold against her skin, the lace chafing at the raw, tender flesh between her thighs. She felt a trickle of something warm and sticky between her legs, a physical reminder of the violation that had just occurred. Her hand trembled as she reached for the discarded shirt, her fingers clumsy. She pulled it on, not to cover herself fully, but to hide the marks—the hickeys, the bruises—she knew would be left behind on her neck and shoulders. She needed to be presentable. She needed to be useful again.</p>
+
+        <p class="story-detail-body">Slowly, shivering violently, she slid off the table. Her knees buckled, and she had to grab the edge of the granite counter for support. The room spun for a moment, the harsh light seeming to vibrate. She looked at herself in the reflection of the stainless steel cabinets. Her hair was a mess, sticking to her face. Her eyes were red-rimmed, her lips swollen. She looked like a different person.</p>
+
+        <p class="story-detail-body">She couldn't tell anyone. She couldn't tell her friends in Hong Kong, couldn't tell her sister back home, and certainly couldn't tell her daughter, Kathleen. She couldn't admit that the boss had taken her like that, that she had let him, that she had been too afraid to fight back. It would be a burden she couldn't bear to carry. So, she wiped her face with the back of her hand, took a deep, shuddering breath, and straightened her posture. She tucked her hair behind her ears, smoothing her expression into the familiar mask of the diligent, quiet helper.</p>
+
+        <p class="story-detail-body">She walked to the sink, turned on the cold water, and splashed it on her face. The cold shock brought her back to reality, grounding her in the mundane. She looked at her reflection again. The eyes were still sad, but the face was set. She had survived it. She would survive it.</p>
+
+        <p class="story-detail-body">The next morning, she woke up stiff and sore, every movement a reminder of the night before. But when she went downstairs, she moved with her usual quiet efficiency. She didn't make eye contact with him, but she didn't avoid him either. She just did her job, mopping the floor with the same obsessive care, scrubbing at the same invisible spots as if she were trying to erase the memory of the table, the light, and the feel of his weight pressing her down.</p>
+
+        <p class="story-detail-body">She was his employer's playground toy, and she was learning to wear the label like a second skin. The vulnerability was still there, raw and exposed, but she had learned that in this house, she didn't need to be strong. She just needed to be obedient. And that, she knew, was the only thing she could control.</p>
+      </section>
+
+    </article>
+  </div>
+
+  <script>
+    (function () {
+      var track = document.getElementById('story-carousel-track');
+      var prev = document.getElementById('story-prev');
+      var next = document.getElementById('story-next');
+      var index = 0;
+      var slides = track ? track.children.length : 0;
+      if (!track || !slides) return;
+
+      function updateCarousel() {
+        track.style.transform = 'translateX(-' + (index * 100) + '%)';
+      }
+
+      prev.addEventListener('click', function () {
+        index = (index - 1 + slides) % slides;
+        updateCarousel();
+      });
+      next.addEventListener('click', function () {
+        index = (index + 1) % slides;
+        updateCarousel();
+      });
+
+      setInterval(function () {
+        index = (index + 1) % slides;
+        updateCarousel();
+      }, 5000);
+
+      updateCarousel();
+    })();
+  </script>
+  <script src="../lightbox.js"></script>
+</body>
+</html>

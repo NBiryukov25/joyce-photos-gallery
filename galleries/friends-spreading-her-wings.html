@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spreading Her Wings · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../gallery.css">
+  <link rel="stylesheet" href="../lightbox.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-nav">
+      <a href="../gallery.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="../gallery.html" class="nav-link">Galleries</a>
+        <a href="../stories.html" class="nav-link">Stories</a>
+        <a href="../friends.html" class="nav-link active">Friends</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="back-nav">
+    <a class="back-link" href="../friends.html">← Back to Friends</a>
+    <a class="back-link" href="../gallery.html">Home</a>
+  </div>
+
+  <h1 class="portfolio-title">Spreading Her Wings</h1>
+  <div class="portfolio-subtitle">Friends · Joyce & Nicole</div>
+  <p class="portfolio-caption">International lovers. Raw and unapologetic.</p>
+  <p class="portfolio-meta">Digital, 2026 · Available Light</p>
+
+  <hr class="portfolio-divider">
+
+  <div class="photo-grid masonry" id="photo-grid">
+    <p class="empty-notice">Loading photos…</p>
+  </div>
+
+  <script>
+    (function () {
+      var filenames = [
+        'photo-20260612-023428.jpg',
+        'photo-20260612-024353.jpg',
+        'photo-20260612-025035.jpg',
+        'photo-20260612-025107.jpg',
+        'photo-20260612-173834.jpg',
+        'photo-20260612-220452.jpg',
+        'photo-20260612-220710.jpg',
+        'photo-20260612-220920.jpg',
+        'photo-20260612-221311.jpg',
+        'photo-20260612-221356.jpg',
+        'photo-20260612-221655.jpg',
+        'photo-20260612-222047.jpg',
+        'photo-20260612-222120.jpg',
+        'photo-20260612-222146.jpg',
+        'photo-20260612-222345.jpg',
+        'photo-20260612-222431.jpg',
+        'photo-20260612-222643.jpg',
+        'photo-20260612-222701.jpg',
+        'photo-20260612-222730.jpg',
+        'photo-20260612-223930.jpg',
+        'photo-20260612-224003.jpg',
+        'photo-20260612-224057.jpg'
+      ];
+
+      var roman = [
+        'I','II','III','IV','V','VI','VII','VIII','IX','X',
+        'XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX',
+        'XXI','XXII'
+      ];
+
+      var grid = document.getElementById('photo-grid');
+      grid.innerHTML = '';
+
+      filenames.forEach(function (filename, index) {
+        var item = document.createElement('div');
+        item.className = 'photo-item';
+
+        var img = document.createElement('img');
+        img.src = '../assets/Joyce-and-Friends/' + filename;
+        img.alt = 'Spreading Her Wings ' + (roman[index] || (index + 1));
+
+        var info = document.createElement('div');
+        info.className = 'photo-info';
+        info.innerHTML = '<p class="photo-title">' + (roman[index] || (index + 1)) + '</p>';
+
+        item.appendChild(img);
+        item.appendChild(info);
+        grid.appendChild(item);
+      });
+    })();
+  </script>
+
+  <script src="../lightbox.js"></script>
+</body>
+</html>

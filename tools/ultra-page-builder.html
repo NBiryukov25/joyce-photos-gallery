@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ultra Page Builder · Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; background: #0f0d0b; color: rgba(255,255,255,0.85); font-family: 'Jost', sans-serif; }
+
+    /* ── App shell ── */
+    .app { display: grid; grid-template-columns: 320px 1fr; height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: #161210;
+      border-right: 1px solid rgba(201,169,110,0.15);
+      display: flex; flex-direction: column;
+      overflow-y: auto; padding: 1.4rem; gap: 1.1rem;
+    }
+    .sidebar-head {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.05rem; font-weight: 400; letter-spacing: 0.1em;
+      color: #c9a96e; padding-bottom: 0.8rem;
+      border-bottom: 1px solid rgba(201,169,110,0.15);
+    }
+    .field label {
+      display: block; font-size: 0.62rem; font-weight: 300;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: rgba(255,255,255,0.35); margin-bottom: 0.38rem;
+    }
+    input[type="text"], input[type="number"], textarea {
+      width: 100%; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(201,169,110,0.2); border-radius: 4px;
+      color: rgba(255,255,255,0.85); font-family: 'Jost', sans-serif;
+      font-size: 0.84rem; font-weight: 300;
+      padding: 0.52rem 0.72rem; outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus { border-color: rgba(201,169,110,0.5); }
+    textarea { resize: vertical; min-height: 130px; line-height: 1.6; }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      border: 1px dashed rgba(201,169,110,0.3); border-radius: 4px;
+      padding: 1.1rem; text-align: center; cursor: pointer;
+      font-size: 0.76rem; font-weight: 300;
+      color: rgba(255,255,255,0.3); position: relative;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .drop-zone:hover, .drop-zone.over {
+      border-color: #c9a96e; background: rgba(201,169,110,0.04);
+      color: rgba(255,255,255,0.6);
+    }
+    .drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+    /* ── Thumbnails ── */
+    .thumbs { display: flex; flex-wrap: wrap; gap: 6px; }
+    .thumb {
+      position: relative; width: 70px; height: 70px;
+      border-radius: 3px; overflow: hidden;
+      border: 1px solid rgba(201,169,110,0.15); cursor: grab;
+      flex-shrink: 0;
+    }
+    .thumb img, .thumb video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+    .thumb .rm {
+      position: absolute; top: 2px; right: 2px;
+      width: 17px; height: 17px; border-radius: 50%;
+      background: rgba(0,0,0,0.75); border: none;
+      color: #fff; font-size: 0.65rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .thumb.drag-ghost { opacity: 0.3; }
+
+    /* ── Download button ── */
+    .btn-dl {
+      background: #c9a96e; color: #0c0a08; border: none;
+      border-radius: 4px; font-family: 'Jost', sans-serif;
+      font-size: 0.72rem; font-weight: 400; letter-spacing: 0.16em;
+      text-transform: uppercase; padding: 0.72rem 1rem;
+      cursor: pointer; transition: background 0.2s; width: 100%;
+    }
+    .btn-dl:hover { background: #d4b87a; }
+
+    /* ── Preview panel ── */
+    .preview { background: #0c0a08; overflow-y: auto; display: flex; flex-direction: column; }
+    .preview-bar {
+      font-size: 0.6rem; font-weight: 300; letter-spacing: 0.2em;
+      text-transform: uppercase; color: rgba(255,255,255,0.18);
+      text-align: center; padding: 0.7rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;
+    }
+    .preview-empty {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      font-family: 'Cormorant Garamond', serif; font-size: 1.15rem;
+      font-weight: 300; font-style: italic; color: rgba(255,255,255,0.1);
+    }
+
+    /* ── Featured page styles — shared between preview and exported HTML ── */
+    .fp-stage {
+      position: relative; width: 100%; max-width: 860px;
+      margin: 0 auto; aspect-ratio: 4/5;
+      overflow: hidden; background: #060404; flex-shrink: 0;
+    }
+    .fp-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.9s ease; }
+    .fp-slide.active { opacity: 1; }
+    .fp-slide img, .fp-slide video {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      transform: scale(1); transition: transform 0s;
+    }
+    .fp-slide.active img, .fp-slide.active video {
+      transform: scale(1.06); transition: transform 9s ease-out;
+    }
+    .fp-progress { height: 2px; background: rgba(255,255,255,0.08); max-width: 860px; margin: 0 auto; }
+    .fp-prog-bar { height: 100%; width: 0%; background: #c9a96e; }
+    .fp-dots { display: flex; justify-content: center; gap: 0.5rem; padding: 0.9rem 0 0; }
+    .fp-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); border: none; cursor: pointer;
+      padding: 0; transition: background 0.25s;
+    }
+    .fp-dot.active { background: #c9a96e; }
+    .fp-header { max-width: 680px; margin: 2.4rem auto 0; padding: 0 1.5rem; text-align: center; }
+    .fp-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.5rem, 3.5vw, 2.2rem); font-weight: 400;
+      letter-spacing: 0.06em; color: rgba(255,255,255,0.92); line-height: 1.2;
+    }
+    .fp-rule { border: none; border-top: 1px solid rgba(201,169,110,0.28); margin: 1.2rem 0 0; }
+    .fp-caption { max-width: 680px; margin: 2rem auto 4rem; padding: 0 1.5rem; }
+    .fp-caption p {
+      font-family: 'Cormorant Garamond', serif; font-size: 1.12rem;
+      font-weight: 300; line-height: 1.85; color: rgba(255,255,255,0.68);
+    }
+    .fp-caption p + p { margin-top: 1.2em; }
+    .fp-caption strong { color: rgba(255,255,255,0.9); font-weight: 500; }
+    .fp-caption em { font-style: italic; }
+
+    @media (max-width: 780px) {
+      .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+      .sidebar { max-height: 55vh; }
+    }
+    @media (max-width: 500px) { .fp-stage { aspect-ratio: 3/4; } }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Controls sidebar ── -->
+  <div class="sidebar">
+    <div class="sidebar-head">Ultra Page Builder</div>
+
+    <div class="field">
+      <label>Page Title</label>
+      <input type="text" id="inp-title" placeholder="e.g. Wine Cellar Blues">
+    </div>
+
+    <div class="field">
+      <label>Asset folder name (for export)</label>
+      <input type="text" id="inp-folder" placeholder="e.g. Wine-cellar-blues-tan">
+    </div>
+
+    <div class="field">
+      <label>Photos &amp; Videos — drop or click</label>
+      <div class="drop-zone" id="dropZone">
+        Drop files here or tap to browse
+        <input type="file" id="fileInput" multiple accept="image/*,video/mp4,video/quicktime,video/webm">
+      </div>
+    </div>
+
+    <div class="thumbs" id="thumbs"></div>
+
+    <div class="field">
+      <label>Caption / Story — blank line = new paragraph</label>
+      <textarea id="inp-caption" placeholder="Write your caption or story here.&#10;&#10;Leave a blank line between paragraphs. Use **bold** or _italic_ for emphasis."></textarea>
+    </div>
+
+    <div class="field">
+      <label>Slide speed (ms, default 8000)</label>
+      <input type="number" id="inp-interval" value="8000" min="2000" step="500">
+    </div>
+
+    <button class="btn-dl" id="btnDownload">⬇ Download HTML</button>
+  </div>
+
+  <!-- ── Live preview ── -->
+  <div class="preview" id="preview">
+    <div class="preview-bar">Live Preview</div>
+    <div class="preview-empty" id="emptyMsg">Add photos to see the preview</div>
+  </div>
+
+</div>
+<script>
+(function () {
+  'use strict';
+
+  /* ── State ── */
+  var photos = [];  // [{file, url, name}]
+  var cur = 0, timer = null;
+
+  /* ── File input / drop ── */
+  var dropZone = document.getElementById('dropZone');
+  var fileInput = document.getElementById('fileInput');
+
+  dropZone.addEventListener('dragover',  function (e) { e.preventDefault(); dropZone.classList.add('over'); });
+  dropZone.addEventListener('dragleave', function ()  { dropZone.classList.remove('over'); });
+  dropZone.addEventListener('drop', function (e) {
+    e.preventDefault(); dropZone.classList.remove('over');
+    addFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', function () {
+    addFiles(fileInput.files); fileInput.value = '';
+  });
+
+  function addFiles(list) {
+    Array.prototype.forEach.call(list, function (f) {
+      if (!f.type.startsWith('image/') && !f.type.startsWith('video/')) return;
+      photos.push({ file: f, url: URL.createObjectURL(f), name: f.name });
+    });
+    renderThumbs(); rebuildPreview();
+  }
+
+  /* ── Thumbnails (drag to reorder) ── */
+  var thumbsEl = document.getElementById('thumbs');
+  var dragFrom = null;
+
+  function renderThumbs() {
+    thumbsEl.innerHTML = '';
+    photos.forEach(function (p, i) {
+      var div = document.createElement('div');
+      div.className = 'thumb'; div.draggable = true; div.dataset.i = i;
+
+      var media;
+      if (p.file.type.startsWith('video/')) {
+        media = document.createElement('video');
+        media.src = p.url; media.muted = true;
+      } else {
+        media = document.createElement('img');
+        media.src = p.url; media.alt = p.name;
+      }
+      div.appendChild(media);
+
+      var rm = document.createElement('button');
+      rm.className = 'rm'; rm.textContent = '×';
+      rm.addEventListener('click', (function (idx) { return function (e) {
+        e.stopPropagation();
+        URL.revokeObjectURL(photos[idx].url);
+        photos.splice(idx, 1);
+        renderThumbs(); rebuildPreview();
+      }; })(i));
+      div.appendChild(rm);
+
+      div.addEventListener('dragstart', function () { dragFrom = i; div.classList.add('drag-ghost'); });
+      div.addEventListener('dragend',   function () { div.classList.remove('drag-ghost'); dragFrom = null; });
+      div.addEventListener('dragover',  function (e) { e.preventDefault(); });
+      div.addEventListener('drop', function (e) {
+        e.preventDefault();
+        if (dragFrom !== null && dragFrom !== i) {
+          var moved = photos.splice(dragFrom, 1)[0];
+          photos.splice(i, 0, moved);
+          renderThumbs(); rebuildPreview();
+        }
+      });
+
+      thumbsEl.appendChild(div);
+    });
+  }
+
+  /* ── Live inputs ── */
+  ['inp-title','inp-caption','inp-interval'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', rebuildPreview);
+  });
+
+  /* ── Preview ── */
+  var preview = document.getElementById('preview');
+  var emptyMsg = document.getElementById('emptyMsg');
+
+  function rebuildPreview() {
+    // Tear down existing preview elements (keep bar + emptyMsg)
+    preview.querySelectorAll('.fp-stage,.fp-progress,.fp-dots,.fp-header,.fp-caption').forEach(function (el) { el.remove(); });
+    clearInterval(timer); timer = null;
+
+    if (photos.length === 0) { emptyMsg.style.display = ''; return; }
+    emptyMsg.style.display = 'none';
+
+    var title    = document.getElementById('inp-title').value    || 'Title';
+    var capText  = document.getElementById('inp-caption').value;
+    var interval = parseInt(document.getElementById('inp-interval').value) || 8000;
+
+    /* Stage */
+    var stage = el('div', 'fp-stage');
+    photos.forEach(function (p, i) {
+      var slide = el('div', 'fp-slide' + (i === 0 ? ' active' : ''));
+      var media;
+      if (p.file.type.startsWith('video/')) {
+        media = document.createElement('video');
+        media.src = p.url; media.muted = true; media.loop = true;
+        if (i === 0) media.play().catch(function(){});
+      } else {
+        media = document.createElement('img');
+        media.src = p.url; media.alt = title;
+      }
+      slide.appendChild(media); stage.appendChild(slide);
+    });
+
+    /* Progress bar */
+    var prog = el('div', 'fp-progress');
+    var bar  = el('div', 'fp-prog-bar'); bar.id = 'pvBar';
+    prog.appendChild(bar);
+
+    /* Dots container — filled by startSlide() */
+    var dots = el('div', 'fp-dots'); dots.id = 'pvDots';
+
+    /* Header */
+    var hdr  = el('div', 'fp-header');
+    var h1   = el('h1',  'fp-title'); h1.id = 'pvTitle'; h1.textContent = title;
+    var rule = document.createElement('hr'); rule.className = 'fp-rule';
+    hdr.appendChild(h1); hdr.appendChild(rule);
+
+    /* Caption */
+    var cap  = el('div', 'fp-caption');
+    cap.innerHTML = buildCapHtml(capText);
+
+    /* Insert before emptyMsg */
+    [stage, prog, dots, hdr, cap].forEach(function (node) {
+      preview.insertBefore(node, emptyMsg);
+    });
+
+    startSlide(interval);
+  }
+
+  function startSlide(interval) {
+    var stage  = preview.querySelector('.fp-stage');
+    if (!stage) return;
+    var slides = stage.querySelectorAll('.fp-slide');
+    var N = slides.length; if (!N) return;
+    var bar    = document.getElementById('pvBar');
+    var dotsEl = document.getElementById('pvDots');
+    dotsEl.innerHTML = '';
+    var dotBtns = [];
+    for (var k = 0; k < N; k++) {
+      var b = document.createElement('button');
+      b.className = 'fp-dot' + (k === 0 ? ' active' : '');
+      dotsEl.appendChild(b); dotBtns.push(b);
+    }
+    cur = 0;
+    var resetBar = function () {
+      bar.style.transition = 'none'; bar.style.width = '0%';
+      requestAnimationFrame(function () { requestAnimationFrame(function () {
+        bar.style.transition = 'width ' + interval + 'ms linear'; bar.style.width = '100%';
+      }); });
+    };
+    var show = function (n) {
+      var sl = preview.querySelectorAll('.fp-stage .fp-slide');
+      var dt = preview.querySelectorAll('#pvDots .fp-dot');
+      if (!sl.length) return;
+      sl[cur].classList.remove('active'); if (dt[cur]) dt[cur].classList.remove('active');
+      cur = (n + N) % N;
+      sl[cur].classList.add('active');   if (dt[cur]) dt[cur].classList.add('active');
+      resetBar();
+    };
+    dotBtns.forEach(function (b, i) {
+      b.addEventListener('click', function () { clearInterval(timer); show(i); if (N > 1) timer = setInterval(function () { show(cur + 1); }, interval); });
+    });
+    show(0);
+    if (N > 1) timer = setInterval(function () { show(cur + 1); }, interval);
+  }
+
+  /* ── Download ── */
+  document.getElementById('btnDownload').addEventListener('click', function () {
+    var title    = document.getElementById('inp-title').value.trim()    || 'Untitled';
+    var folder   = document.getElementById('inp-folder').value.trim();
+    var capText  = document.getElementById('inp-caption').value.trim();
+    var interval = parseInt(document.getElementById('inp-interval').value) || 8000;
+    var slug     = title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    var prefix   = folder ? ('../assets/' + encodeURI(folder) + '/') : '../assets/Your-Folder/';
+
+    var slidesHtml = photos.map(function (p, i) {
+      var src = prefix + encodeURIComponent(p.name);
+      var active = i === 0 ? ' active' : '';
+      var tag = p.file.type.startsWith('video/')
+        ? '<video src="' + src + '" muted loop autoplay playsinline style="width:100%;height:100%;object-fit:cover;display:block;"></video>'
+        : '<img src="' + src + '" alt="' + escA(title) + '">';
+      return '    <div class="fp-slide' + active + '">\n      ' + tag + '\n    </div>';
+    }).join('\n\n');
+
+    var capHtml = buildCapHtml(capText)
+      .split('\n').map(function (l) { return '    ' + l; }).join('\n').trim();
+
+    var html = pageTemplate(title, interval, slidesHtml, capHtml);
+    download('ultra-' + slug + '.html', html);
+  });
+
+  /* ── Helpers ── */
+  function el(tag, cls) { var e = document.createElement(tag); e.className = cls; return e; }
+
+  function buildCapHtml(text) {
+    if (!text.trim()) return '';
+    // Convert **bold** and _italic_ (or *italic*)
+    var paras = text.trim().split(/\n\s*\n/).map(function (p) {
+      return p.trim().replace(/\n/g, ' ');
+    }).filter(Boolean);
+    return paras.map(function (p) {
+      var s = escH(p)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/[*_](.+?)[*_]/g, '<em>$1</em>');
+      return '<p>' + s + '</p>';
+    }).join('\n');
+  }
+
+  function escH(s)  { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escA(s)  { return escH(s).replace(/"/g,'&quot;'); }
+
+  function download(filename, content) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([content], { type: 'text/html;charset=utf-8' }));
+    a.download = filename; a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
+  }
+
+  /* ── Exported page template ── */
+  function pageTemplate(title, interval, slidesHtml, capHtml) {
+    var t = escH(title);
+    // Use /sc/ token to avoid parser treating it as closing script tag
+    var sc = 'scr' + 'ipt', scEnd = '</' + sc + '>';
+    return [
+'<!DOCTYPE html>',
+'<html lang="en">',
+'<head>',
+'  <meta charset="UTF-8">',
+'  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+'  <title>' + t + ' · Joyce Ultra</title>',
+'  <link rel="preconnect" href="https://fonts.googleapis.com">',
+'  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
+'  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">',
+'  <style>',
+'    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }',
+'    html, body { min-height: 100%; background: #0c0a08; color: rgba(255,255,255,0.88); font-family: \'Cormorant Garamond\', serif; }',
+'    .back-link { display: inline-block; font-family: \'Jost\', sans-serif; font-size: 0.72rem; font-weight: 300; letter-spacing: 0.18em; color: rgba(201,169,110,0.7); text-decoration: none; padding: 1.2rem 1.5rem; }',
+'    .back-link:hover { color: #c9a96e; }',
+'    .fp-stage { position: relative; width: 100%; max-width: 860px; margin: 0 auto; aspect-ratio: 4/5; overflow: hidden; background: #060404; }',
+'    .fp-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.9s ease; }',
+'    .fp-slide.active { opacity: 1; }',
+'    .fp-slide img, .fp-slide video { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1); transition: transform 0s; }',
+'    .fp-slide.active img, .fp-slide.active video { transform: scale(1.06); transition: transform 9s ease-out; }',
+'    .fp-progress { height: 2px; background: rgba(255,255,255,0.08); max-width: 860px; margin: 0 auto; }',
+'    .fp-bar { height: 100%; width: 0%; background: #c9a96e; }',
+'    .fp-dots { display: flex; justify-content: center; gap: 0.5rem; padding: 0.9rem 0 0; }',
+'    .fp-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.2); border: none; cursor: pointer; padding: 0; transition: background 0.25s; }',
+'    .fp-dot.active { background: #c9a96e; }',
+'    .fp-header { max-width: 680px; margin: 2.4rem auto 0; padding: 0 1.5rem; text-align: center; }',
+'    .fp-title { font-family: \'Cormorant Garamond\', serif; font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 400; letter-spacing: 0.06em; color: rgba(255,255,255,0.92); line-height: 1.2; }',
+'    .fp-rule { border: none; border-top: 1px solid rgba(201,169,110,0.28); margin: 1.2rem 0 0; }',
+'    .fp-caption { max-width: 680px; margin: 2rem auto 5rem; padding: 0 1.5rem; }',
+'    .fp-caption p { font-family: \'Cormorant Garamond\', serif; font-size: 1.15rem; font-weight: 300; line-height: 1.85; color: rgba(255,255,255,0.7); }',
+'    .fp-caption p + p { margin-top: 1.2em; }',
+'    .fp-caption strong { color: rgba(255,255,255,0.9); font-weight: 500; }',
+'    .fp-caption em { font-style: italic; }',
+'    @media (max-width: 600px) { .fp-stage { aspect-ratio: 3/4; } }',
+'  </style>',
+'</head>',
+'<body>',
+'',
+'  <a class="back-link" href="../joyce-ultra.html">← Ultra</a>',
+'',
+'  <div class="fp-stage" id="fp-stage" data-interval="' + interval + '">',
+'',
+slidesHtml,
+'',
+'  </div>',
+'',
+'  <div class="fp-progress"><div class="fp-bar" id="fp-bar"></div></div>',
+'  <div class="fp-dots" id="fp-dots"></div>',
+'',
+'  <div class="fp-header">',
+'    <h1 class="fp-title">' + t + '</h1>',
+'    <hr class="fp-rule">',
+'  </div>',
+'',
+'  <div class="fp-caption">',
+    capHtml,
+'  </div>',
+'',
+'  <' + sc + '>',
+'    (function () {',
+'      var stage    = document.getElementById(\'fp-stage\');',
+'      var barEl    = document.getElementById(\'fp-bar\');',
+'      var dotsWrap = document.getElementById(\'fp-dots\');',
+'      var slides   = Array.prototype.slice.call(stage.querySelectorAll(\'.fp-slide\'));',
+'      var N        = slides.length;',
+'      var INTERVAL = parseInt(stage.getAttribute(\'data-interval\'), 10) || 8000;',
+'      var cur = 0, timer = null;',
+'      if (N === 0) return;',
+'      slides.forEach(function (_, i) {',
+'        var b = document.createElement(\'button\');',
+'        b.className = \'fp-dot\' + (i === 0 ? \' active\' : \'\');',
+'        b.setAttribute(\'aria-label\', \'Slide \' + (i + 1));',
+'        b.addEventListener(\'click\', function () { stop(); show(i); start(); });',
+'        dotsWrap.appendChild(b);',
+'      });',
+'      var dots = dotsWrap.querySelectorAll(\'.fp-dot\');',
+'      function resetBar() {',
+'        barEl.style.transition = \'none\'; barEl.style.width = \'0%\';',
+'        requestAnimationFrame(function () { requestAnimationFrame(function () {',
+'          barEl.style.transition = \'width \' + INTERVAL + \'ms linear\'; barEl.style.width = \'100%\';',
+'        }); });',
+'      }',
+'      function show(n) {',
+'        slides[cur].classList.remove(\'active\'); if (dots[cur]) dots[cur].classList.remove(\'active\');',
+'        cur = (n + N) % N;',
+'        slides[cur].classList.add(\'active\');   if (dots[cur]) dots[cur].classList.add(\'active\');',
+'        resetBar();',
+'      }',
+'      function start() { if (!timer && N > 1) timer = setInterval(function () { show(cur + 1); }, INTERVAL); }',
+'      function stop()  { clearInterval(timer); timer = null; }',
+'      document.addEventListener(\'keydown\', function (e) {',
+'        if (e.key === \'ArrowRight\') { stop(); show(cur + 1); start(); }',
+'        if (e.key === \'ArrowLeft\')  { stop(); show(cur - 1); start(); }',
+'      });',
+'      show(0); start();',
+'    })();',
+'  ' + scEnd,
+'',
+'</body>',
+'</html>',
+    ].join('\n');
+  }
+
+})();
+</script>
+</body>
+</html>

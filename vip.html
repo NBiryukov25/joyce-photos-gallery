@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIP · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="gallery.css">
+  <style>
+    /* ── VIP page background ── */
+    html {
+      background-color: var(--cream);
+      background-image:
+        linear-gradient(rgba(250, 247, 244, 0.55), rgba(250, 247, 244, 0.82)),
+        url('https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/VIP_Cover_01.jpeg');
+      background-size: cover;
+      background-position: center top;
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+    }
+    @media (max-width: 600px) {
+      html { background-attachment: scroll; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-nav">
+      <a href="gallery.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="come-away-with-me.html" class="nav-link">Come Away</a>
+        <a href="senza-veli.html" class="nav-link">Senza Veli</a>
+        <a href="stories.html" class="nav-link">Stories</a>
+        <a href="friends.html" class="nav-link">Friends</a>
+        <a href="portrait.html" class="nav-link">Tools</a>
+        <a href="joyce-ultra.html" class="nav-link">Ultra</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero" style="text-align:center; padding-top: 5em;">
+    <p class="hero-overline">Members Area</p>
+    <h1 class="hero-name">Welcome Back</h1>
+    <p class="hero-tagline" style="margin-top:1em;">Select a section below</p>
+  </section>
+
+  <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:1.2rem; margin:3em auto; max-width:600px;">
+    <a href="come-away-with-me.html" class="gallery-view-link" style="padding:0.9rem 1.8rem; border:1px solid var(--blush); border-radius:4px; text-decoration:none; font-family:'Jost',sans-serif; font-size:0.82rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--rose);">Come Away</a>
+    <a href="senza-veli.html" class="gallery-view-link" style="padding:0.9rem 1.8rem; border:1px solid var(--blush); border-radius:4px; text-decoration:none; font-family:'Jost',sans-serif; font-size:0.82rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--rose);">Senza Veli</a>
+    <a href="stories.html" class="gallery-view-link" style="padding:0.9rem 1.8rem; border:1px solid var(--blush); border-radius:4px; text-decoration:none; font-family:'Jost',sans-serif; font-size:0.82rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--rose);">Stories</a>
+    <a href="friends.html" class="gallery-view-link" style="padding:0.9rem 1.8rem; border:1px solid var(--blush); border-radius:4px; text-decoration:none; font-family:'Jost',sans-serif; font-size:0.82rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--rose);">Friends</a>
+    <a href="portrait.html" class="gallery-view-link" style="padding:0.9rem 1.8rem; border:1px solid var(--blush); border-radius:4px; text-decoration:none; font-family:'Jost',sans-serif; font-size:0.82rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--rose);">Tools</a>
+    <a href="joyce-ultra.html" class="gallery-view-link" style="padding:0.9rem 1.8rem; border:1px solid var(--blush); border-radius:4px; text-decoration:none; font-family:'Jost',sans-serif; font-size:0.82rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--rose);">Ultra</a>
+  </div>
+
+</body>
+</html>

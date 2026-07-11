@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Tools — Three Faces character portraits and audio/video transcription.">
+  <title>Tools · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #060404; color: #f7f1ee; font-family: 'Cormorant Garamond', serif; min-height: 100%; }
+    body { padding: 0 1.5rem 6rem; max-width: 1100px; margin: 0 auto; }
+
+    /* ── nav ── */
+    .site-header { padding: 2em 0 1.6em; border-bottom: 1px solid rgba(247,241,238,0.1); }
+    .site-nav { display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-family: 'Cormorant Garamond', serif; font-size: 1em; font-weight: 400; letter-spacing: 0.26em; text-transform: uppercase; color: #f7f1ee; text-decoration: none; }
+    .nav-links { display: flex; gap: 2em; flex-wrap: wrap; }
+    .nav-link { font-family: 'Jost', sans-serif; font-size: 0.68em; font-weight: 300; letter-spacing: 0.26em; text-transform: uppercase; color: rgba(247,241,238,0.45); text-decoration: none; padding-bottom: 3px; border-bottom: 1px solid transparent; transition: color 0.2s, border-color 0.2s; }
+    .nav-link:hover { color: rgba(247,241,238,0.8); }
+    .nav-link.active { color: #f7f1ee; border-bottom-color: #8b3a3a; }
+
+    /* ── hero ── */
+    .portrait-hero { text-align: center; padding: 3.5rem 0 2rem; }
+    .portrait-overline { font-family: 'Jost', sans-serif; font-size: 0.62em; font-weight: 300; letter-spacing: 0.4em; text-transform: uppercase; color: #8b3a3a; margin-bottom: 0.8em; }
+    .portrait-title { font-family: 'Cormorant Garamond', serif; font-size: 3.6rem; font-weight: 300; letter-spacing: 0.14em; text-transform: uppercase; color: #f7f1ee; line-height: 1; margin-bottom: 0.4em; }
+    .portrait-subtitle { font-family: 'Jost', sans-serif; font-size: 0.7em; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(247,241,238,0.3); }
+    @media (max-width: 600px) { .portrait-title { font-size: 2.2rem; } .nav-links { gap: 1.2em; } }
+
+    .portrait-divider { border: none; border-top: 1px solid rgba(247,241,238,0.08); margin: 0 0 2rem; }
+
+    /* ── collection view ── */
+    .collection-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.8rem; }
+    .collection-count { font-family: 'Jost', sans-serif; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(247,241,238,0.3); }
+    .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .char-card { position: relative; background: rgba(255,255,255,0.02); border: 1px solid rgba(247,241,238,0.08); border-radius: 4px; padding: 1.6rem 1.4rem 1.4rem; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+    .char-card:hover { border-color: rgba(247,241,238,0.18); background: rgba(255,255,255,0.04); }
+    .char-card-name { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 400; color: #f7f1ee; margin-bottom: 0.6rem; line-height: 1.2; }
+    .char-card-snippet { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 0.9rem; line-height: 1.55; color: rgba(247,241,238,0.45); margin-bottom: 1rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .char-card-date { font-family: 'Jost', sans-serif; font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(247,241,238,0.2); }
+    .char-card-delete { position: absolute; top: 0.8rem; right: 0.8rem; background: none; border: none; color: rgba(247,241,238,0.2); font-size: 1.1rem; cursor: pointer; line-height: 1; padding: 0.2rem 0.4rem; transition: color 0.2s; }
+    .char-card-delete:hover { color: #c05050; }
+
+    /* ── form view ── */
+    .view-header { display: flex; align-items: center; gap: 1rem; padding: 1.8rem 0 1.4rem; border-bottom: 1px solid rgba(247,241,238,0.08); margin-bottom: 2rem; }
+    .back-btn { font-family: 'Jost', sans-serif; font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(247,241,238,0.4); background: none; border: none; cursor: pointer; padding: 0; transition: color 0.2s; }
+    .back-btn:hover { color: rgba(247,241,238,0.75); }
+    .view-title { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 400; color: rgba(247,241,238,0.7); margin-left: auto; }
+
+    .char-form { max-width: 720px; }
+    .field-group { margin-bottom: 1.5rem; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+    @media (max-width: 600px) { .field-row { grid-template-columns: 1fr; } }
+    .field-label { display: block; font-family: 'Jost', sans-serif; font-size: 0.6rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(247,241,238,0.4); margin-bottom: 0.5rem; }
+    .field-hint { font-size: 0.55rem; letter-spacing: 0.12em; color: rgba(247,241,238,0.22); margin-left: 0.5rem; }
+    .field-input, .field-textarea { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(247,241,238,0.1); border-radius: 3px; color: #f7f1ee; font-family: 'Cormorant Garamond', serif; font-size: 1rem; padding: 0.7rem 0.9rem; outline: none; transition: border-color 0.2s; }
+    .field-input:focus, .field-textarea:focus { border-color: rgba(247,241,238,0.28); }
+    .field-input::placeholder, .field-textarea::placeholder { color: rgba(247,241,238,0.18); font-style: italic; }
+    .field-textarea { resize: vertical; min-height: 90px; line-height: 1.55; }
+    .field-textarea.sm { min-height: 64px; }
+
+    /* name field — bigger */
+    #f-name { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; padding: 0.6rem 0.9rem; }
+
+    /* ── relationships in form ── */
+    .rel-section-label { font-family: 'Jost', sans-serif; font-size: 0.6rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(247,241,238,0.4); margin-bottom: 0.8rem; }
+    .rel-empty { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 0.9rem; color: rgba(247,241,238,0.2); }
+    .rel-item { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem; }
+    .rel-check { accent-color: #8b3a3a; width: 14px; height: 14px; cursor: pointer; }
+    .rel-char-name { font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; color: rgba(247,241,238,0.65); min-width: 120px; }
+    .rel-type-input { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(247,241,238,0.1); border-radius: 3px; color: rgba(247,241,238,0.7); font-family: 'Jost', sans-serif; font-size: 0.7rem; letter-spacing: 0.08em; padding: 0.35rem 0.6rem; outline: none; }
+    .rel-type-input::placeholder { color: rgba(247,241,238,0.18); }
+
+    /* ── buttons ── */
+    .pill-btn { font-family: 'Jost', sans-serif; font-size: 0.7rem; font-weight: 300; letter-spacing: 0.24em; text-transform: uppercase; color: #f7f1ee; background: transparent; border: 1px solid rgba(247,241,238,0.25); border-radius: 999px; padding: 0.55rem 1.6rem; cursor: pointer; transition: background 0.2s, border-color 0.2s; white-space: nowrap; }
+    .pill-btn:hover:not(:disabled) { background: rgba(255,255,255,0.07); border-color: rgba(247,241,238,0.45); }
+    .pill-btn:disabled { opacity: 0.4; cursor: default; }
+    .pill-btn.primary { border-color: rgba(139,58,58,0.6); }
+    .pill-btn.primary:hover:not(:disabled) { background: rgba(139,58,58,0.12); border-color: rgba(139,58,58,0.9); }
+
+    .form-error { font-family: 'Jost', sans-serif; font-size: 0.72rem; color: #b05050; margin-bottom: 1.2rem; }
+    .form-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 2rem; }
+
+    /* ── portrait view ── */
+    .portrait-char-name { font-family: 'Cormorant Garamond', serif; font-size: 2.6rem; font-weight: 300; color: #f7f1ee; margin-bottom: 2rem; letter-spacing: 0.06em; }
+    .face-panels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; margin-bottom: 2.5rem; }
+    @media (max-width: 780px) { .face-panels { grid-template-columns: 1fr; } }
+
+    .face-panel { padding: 2rem 1.5rem 1.8rem; border-top: 2px solid; background: rgba(255,255,255,0.015); animation: fadeUp 0.6s ease; }
+    .face-panel.persona { border-color: rgba(200,185,175,0.35); }
+    .face-panel.ego     { border-color: rgba(185,145,65,0.45); }
+    .face-panel.shadow  { border-color: rgba(139,58,58,0.65); }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    .face-label { font-family: 'Jost', sans-serif; font-size: 0.58rem; font-weight: 300; letter-spacing: 0.42em; text-transform: uppercase; margin-bottom: 1.1rem; }
+    .face-panel.persona .face-label { color: rgba(200,185,175,0.65); }
+    .face-panel.ego     .face-label { color: rgba(200,160,75,0.75); }
+    .face-panel.shadow  .face-label { color: rgba(200,85,85,0.75); }
+    .face-text { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.05rem; line-height: 1.75; color: rgba(247,241,238,0.85); }
+
+    /* character details accordion */
+    .char-details { border: 1px solid rgba(247,241,238,0.08); border-radius: 3px; margin-bottom: 1.5rem; }
+    .char-details summary { font-family: 'Jost', sans-serif; font-size: 0.62rem; letter-spacing: 0.26em; text-transform: uppercase; color: rgba(247,241,238,0.35); padding: 0.9rem 1.1rem; cursor: pointer; list-style: none; user-select: none; }
+    .char-details summary::-webkit-details-marker { display: none; }
+    .char-details[open] summary { border-bottom: 1px solid rgba(247,241,238,0.08); color: rgba(247,241,238,0.5); }
+    .char-details-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0; }
+    .detail-item { padding: 1rem 1.1rem; border-bottom: 1px solid rgba(247,241,238,0.05); }
+    .detail-item:last-child { border-bottom: none; }
+    .detail-key { font-family: 'Jost', sans-serif; font-size: 0.55rem; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(247,241,238,0.25); margin-bottom: 0.4rem; }
+    .detail-val { font-family: 'Cormorant Garamond', serif; font-size: 0.92rem; line-height: 1.5; color: rgba(247,241,238,0.6); }
+
+    /* relationships in portrait view */
+    .portrait-rels { margin-bottom: 2rem; }
+    .portrait-rels-label { font-family: 'Jost', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(247,241,238,0.25); margin-bottom: 0.8rem; }
+    .rel-tag { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(247,241,238,0.1); border-radius: 999px; padding: 0.3rem 0.8rem 0.3rem 0.6rem; margin: 0.25rem; font-family: 'Jost', sans-serif; font-size: 0.64rem; letter-spacing: 0.1em; color: rgba(247,241,238,0.5); cursor: pointer; transition: border-color 0.2s; }
+    .rel-tag:hover { border-color: rgba(247,241,238,0.25); color: rgba(247,241,238,0.75); }
+    .rel-tag-name { font-family: 'Cormorant Garamond', serif; font-size: 0.9rem; color: rgba(247,241,238,0.7); font-style: italic; }
+
+    .portrait-actions { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+
+    /* ── observations ── */
+    .obs-section { margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid rgba(247,241,238,0.08); }
+    .obs-heading { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.1rem; color: rgba(247,241,238,0.4); margin-bottom: 0.8rem; }
+    .obs-actions { display: flex; align-items: center; gap: 1rem; margin-top: 0.9rem; }
+    .obs-error { font-family: 'Jost', sans-serif; font-size: 0.7rem; color: #b05050; }
+    .fields-divider { font-family: 'Jost', sans-serif; font-size: 0.58rem; letter-spacing: 0.26em; text-transform: uppercase; color: rgba(247,241,238,0.18); text-align: center; margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem; }
+    .fields-divider::before, .fields-divider::after { content: ''; flex: 1; height: 1px; background: rgba(247,241,238,0.07); }
+    @keyframes fieldPop { 0% { border-color: rgba(139,58,58,0.7); background: rgba(139,58,58,0.07); } 100% { border-color: rgba(247,241,238,0.1); background: rgba(255,255,255,0.03); } }
+    .field-populated { animation: fieldPop 1.8s ease forwards; }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="site-nav">
+      <a href="gallery.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="gallery.html" class="nav-link">Galleries</a>
+        <a href="senza-veli.html" class="nav-link">Senza Veli</a>
+        <a href="stories.html" class="nav-link">Stories</a>
+        <a href="friends.html" class="nav-link">Friends</a>
+        <a href="portrait.html" class="nav-link active">Tools</a>
+        <a href="joyce-ultra.html" class="nav-link">Ultra</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════ TOOLS HUB ═══════════════════════════════════ -->
+  <div id="view-tools-home" hidden>
+    <section class="portrait-hero">
+      <p class="portrait-overline">Sheryl Joyce</p>
+      <h1 class="portrait-title">Tools</h1>
+      <p class="portrait-subtitle">Small utilities for building the site</p>
+    </section>
+    <hr class="portrait-divider">
+    <div class="char-grid">
+      <div class="char-card" id="tool-card-three-faces">
+        <p class="char-card-name">Three Faces</p>
+        <p class="char-card-snippet">Build character portraits — Persona, Ego, Shadow — from a few notes or freeform observations.</p>
+      </div>
+      <div class="char-card" id="tool-card-transcribe">
+        <p class="char-card-name">Transcribe</p>
+        <p class="char-card-snippet">Upload an .mp3, .mov, or .mp4 and get back a verbatim text transcript. Any length — long recordings are chunked automatically.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ COLLECTION VIEW ═══════════════════════════════════ -->
+  <div id="view-collection" hidden>
+    <div class="view-header" style="border-bottom:none; padding-bottom:0; margin-bottom:0.5rem;">
+      <button class="back-btn" id="collection-back-to-tools-btn">← Tools</button>
+    </div>
+    <section class="portrait-hero">
+      <p class="portrait-overline">Character Study</p>
+      <h1 class="portrait-title">The Three Faces</h1>
+      <p class="portrait-subtitle">Persona &nbsp;·&nbsp; Ego &nbsp;·&nbsp; Shadow</p>
+    </section>
+    <hr class="portrait-divider">
+    <div class="collection-toolbar">
+      <span class="collection-count" id="collection-count"></span>
+      <button class="pill-btn" id="new-char-btn">+ New Character</button>
+    </div>
+    <div class="char-grid" id="collection-grid"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════ FORM VIEW ══════════════════════════════════════ -->
+  <div id="view-form" hidden>
+    <div class="view-header">
+      <button class="back-btn" id="form-back-btn">← Collection</button>
+      <span class="view-title" id="form-title">New Character</span>
+    </div>
+
+    <form id="char-form" class="char-form" autocomplete="off">
+
+      <!-- ── observations ── -->
+      <div class="obs-section">
+        <p class="obs-heading">Describe your observations of this person…</p>
+        <textarea id="f-observations" class="field-textarea" style="min-height:120px" placeholder="She arrives early to everything but never seems relaxed when she gets there. Laughs at the wrong moments. Her car is older than her salary should allow. She volunteers at the hospital on weekends but never mentions it…"></textarea>
+        <div class="obs-actions">
+          <button type="button" class="pill-btn primary" id="infer-btn">Infer Character →</button>
+          <span id="obs-error" class="obs-error" style="display:none"></span>
+        </div>
+      </div>
+
+      <div class="fields-divider">or fill in manually</div>
+
+      <div class="field-group">
+        <label class="field-label" for="f-name">Name</label>
+        <input type="text" id="f-name" class="field-input" placeholder="Character's name">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="f-bio">Bio</label>
+        <textarea id="f-bio" class="field-textarea" placeholder="A brief background — where they came from, who they are now…"></textarea>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="f-appearance">Appearance <span class="field-hint">build · face · clothing · posture · distinguishing marks</span></label>
+        <textarea id="f-appearance" class="field-textarea" placeholder="How they look and carry themselves…"></textarea>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group" style="margin-bottom:0">
+          <label class="field-label" for="f-drive">Drive <span class="field-hint">core motivation</span></label>
+          <input type="text" id="f-drive" class="field-input" placeholder="e.g. protect family, prove worth…">
+        </div>
+        <div class="field-group" style="margin-bottom:0">
+          <label class="field-label" for="f-desire">Desire <span class="field-hint">explicit goal</span></label>
+          <input type="text" id="f-desire" class="field-input" placeholder="e.g. win the case, find her sister…">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group" style="margin-bottom:0">
+          <label class="field-label" for="f-secret">Secret <span class="field-hint">hidden burden or truth</span></label>
+          <input type="text" id="f-secret" class="field-input" placeholder="What they carry alone…">
+        </div>
+        <div class="field-group" style="margin-bottom:0">
+          <label class="field-label" for="f-fear">Fear <span class="field-hint">psychological flaw or weakness</span></label>
+          <input type="text" id="f-fear" class="field-input" placeholder="What undoes them…">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="f-arc">Arc <span class="field-hint">character transformation</span></label>
+        <textarea id="f-arc" class="field-textarea sm" placeholder="e.g. selfish → selfless, naive → knowing, closed → open…"></textarea>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="f-voice">Voice <span class="field-hint">speech style and manner</span></label>
+        <textarea id="f-voice" class="field-textarea sm" placeholder="How they speak — rhythms, vocabulary, what they leave unsaid…"></textarea>
+      </div>
+
+      <div class="field-group">
+        <p class="rel-section-label">Relationships</p>
+        <div id="form-rel-list"><p class="rel-empty">No other characters available yet.</p></div>
+      </div>
+
+      <div id="form-error" class="form-error" style="display:none"></div>
+
+      <div class="form-actions">
+        <button type="submit" class="pill-btn primary" id="form-submit-btn">Reveal Portrait</button>
+        <button type="button" class="pill-btn" id="form-cancel-btn">Cancel</button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- ═══════════════════════════════════ PORTRAIT VIEW ═════════════════════════════════════ -->
+  <div id="view-portrait" hidden>
+    <div class="view-header">
+      <button class="back-btn" id="portrait-back-btn">← Collection</button>
+      <button class="back-btn" id="portrait-edit-btn" style="margin-left:auto">Edit Character</button>
+    </div>
+
+    <h2 class="portrait-char-name" id="portrait-char-name"></h2>
+
+    <div class="face-panels">
+      <div class="face-panel persona">
+        <p class="face-label">Persona</p>
+        <p class="face-text" id="text-persona"></p>
+      </div>
+      <div class="face-panel ego">
+        <p class="face-label">Ego</p>
+        <p class="face-text" id="text-ego"></p>
+      </div>
+      <div class="face-panel shadow">
+        <p class="face-label">Shadow</p>
+        <p class="face-text" id="text-shadow"></p>
+      </div>
+    </div>
+
+    <details class="char-details" id="char-details">
+      <summary>Character Details</summary>
+      <div class="char-details-grid" id="char-details-content"></div>
+    </details>
+
+    <div class="portrait-rels" id="portrait-rels" style="display:none">
+      <p class="portrait-rels-label">Relationships</p>
+      <div id="portrait-rel-tags"></div>
+    </div>
+
+    <div class="portrait-actions">
+      <button class="pill-btn primary" id="save-btn">Save to Collection</button>
+      <button class="pill-btn" id="regen-btn">Re-generate</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ TRANSCRIBE VIEW ═══════════════════════════════════ -->
+  <div id="view-transcribe" hidden>
+    <div class="view-header">
+      <button class="back-btn" id="transcribe-back-btn">← Tools</button>
+      <span class="view-title">Transcribe</span>
+    </div>
+
+    <div class="char-form" style="max-width:720px">
+      <div class="field-group">
+        <label class="field-label" for="transcribe-file-input">Audio or video file <span class="field-hint">.mp3, .mov, or .mp4, any length</span></label>
+        <input type="file" id="transcribe-file-input" accept=".mp3,.mov,.mp4,audio/mpeg,video/quicktime,video/mp4" class="field-input" style="padding:0.6rem 0.7rem;">
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="pill-btn primary" id="transcribe-submit-btn" disabled>Transcribe</button>
+      </div>
+
+      <p id="transcribe-status" style="font-family:'Jost',sans-serif; font-size:0.72rem; color:rgba(247,241,238,0.45); margin-top:1.2rem;"></p>
+
+      <div id="transcribe-result-wrap" style="display:none; margin-top:1.5rem;">
+        <label class="field-label">Transcript</label>
+        <textarea id="transcribe-result-text" class="field-textarea" style="min-height:260px" readonly></textarea>
+        <div class="form-actions">
+          <button type="button" class="pill-btn" id="transcribe-copy-btn">Copy</button>
+          <button type="button" class="pill-btn" id="transcribe-download-btn">Download .txt</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var API_BASE = 'https://worker-production-7184.up.railway.app';
+    var STORAGE_KEY = 'joyce_portraits_v1';
+    var TRANSCRIBE_TOKEN = 'D2uCUAHstMee2EV-0c-_YBHNQ7hDivV11QdPRja8azY';
+    var TRANSCRIBE_PASSWORD = 'sherylonly';
+
+    // ── state ──────────────────────────────────────────────────────────────────
+    var _editingId   = null;   // id of character being edited (null = new)
+    var _currentChar = null;   // character data currently displayed
+    var _currentPort = null;   // portrait currently displayed
+    var _isSaved     = false;  // whether current char+portrait is in collection
+
+    // ── localStorage ───────────────────────────────────────────────────────────
+    function getCollection() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+      catch (e) { return []; }
+    }
+    function setCollection(arr) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    }
+    function upsertChar(char) {
+      var arr = getCollection();
+      var idx = arr.findIndex(function(c) { return c.id === char.id; });
+      if (idx >= 0) { arr[idx] = char; } else { arr.unshift(char); }
+      setCollection(arr);
+    }
+    function removeChar(id) {
+      setCollection(getCollection().filter(function(c) { return c.id !== id; }));
+    }
+    function getChar(id) {
+      return getCollection().find(function(c) { return c.id === id; }) || null;
+    }
+    function genId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+
+    // ── views ──────────────────────────────────────────────────────────────────
+    function showView(name) {
+      ['tools-home', 'collection', 'form', 'portrait', 'transcribe'].forEach(function(v) {
+        document.getElementById('view-' + v).hidden = (v !== name);
+      });
+      window.scrollTo(0, 0);
+    }
+
+    // ── collection ─────────────────────────────────────────────────────────────
+    function renderCollection() {
+      var coll = getCollection();
+      var countEl = document.getElementById('collection-count');
+      var grid    = document.getElementById('collection-grid');
+
+      countEl.textContent = coll.length === 1 ? '1 character' : coll.length + ' characters';
+
+      if (coll.length === 0) {
+        _editingId = null;
+        populateForm(null);
+        showView('form');
+        return;
+      }
+
+      grid.innerHTML = coll.map(function(c) {
+        var snippet = c.portrait
+          ? c.portrait.persona.slice(0, 140)
+          : (c.bio || c.appearance || '').slice(0, 140);
+        if (snippet.length === 140) snippet += '…';
+        var date = new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return '<div class="char-card" data-id="' + esc(c.id) + '">' +
+          '<button class="char-card-delete" data-id="' + esc(c.id) + '" title="Delete">×</button>' +
+          '<p class="char-card-name">' + esc(c.name || 'Unnamed') + '</p>' +
+          '<p class="char-card-snippet">' + esc(snippet) + '</p>' +
+          '<p class="char-card-date">' + date + '</p>' +
+          '</div>';
+      }).join('');
+
+      showView('collection');
+    }
+
+    // ── form ───────────────────────────────────────────────────────────────────
+    function populateForm(char) {
+      var fields = ['name','bio','appearance','drive','desire','secret','fear','arc','voice'];
+      fields.forEach(function(f) {
+        var el = document.getElementById('f-' + f);
+        el.value = char ? (char[f] || '') : '';
+        el.classList.remove('field-populated');
+      });
+      document.getElementById('f-observations').value = '';
+      document.getElementById('form-title').textContent = char ? (char.name || 'Edit Character') : 'New Character';
+      document.getElementById('form-error').style.display = 'none';
+
+      // relationships
+      var coll = getCollection();
+      var others = char ? coll.filter(function(c) { return c.id !== char.id; }) : coll;
+      var relList = document.getElementById('form-rel-list');
+      if (others.length === 0) {
+        relList.innerHTML = '<p class="rel-empty">No other characters available yet.</p>';
+      } else {
+        relList.innerHTML = others.map(function(c) {
+          var existing = char && char.relationships
+            ? char.relationships.find(function(r) { return r.id === c.id; })
+            : null;
+          return '<div class="rel-item">' +
+            '<input type="checkbox" class="rel-check" id="rc-' + esc(c.id) + '" data-id="' + esc(c.id) + '"' + (existing ? ' checked' : '') + '>' +
+            '<label class="rel-char-name" for="rc-' + esc(c.id) + '">' + esc(c.name || 'Unnamed') + '</label>' +
+            '<input type="text" class="rel-type-input" id="rt-' + esc(c.id) + '" placeholder="Relationship…" value="' + esc(existing ? existing.type : '') + '">' +
+            '</div>';
+        }).join('');
+      }
+    }
+
+    function getFormData() {
+      var fields = ['name','bio','appearance','drive','desire','secret','fear','arc','voice'];
+      var data = { relationships: [] };
+      fields.forEach(function(f) { data[f] = document.getElementById('f-' + f).value.trim(); });
+
+      // collect relationships
+      var checks = document.querySelectorAll('.rel-check');
+      checks.forEach(function(cb) {
+        if (cb.checked) {
+          var id   = cb.dataset.id;
+          var type = (document.getElementById('rt-' + id) || {}).value || '';
+          var name = getChar(id) ? (getChar(id).name || 'Unnamed') : 'Unknown';
+          data.relationships.push({ id: id, name: name, type: type.trim() });
+        }
+      });
+      return data;
+    }
+
+    // ── API call ───────────────────────────────────────────────────────────────
+    function generatePortrait(charData, callback) {
+      var body = {
+        name: charData.name, bio: charData.bio, appearance: charData.appearance,
+        drive: charData.drive, desire: charData.desire, secret: charData.secret,
+        fear: charData.fear, arc: charData.arc, voice: charData.voice,
+      };
+      fetch(API_BASE + '/portrait', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      .then(function(res) {
+        if (!res.ok) return res.json().then(function(b) { throw new Error(b.detail || 'Request failed'); });
+        return res.json();
+      })
+      .then(function(data) { callback(null, data); })
+      .catch(function(err) { callback(err, null); });
+    }
+
+    // ── portrait view ──────────────────────────────────────────────────────────
+    function renderPortrait(char, portrait, saved) {
+      _currentChar = char;
+      _currentPort = portrait;
+      _isSaved     = !!saved;
+
+      document.getElementById('portrait-char-name').textContent = char.name || 'Unnamed Character';
+      document.getElementById('text-persona').textContent = portrait.persona;
+      document.getElementById('text-ego').textContent     = portrait.ego;
+      document.getElementById('text-shadow').textContent  = portrait.shadow;
+
+      // character details
+      var fields = [
+        { key: 'Bio',        val: char.bio },
+        { key: 'Appearance', val: char.appearance },
+        { key: 'Drive',      val: char.drive },
+        { key: 'Desire',     val: char.desire },
+        { key: 'Secret',     val: char.secret },
+        { key: 'Fear',       val: char.fear },
+        { key: 'Arc',        val: char.arc },
+        { key: 'Voice',      val: char.voice },
+      ];
+      var detailsEl = document.getElementById('char-details-content');
+      detailsEl.innerHTML = fields.filter(function(f) { return f.val; }).map(function(f) {
+        return '<div class="detail-item"><p class="detail-key">' + esc(f.key) + '</p><p class="detail-val">' + esc(f.val) + '</p></div>';
+      }).join('');
+      document.getElementById('char-details').open = false;
+
+      // relationships
+      var rels = (char.relationships || []).filter(function(r) { return r.id; });
+      var relsEl  = document.getElementById('portrait-rels');
+      var tagsEl  = document.getElementById('portrait-rel-tags');
+      if (rels.length) {
+        tagsEl.innerHTML = rels.map(function(r) {
+          return '<span class="rel-tag" data-id="' + esc(r.id) + '">' +
+            '<span class="rel-tag-name">' + esc(r.name || 'Unknown') + '</span>' +
+            (r.type ? ' · ' + esc(r.type) : '') +
+            '</span>';
+        }).join('');
+        relsEl.style.display = '';
+      } else {
+        relsEl.style.display = 'none';
+      }
+
+      // save button
+      document.getElementById('save-btn').style.display = saved ? 'none' : '';
+      document.getElementById('save-btn').textContent = 'Save to Collection';
+
+      showView('portrait');
+    }
+
+    // ── infer fields from observations ────────────────────────────────────────
+    function inferFields() {
+      var obs = document.getElementById('f-observations').value.trim();
+      if (!obs) { document.getElementById('f-observations').focus(); return; }
+
+      var btn    = document.getElementById('infer-btn');
+      var errEl  = document.getElementById('obs-error');
+      btn.textContent = 'Inferring…';
+      btn.disabled = true;
+      errEl.style.display = 'none';
+
+      fetch(API_BASE + '/infer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ observations: obs }),
+      })
+      .then(function(res) {
+        if (!res.ok) return res.json().then(function(b) { throw new Error(b.detail || 'Request failed'); });
+        return res.json();
+      })
+      .then(function(data) {
+        var fields = ['name','bio','appearance','drive','desire','secret','fear','arc','voice'];
+        fields.forEach(function(f) {
+          var el = document.getElementById('f-' + f);
+          if (data[f]) {
+            el.value = data[f];
+            el.classList.remove('field-populated');
+            void el.offsetWidth; // force reflow so animation restarts
+            el.classList.add('field-populated');
+          }
+        });
+        // scroll to first populated field
+        var firstField = document.getElementById('f-name');
+        if (firstField) firstField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      })
+      .catch(function(err) {
+        errEl.textContent = err.message;
+        errEl.style.display = '';
+      })
+      .finally(function() {
+        btn.textContent = 'Infer Character →';
+        btn.disabled = false;
+      });
+    }
+
+    // ── event wiring ───────────────────────────────────────────────────────────
+    document.getElementById('infer-btn').addEventListener('click', inferFields);
+
+    document.getElementById('new-char-btn').addEventListener('click', function() {
+      _editingId = null;
+      populateForm(null);
+      showView('form');
+    });
+
+    // ── tools hub ──────────────────────────────────────────────────────────────
+    document.getElementById('tool-card-three-faces').addEventListener('click', function() {
+      renderCollection();
+    });
+    document.getElementById('collection-back-to-tools-btn').addEventListener('click', function() {
+      showView('tools-home');
+    });
+
+    document.getElementById('tool-card-transcribe').addEventListener('click', function() {
+      if (!ensureTranscribeUnlocked()) return;
+      resetTranscribeUI();
+      showView('transcribe');
+    });
+    document.getElementById('transcribe-back-btn').addEventListener('click', function() {
+      showView('tools-home');
+    });
+
+    function ensureTranscribeUnlocked() {
+      if (sessionStorage.getItem('transcribe_unlocked') === '1') return true;
+      var pw = prompt('Enter password to use this tool:');
+      if (pw === null) return false;
+      if (pw === TRANSCRIBE_PASSWORD) {
+        sessionStorage.setItem('transcribe_unlocked', '1');
+        return true;
+      }
+      alert('Incorrect password.');
+      return false;
+    }
+
+    // ── transcribe ─────────────────────────────────────────────────────────────
+    var _transcribeFile = null;
+
+    function resetTranscribeUI() {
+      _transcribeFile = null;
+      document.getElementById('transcribe-file-input').value = '';
+      document.getElementById('transcribe-submit-btn').disabled = true;
+      document.getElementById('transcribe-submit-btn').textContent = 'Transcribe';
+      document.getElementById('transcribe-status').textContent = '';
+      document.getElementById('transcribe-result-wrap').style.display = 'none';
+      document.getElementById('transcribe-result-text').value = '';
+    }
+
+    function setTranscribeStatus(text, isError) {
+      var el = document.getElementById('transcribe-status');
+      el.textContent = text;
+      el.style.color = isError ? '#c05050' : 'rgba(247,241,238,0.45)';
+    }
+
+    document.getElementById('transcribe-file-input').addEventListener('change', function(e) {
+      _transcribeFile = e.target.files[0] || null;
+      document.getElementById('transcribe-submit-btn').disabled = !_transcribeFile;
+      document.getElementById('transcribe-result-wrap').style.display = 'none';
+      setTranscribeStatus('', false);
+    });
+
+    document.getElementById('transcribe-submit-btn').addEventListener('click', function() {
+      if (!_transcribeFile) return;
+      var ext = (_transcribeFile.name.split('.').pop() || '').toLowerCase();
+      if (ext !== 'mp3' && ext !== 'mov' && ext !== 'mp4') {
+        setTranscribeStatus('Unsupported file type — please choose an .mp3, .mov, or .mp4 file.', true);
+        return;
+      }
+      startTranscription(_transcribeFile);
+    });
+
+    function startTranscription(file) {
+      var btn = document.getElementById('transcribe-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Uploading…';
+      document.getElementById('transcribe-result-wrap').style.display = 'none';
+      setTranscribeStatus('Uploading file…', false);
+
+      var form = new FormData();
+      form.append('file', file);
+
+      fetch(API_BASE + '/transcribe/start', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + TRANSCRIBE_TOKEN },
+        body: form,
+      })
+      .then(function(res) {
+        if (!res.ok) return res.json().then(function(b) { throw new Error(b.detail || 'Upload failed'); });
+        return res.json();
+      })
+      .then(function(data) {
+        btn.textContent = 'Transcribe';
+        pollTranscription(data.job_id);
+      })
+      .catch(function(err) {
+        btn.disabled = false;
+        btn.textContent = 'Transcribe';
+        setTranscribeStatus(err.message, true);
+      });
+    }
+
+    function pollTranscription(jobId) {
+      setTranscribeStatus('Processing…', false);
+      var poll = function() {
+        fetch(API_BASE + '/transcribe/status/' + jobId, {
+          headers: { 'Authorization': 'Bearer ' + TRANSCRIBE_TOKEN },
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(job) {
+          if (job.status === 'done') {
+            setTranscribeStatus('Done.', false);
+            document.getElementById('transcribe-result-text').value = job.text;
+            document.getElementById('transcribe-result-wrap').style.display = '';
+            document.getElementById('transcribe-submit-btn').disabled = false;
+          } else if (job.status === 'error') {
+            setTranscribeStatus('Failed: ' + job.error, true);
+            document.getElementById('transcribe-submit-btn').disabled = false;
+          } else {
+            var progress = job.progress ? ' (' + job.progress + ')' : '';
+            setTranscribeStatus((job.status === 'chunking' ? 'Chunking audio…' : 'Transcribing…') + progress, false);
+            setTimeout(poll, 4000);
+          }
+        })
+        .catch(function() { setTimeout(poll, 6000); });
+      };
+      poll();
+    }
+
+    document.getElementById('transcribe-copy-btn').addEventListener('click', function() {
+      var ta = document.getElementById('transcribe-result-text');
+      ta.select();
+      document.execCommand('copy');
+    });
+
+    document.getElementById('transcribe-download-btn').addEventListener('click', function() {
+      var text = document.getElementById('transcribe-result-text').value;
+      var blob = new Blob([text], { type: 'text/plain' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = (_transcribeFile ? _transcribeFile.name.replace(/\.[^.]+$/, '') : 'transcript') + '.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    function backFromForm() {
+      if (getCollection().length === 0) { showView('tools-home'); }
+      else { renderCollection(); }
+    }
+    document.getElementById('form-back-btn').addEventListener('click', backFromForm);
+    document.getElementById('form-cancel-btn').addEventListener('click', backFromForm);
+
+    document.getElementById('portrait-back-btn').addEventListener('click', function() {
+      renderCollection();
+    });
+
+    document.getElementById('portrait-edit-btn').addEventListener('click', function() {
+      if (!_currentChar) return;
+      _editingId = _currentChar.id || null;
+      populateForm(_currentChar);
+      showView('form');
+    });
+
+    // collection card clicks
+    document.getElementById('collection-grid').addEventListener('click', function(e) {
+      // delete button
+      var delBtn = e.target.closest('.char-card-delete');
+      if (delBtn) {
+        e.stopPropagation();
+        var id = delBtn.dataset.id;
+        if (confirm('Delete this character?')) {
+          removeChar(id);
+          renderCollection();
+        }
+        return;
+      }
+      // card click → view portrait
+      var card = e.target.closest('.char-card');
+      if (card) {
+        var char = getChar(card.dataset.id);
+        if (!char) return;
+        if (char.portrait) {
+          renderPortrait(char, char.portrait, true);
+        } else {
+          _editingId = char.id;
+          populateForm(char);
+          showView('form');
+        }
+      }
+    });
+
+    // relationship tag clicks in portrait view
+    document.getElementById('portrait-rel-tags').addEventListener('click', function(e) {
+      var tag = e.target.closest('.rel-tag');
+      if (tag) {
+        var char = getChar(tag.dataset.id);
+        if (char && char.portrait) renderPortrait(char, char.portrait, true);
+      }
+    });
+
+    // form submit
+    document.getElementById('char-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var data = getFormData();
+
+      var anyField = data.name || data.bio || data.appearance || data.drive ||
+                     data.desire || data.secret || data.fear || data.arc || data.voice;
+      if (!anyField) {
+        document.getElementById('form-error').textContent = 'Fill in at least one field.';
+        document.getElementById('form-error').style.display = '';
+        return;
+      }
+
+      var submitBtn = document.getElementById('form-submit-btn');
+      submitBtn.textContent = 'Revealing…';
+      submitBtn.disabled = true;
+      document.getElementById('form-error').style.display = 'none';
+
+      generatePortrait(data, function(err, portrait) {
+        submitBtn.textContent = 'Reveal Portrait';
+        submitBtn.disabled = false;
+        if (err) {
+          document.getElementById('form-error').textContent = err.message;
+          document.getElementById('form-error').style.display = '';
+          return;
+        }
+
+        // attach id and timestamp
+        if (_editingId) {
+          var existing = getChar(_editingId);
+          data.id        = _editingId;
+          data.createdAt = existing ? existing.createdAt : Date.now();
+        } else {
+          data.id        = genId();
+          data.createdAt = Date.now();
+        }
+        data.portrait = portrait;
+
+        // auto-save if editing existing character
+        if (_editingId) {
+          upsertChar(data);
+          renderPortrait(data, portrait, true);
+        } else {
+          renderPortrait(data, portrait, false);
+        }
+      });
+    });
+
+    // save button
+    document.getElementById('save-btn').addEventListener('click', function() {
+      if (!_currentChar || !_currentPort) return;
+      _currentChar.portrait = _currentPort;
+      upsertChar(_currentChar);
+      _isSaved = true;
+      document.getElementById('save-btn').style.display = 'none';
+    });
+
+    // re-generate button
+    document.getElementById('regen-btn').addEventListener('click', function() {
+      if (!_currentChar) return;
+      var btn = document.getElementById('regen-btn');
+      btn.textContent = 'Generating…';
+      btn.disabled = true;
+      generatePortrait(_currentChar, function(err, portrait) {
+        btn.textContent = 'Re-generate';
+        btn.disabled = false;
+        if (err) { alert(err.message); return; }
+        _currentPort = portrait;
+        document.getElementById('text-persona').textContent = portrait.persona;
+        document.getElementById('text-ego').textContent     = portrait.ego;
+        document.getElementById('text-shadow').textContent  = portrait.shadow;
+        if (_isSaved) {
+          _currentChar.portrait = portrait;
+          upsertChar(_currentChar);
+        } else {
+          document.getElementById('save-btn').style.display = '';
+        }
+      });
+    });
+
+    // ── helpers ────────────────────────────────────────────────────────────────
+    function esc(str) {
+      return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── boot ───────────────────────────────────────────────────────────────────
+    showView('tools-home');
+  </script>
+
+</body>
+</html>

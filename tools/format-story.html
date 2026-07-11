@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story Formatter · Sheryl Joyce</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Georgia', serif;
+      background: #faf7f4;
+      color: #1f1a18;
+      padding: 2em;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 1.4em; font-weight: 400; margin-bottom: 0.3em; }
+    p.sub { font-size: 0.88em; color: #7a6b66; margin-bottom: 1.8em; line-height: 1.6; }
+    label { display: block; font-size: 0.8em; letter-spacing: 0.1em; text-transform: uppercase; color: #a87060; margin: 1.4em 0 0.5em; }
+    label:first-of-type { margin-top: 0; }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.7em 1em;
+      font-family: Georgia, serif;
+      font-size: 0.95em;
+      border: 1px solid #ddd0ca;
+      border-radius: 4px;
+      background: #fff;
+    }
+    textarea {
+      width: 100%;
+      padding: 1em;
+      font-family: Georgia, serif;
+      font-size: 0.95em;
+      line-height: 1.7;
+      border: 1px solid #ddd0ca;
+      border-radius: 4px;
+      background: #fff;
+      resize: vertical;
+    }
+    .hint {
+      font-size: 0.8em;
+      color: #9a8880;
+      margin-top: 0.4em;
+      line-height: 1.5;
+    }
+    .btn {
+      display: inline-block;
+      margin: 1em 0.5em 1em 0;
+      padding: 0.65em 1.6em;
+      background: #a87060;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      font-size: 0.82em;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .btn:hover { background: #7d5245; }
+    .btn.secondary { background: #e0ccc6; color: #1f1a18; }
+    .btn.secondary:hover { background: #c9b0a8; }
+    #output-wrap { display: none; margin-top: 1.5em; }
+    #output {
+      width: 100%;
+      height: 360px;
+      padding: 1em;
+      font-family: monospace;
+      font-size: 0.82em;
+      line-height: 1.6;
+      border: 1px solid #ddd0ca;
+      border-radius: 4px;
+      background: #f5ece8;
+      resize: vertical;
+    }
+    .copied { color: #a87060; font-size: 0.8em; margin-left: 0.5em; display: none; }
+    .section-rule { border: none; border-top: 1px solid #ddd0ca; margin: 2em 0 0; }
+    code { font-family: monospace; background: #ede5e1; padding: 0.1em 0.35em; border-radius: 2px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Story Formatter</h1>
+  <p class="sub">
+    Write your story below. Put <code>---</code> on its own line wherever a photo should appear.
+    Then list your photo IDs in order. Click Convert and paste the result into your story HTML file
+    right after the <code>&lt;!-- PASTE STORY BODY BELOW --&gt;</code> comment.
+  </p>
+
+  <label for="story-title">Story title</label>
+  <input type="text" id="story-title" placeholder="e.g. Employer's Playground">
+
+  <label for="input">Story text — use <code>---</code> on its own line where each photo appears</label>
+  <textarea id="input" style="height:320px;" placeholder="First section of your story...
+
+More paragraphs here...
+
+---
+
+Text that appears after the first photo...
+
+---
+
+Text after the second photo..."></textarea>
+
+  <label for="photo-ids">Photo Drive IDs — one per line, in order</label>
+  <textarea id="photo-ids" style="height:130px;" placeholder="1abc123def456&#10;1xyz789ghi012&#10;1mno345pqr678"></textarea>
+  <p class="hint">Paste the full Drive URL or just the ID (the long string of letters and numbers after <code>/d/</code> in the URL).</p>
+
+  <div>
+    <button class="btn" onclick="convert()">Convert →</button>
+    <button class="btn secondary" onclick="clearAll()">Clear</button>
+  </div>
+
+  <hr class="section-rule">
+
+  <div id="output-wrap">
+    <label for="output">HTML output — copy and paste into your story file</label>
+    <textarea id="output" readonly></textarea>
+    <div>
+      <button class="btn" onclick="copyOutput()">Copy to clipboard</button>
+      <span class="copied" id="copied-msg">Copied!</span>
+    </div>
+  </div>
+
+  <script>
+    function extractId(raw) {
+      raw = raw.trim();
+      var m = raw.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (m) return m[1];
+      m = raw.match(/id=([a-zA-Z0-9_-]+)/);
+      if (m) return m[1];
+      return raw;
+    }
+
+    function sectionToHtml(text) {
+      return text
+        .split(/\n{2,}/)
+        .map(function(p) { return p.trim().replace(/\n/g, ' '); })
+        .filter(function(p) { return p.length > 0; })
+        .map(function(p) { return '      <p>' + p + '</p>'; })
+        .join('\n\n');
+    }
+
+    function convert() {
+      var raw    = document.getElementById('input').value;
+      var idsRaw = document.getElementById('photo-ids').value;
+      var title  = document.getElementById('story-title').value.trim() || 'Story';
+
+      var sections = raw.split(/\n[ \t]*---[ \t]*\n/);
+
+      var photoIds = idsRaw
+        .split('\n')
+        .map(function(s) { return extractId(s); })
+        .filter(function(s) { return s.length > 0; });
+
+      var out = '';
+      sections.forEach(function(section, i) {
+        var html = sectionToHtml(section);
+        if (html) {
+          out += '    <div class="story-detail-body">\n' + html + '\n    </div>\n';
+        }
+        if (i < photoIds.length) {
+          out += '\n    <div class="story-inline-img-wrap">\n'
+               + '      <img loading="lazy" decoding="async" class="story-inline-img"\n'
+               + '           src="https://drive.google.com/thumbnail?id=' + photoIds[i] + '&sz=w2000"\n'
+               + '           alt="' + title.replace(/"/g, '&quot;') + '">\n'
+               + '    </div>\n\n';
+        }
+      });
+
+      document.getElementById('output').value = out.trim();
+      document.getElementById('output-wrap').style.display = 'block';
+    }
+
+    function copyOutput() {
+      var out = document.getElementById('output');
+      out.select();
+      document.execCommand('copy');
+      var msg = document.getElementById('copied-msg');
+      msg.style.display = 'inline';
+      setTimeout(function() { msg.style.display = 'none'; }, 2000);
+    }
+
+    function clearAll() {
+      document.getElementById('input').value = '';
+      document.getElementById('photo-ids').value = '';
+      document.getElementById('story-title').value = '';
+      document.getElementById('output').value = '';
+      document.getElementById('output-wrap').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

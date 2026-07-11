@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Employer's Playground · Joyce Ultra</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; background: #0c0a08; color: rgba(255,255,255,0.88); font-family: 'Cormorant Garamond', serif; }
+    .back-link { display: inline-block; font-family: 'Jost', sans-serif; font-size: 0.72rem; font-weight: 300; letter-spacing: 0.18em; color: rgba(201,169,110,0.7); text-decoration: none; padding: 1.2rem 1.5rem; }
+    .back-link:hover { color: #c9a96e; }
+    .fp-stage { position: relative; width: 100%; max-width: 860px; margin: 0 auto; aspect-ratio: 4/5; overflow: hidden; background: #060404; }
+    .fp-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.9s ease; }
+    .fp-slide.active { opacity: 1; }
+    .fp-slide img, .fp-slide video { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1); transition: transform 0s; }
+    .fp-slide.active img, .fp-slide.active video { transform: scale(1.06); transition: transform 9s ease-out; }
+    .fp-progress { height: 2px; background: rgba(255,255,255,0.08); max-width: 860px; margin: 0 auto; }
+    .fp-bar { height: 100%; width: 0%; background: #c9a96e; }
+    .fp-dots { display: flex; justify-content: center; gap: 0.5rem; padding: 0.9rem 0 0; }
+    .fp-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.2); border: none; cursor: pointer; padding: 0; transition: background 0.25s; }
+    .fp-dot.active { background: #c9a96e; }
+    .fp-header { max-width: 680px; margin: 2.4rem auto 0; padding: 0 1.5rem; text-align: center; }
+    .fp-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 400; letter-spacing: 0.06em; color: rgba(255,255,255,0.92); line-height: 1.2; }
+    .fp-rule { border: none; border-top: 1px solid rgba(201,169,110,0.28); margin: 1.2rem 0 0; }
+    .fp-caption { max-width: 680px; margin: 2rem auto 5rem; padding: 0 1.5rem; }
+    .fp-caption p { font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; font-weight: 300; line-height: 1.85; color: rgba(255,255,255,0.7); }
+    .fp-caption p + p { margin-top: 1.2em; }
+    @media (max-width: 600px) { .fp-stage { aspect-ratio: 3/4; } }
+  </style>
+</head>
+<body>
+  <div class="back-nav">
+    <a class="back-link" href="../joyce-ultra.html">← Back to Ultra</a>
+    <a class="back-link" href="../gallery.html">Home</a>
+  </div>
+  <div class="fp-stage" id="fp-stage" data-interval="8000">
+    <div class="fp-slide active">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-044410.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-044423.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-044451.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-044504.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-044517.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-044533.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-045329.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-045340.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-045402.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-045414.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-045423.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-045446.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-045458.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-045510.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-050301.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-050824.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-050825-03.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-050910-02.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-051357.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-051358-01.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-051400-02.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-051402-03.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-051437-04.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-051439-05.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-051441-06.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-051443-07.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-051445-08.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-051447-09.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-052220.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-052222-01.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-052224-02.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-052226-03.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-052228-04.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-052230-05.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-052303-06.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-052305-07.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-052307-08.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-052309-09.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-052312-10.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-142059.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-142101-01.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-142104-02.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-142106-03.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-142108-04.jpg" alt="The Employer's Playground">
+    </div>
+
+    <div class="fp-slide">
+      <img src="../assets/Feature-the-employer-s-playground/photo-20260628-142110-05.jpg" alt="The Employer's Playground">
+    </div>
+  </div>
+  <div class="fp-progress"><div class="fp-bar" id="fp-bar"></div></div>
+  <div class="fp-dots" id="fp-dots"></div>
+  <div class="fp-header">
+    <h1 class="fp-title">The Employer's Playground</h1>
+    <hr class="fp-rule">
+  </div>
+  <div class="fp-caption">
+    <p>Caption coming soon.</p>
+  </div>
+  <script>
+    (function () {
+      var stage=document.getElementById('fp-stage'),barEl=document.getElementById('fp-bar'),dotsWrap=document.getElementById('fp-dots');
+      var slides=Array.prototype.slice.call(stage.querySelectorAll('.fp-slide')),N=slides.length,INTERVAL=parseInt(stage.getAttribute('data-interval'),10)||8000,cur=0,timer=null;
+      if(N===0)return;
+      slides.forEach(function(_,i){var b=document.createElement('button');b.className='fp-dot'+(i===0?' active':'');b.setAttribute('aria-label','Slide '+(i+1));b.addEventListener('click',function(){stop();show(i);start();});dotsWrap.appendChild(b);});
+      var dots=dotsWrap.querySelectorAll('.fp-dot');
+      function resetBar(){barEl.style.transition='none';barEl.style.width='0%';requestAnimationFrame(function(){requestAnimationFrame(function(){barEl.style.transition='width '+INTERVAL+'ms linear';barEl.style.width='100%';});});}
+      function show(n){slides[cur].classList.remove('active');if(dots[cur])dots[cur].classList.remove('active');cur=(n+N)%N;slides[cur].classList.add('active');if(dots[cur])dots[cur].classList.add('active');resetBar();}
+      function start(){if(!timer&&N>1)timer=setInterval(function(){show(cur+1);},INTERVAL);}
+      function stop(){clearInterval(timer);timer=null;}
+      document.addEventListener('keydown',function(e){if(e.key==='ArrowRight'){stop();show(cur+1);start();}if(e.key==='ArrowLeft'){stop();show(cur-1);start();}});
+      show(0);start();
+    })();
+  </script>
+</body>
+</html>
