@@ -1135,7 +1135,7 @@ async def friend_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def friend_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     raw = update.message.text.strip()
-    name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "Friend"
+    name = re.sub(r"-{2,}", "-", re.sub(r"[^\w\-]", "-", raw)).strip("-") or "Friend"
     gallery = f"Friends-{name}"
     context.user_data["gallery"] = gallery
     context.user_data["target_page"] = "friends"
@@ -1161,7 +1161,7 @@ async def ultra_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def ultra_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     raw = update.message.text.strip()
-    name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "Ultra"
+    name = re.sub(r"-{2,}", "-", re.sub(r"[^\w\-]", "-", raw)).strip("-") or "Ultra"
     gallery = f"Ultra-{name}"
     context.user_data["gallery"] = gallery
     context.user_data["target_page"] = "ultra"
@@ -1187,7 +1187,7 @@ async def senza_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def senza_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     raw = update.message.text.strip()
-    name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "New-Gallery"
+    name = re.sub(r"-{2,}", "-", re.sub(r"[^\w\-]", "-", raw)).strip("-") or "New-Gallery"
     context.user_data["gallery"] = name
     context.user_data["target_page"] = "senza"
     await update.message.reply_text(f"New Senza Veli gallery: {name.replace('-', ' ')}\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
@@ -1196,7 +1196,7 @@ async def senza_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     raw = update.message.text.strip()
-    name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "New-Gallery"
+    name = re.sub(r"-{2,}", "-", re.sub(r"[^\w\-]", "-", raw)).strip("-") or "New-Gallery"
     context.user_data["gallery"] = name
     context.user_data["target_page"] = "gallery"
     await update.message.reply_text(f"Gallery: {name}\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
