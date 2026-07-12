@@ -194,10 +194,11 @@ async def _netlify_set_token(gallery: str) -> tuple[str, str]:
     key = f"SHARE_{token}"
     url = f"{_NETLIFY_API}/sites/{NETLIFY_SITE_ID}/env"
     headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}", "Content-Type": "application/json"}
-    payload = {"key": key, "values": [{"value": gallery, "context": "all"}]}
+    payload = [{"key": key, "values": [{"value": gallery, "context": "all"}]}]
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.post(url, json=payload, headers=headers)
-    r.raise_for_status()
+    if not r.is_success:
+        raise RuntimeError(f"Netlify {r.status_code}: {r.text[:300]}")
     share_url = f"{NETLIFY_SITE_URL}/.netlify/functions/share?t={token}"
     return share_url, token
 
