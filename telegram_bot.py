@@ -2678,14 +2678,12 @@ async def share_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.edit_message_text(f"Failed to create share page: {err}")
         return ConversationHandler.END
 
-    netlify_line = ""
-    if SHARE_SECRET:
-        try:
-            token = _make_share_token(gallery)
-            netlify_url = f"{NETLIFY_SITE_URL}/.netlify/functions/share?t={token}"
-            netlify_line = f"\n\n🔒 Private link (30 days):\n{netlify_url}"
-        except Exception as exc:
-            netlify_line = f"\n\n(Private link unavailable: {exc})"
+    try:
+        token = _make_share_token(gallery)
+        netlify_url = f"{NETLIFY_SITE_URL}/.netlify/functions/share?t={token}"
+        netlify_line = f"\n\n🔒 Private link (30 days):\n{netlify_url}"
+    except Exception as exc:
+        netlify_line = f"\n\n(Private link unavailable: {exc})"
 
     await query.edit_message_text(
         f"✓ Share page ready!\n\n"
