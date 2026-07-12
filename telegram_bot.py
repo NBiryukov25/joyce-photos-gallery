@@ -188,33 +188,13 @@ async def _list_gallery_files(gallery: str) -> list[dict]:
 _NETLIFY_API = "https://api.netlify.com/api/v1"
 
 
-_netlify_account_id_cache: str = ""
-
-
-async def _netlify_account_id() -> str:
-    """Return account ID — use env var if set, otherwise discover from token."""
-    global _netlify_account_id_cache
-    if NETLIFY_ACCOUNT_ID:
-        return NETLIFY_ACCOUNT_ID
-    if _netlify_account_id_cache:
-        return _netlify_account_id_cache
-    headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}"}
-    async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.get(f"{_NETLIFY_API}/accounts", headers=headers)
-    r.raise_for_status()
-    accounts = r.json()
-    _netlify_account_id_cache = accounts[0]["id"] if accounts else ""
-    return _netlify_account_id_cache
-
-
 async def _netlify_set_token(gallery: str) -> tuple[str, str]:
-    """Create a share token, store SHARE_{token}=gallery in Netlify env, return (share_url, token)."""
-    acct = await _netlify_account_id()
+    """Create a share token, store SHARE_{token}=gallery in Netlify site env, return (share_url, token)."""
     token = uuid.uuid4().hex
     key = f"SHARE_{token}"
-    url = f"{_NETLIFY_API}/accounts/{acct}/env?site_id={NETLIFY_SITE_ID}"
+    url = f"{_NETLIFY_API}/sites/{NETLIFY_SITE_ID}/env"
     headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}", "Content-Type": "application/json"}
-    payload = [{"key": key, "values": [{"value": gallery, "context": "all"}]}]
+    payload = {"key": key, "values": [{"value": gallery, "context": "all"}]}
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.post(url, json=payload, headers=headers)
     r.raise_for_status()
@@ -223,10 +203,9 @@ async def _netlify_set_token(gallery: str) -> tuple[str, str]:
 
 
 async def _netlify_revoke_token(token: str) -> bool:
-    """Delete the SHARE_{token} env var from Netlify."""
-    acct = await _netlify_account_id()
+    """Delete the SHARE_{token} env var from Netlify site."""
     key = f"SHARE_{token}"
-    url = f"{_NETLIFY_API}/accounts/{acct}/env/{key}?site_id={NETLIFY_SITE_ID}"
+    url = f"{_NETLIFY_API}/sites/{NETLIFY_SITE_ID}/env/{key}"
     headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}"}
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.delete(url, headers=headers)
@@ -235,8 +214,7 @@ async def _netlify_revoke_token(token: str) -> bool:
 
 async def _netlify_list_tokens() -> list[tuple[str, str]]:
     """Return [(token, gallery)] for all active SHARE_ env vars."""
-    acct = await _netlify_account_id()
-    url = f"{_NETLIFY_API}/accounts/{acct}/env?site_id={NETLIFY_SITE_ID}"
+    url = f"{_NETLIFY_API}/sites/{NETLIFY_SITE_ID}/env"
     headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}"}
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get(url, headers=headers)
