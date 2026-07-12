@@ -1,4 +1,5 @@
-providers = ["python"]
+[phases.setup]
+nixPkgs = ["python311"]
 
 [phases.install]
-cmds = ["pip install -r requirements-bot.txt"]
+cmds = ["python3 -m ensurepip --upgrade", "python3 -m pip install -r requirements-bot.txt"]
