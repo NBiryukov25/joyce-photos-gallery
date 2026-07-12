@@ -14,11 +14,14 @@ Optional env vars:
 
 import asyncio
 import base64
+import hashlib
+import hmac
 import io
 import json
 import os
 import re
 import logging
+import time
 import shutil
 import sys
 import tempfile
@@ -76,12 +79,11 @@ import chunk_audio as _chunk_audio
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
-NETLIFY_TOKEN      = os.environ.get("NETLIFY_TOKEN", "")
-NETLIFY_SITE_ID    = os.environ.get("NETLIFY_SITE_ID", "")
-NETLIFY_ACCOUNT_ID = os.environ.get("NETLIFY_ACCOUNT_ID", "")
-NETLIFY_SITE_URL   = os.environ.get("NETLIFY_SITE_URL", "https://stalwart-crumble-e6035f.netlify.app")
+NETLIFY_SITE_URL  = os.environ.get("NETLIFY_SITE_URL", "https://stalwart-crumble-e6035f.netlify.app")
+SHARE_SECRET      = os.environ.get("SHARE_SECRET", "")
+_SHARE_EXPIRY_DAYS = 30
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, REVOKE_TOKEN = range(26)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION = range(25)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -182,54 +184,17 @@ async def _list_gallery_files(gallery: str) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Netlify share helpers
+# Share token helpers  (HMAC-signed, self-verifying — no external API calls)
 # ---------------------------------------------------------------------------
 
-_NETLIFY_API = "https://api.netlify.com/api/v1"
-
-
-async def _netlify_set_token(gallery: str) -> tuple[str, str]:
-    """Create a share token, store SHARE_{token}=gallery in Netlify site env, return (share_url, token)."""
-    token = uuid.uuid4().hex
-    key = f"SHARE_{token}"
-    url = f"{_NETLIFY_API}/sites/{NETLIFY_SITE_ID}/env"
-    headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}", "Content-Type": "application/json"}
-    payload = [{"key": key, "values": [{"value": gallery, "context": "all"}]}]
-    async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.post(url, json=payload, headers=headers)
-    if not r.is_success:
-        raise RuntimeError(f"Netlify {r.status_code}: {r.text[:300]}")
-    share_url = f"{NETLIFY_SITE_URL}/.netlify/functions/share?t={token}"
-    return share_url, token
-
-
-async def _netlify_revoke_token(token: str) -> bool:
-    """Delete the SHARE_{token} env var from Netlify site."""
-    key = f"SHARE_{token}"
-    url = f"{_NETLIFY_API}/sites/{NETLIFY_SITE_ID}/env/{key}"
-    headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}"}
-    async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.delete(url, headers=headers)
-    return r.status_code in (200, 204)
-
-
-async def _netlify_list_tokens() -> list[tuple[str, str]]:
-    """Return [(token, gallery)] for all active SHARE_ env vars."""
-    url = f"{_NETLIFY_API}/sites/{NETLIFY_SITE_ID}/env"
-    headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}"}
-    async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.get(url, headers=headers)
-    if r.status_code != 200:
-        return []
-    result = []
-    for env in r.json():
-        key = env.get("key", "")
-        if key.startswith("SHARE_"):
-            token = key[6:]
-            vals = env.get("values", [])
-            gallery = vals[0].get("value", "") if vals else ""
-            result.append((token, gallery))
-    return result
+def _make_share_token(gallery: str) -> str:
+    """Return a URL-safe base64 token encoding gallery + expiry + HMAC signature."""
+    if not SHARE_SECRET:
+        raise RuntimeError("SHARE_SECRET not set — add it to Railway env vars")
+    expires = int(time.time()) + _SHARE_EXPIRY_DAYS * 86400
+    msg = f"{gallery}:{expires}"
+    sig = hmac.new(SHARE_SECRET.encode(), msg.encode(), hashlib.sha256).hexdigest()[:16]
+    return base64.urlsafe_b64encode(f"{msg}:{sig}".encode()).decode().rstrip("=")
 
 
 # ---------------------------------------------------------------------------
@@ -869,7 +834,7 @@ async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "/remove    — delete a photo or video\n"
         "/reorder   — rearrange photo order in a gallery\n"
         "/share     — generate a shareable gallery link\n"
-        "/revoke    — revoke a private Netlify share link\n"
+        "/revoke    — info about private share link expiry\n"
         "/sync      — post all existing photos to the channel\n"
         "/done      — finish a batch upload\n"
         "/cancel    — cancel current operation"
@@ -2714,12 +2679,13 @@ async def share_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYP
         return ConversationHandler.END
 
     netlify_line = ""
-    if NETLIFY_TOKEN and NETLIFY_SITE_ID:
+    if SHARE_SECRET:
         try:
-            netlify_url, _ = await _netlify_set_token(gallery)
-            netlify_line = f"\n\n🔒 Private link (instant):\n{netlify_url}"
+            token = _make_share_token(gallery)
+            netlify_url = f"{NETLIFY_SITE_URL}/.netlify/functions/share?t={token}"
+            netlify_line = f"\n\n🔒 Private link (30 days):\n{netlify_url}"
         except Exception as exc:
-            netlify_line = f"\n\n(Private link failed: {exc})"
+            netlify_line = f"\n\n(Private link unavailable: {exc})"
 
     await query.edit_message_text(
         f"✓ Share page ready!\n\n"
@@ -2734,32 +2700,12 @@ async def cmd_revoke(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if not _authorized(update):
         await update.message.reply_text("Not authorized.")
         return ConversationHandler.END
-    if not NETLIFY_TOKEN or not NETLIFY_SITE_ID:
-        await update.message.reply_text("Netlify not configured.")
-        return ConversationHandler.END
-    tokens = await _netlify_list_tokens()
-    if not tokens:
-        await update.message.reply_text("No active private share links.")
-        return ConversationHandler.END
-    context.user_data["revoke_tokens"] = tokens
-    keyboard = [
-        [InlineKeyboardButton(f"{g}  ({t[:8]}…)", callback_data=f"rv:{i}")]
-        for i, (t, g) in enumerate(tokens)
-    ]
-    await update.message.reply_text("Revoke which private link?", reply_markup=InlineKeyboardMarkup(keyboard))
-    return REVOKE_TOKEN
-
-
-async def revoke_token_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    query = update.callback_query
-    await query.answer()
-    idx = int(query.data[3:])
-    token, gallery = context.user_data["revoke_tokens"][idx]
-    ok = await _netlify_revoke_token(token)
-    if ok:
-        await query.edit_message_text(f"✓ Private link for {gallery} revoked.")
-    else:
-        await query.edit_message_text(f"Failed to revoke link for {gallery}.")
+    await update.message.reply_text(
+        "Private share links expire automatically after 30 days.\n\n"
+        "To cut off access immediately: rename or delete the gallery folder, "
+        "or use /share again to generate a fresh link (old one becomes invalid "
+        "once the gallery is gone)."
+    )
     return ConversationHandler.END
 
 
@@ -2833,7 +2779,6 @@ def main() -> None:
             REORDER_GALLERY: [CallbackQueryHandler(reorder_gallery_chosen, pattern=r"^ro:")],
             REORDER_ORDER:   [MessageHandler(filters.TEXT & ~filters.COMMAND, reorder_order_received)],
             SHARE_GALLERY:   [CallbackQueryHandler(share_gallery_chosen, pattern=r"^sh:")],
-            REVOKE_TOKEN:    [CallbackQueryHandler(revoke_token_chosen, pattern=r"^rv:")],
             PHOTO_GALLERY:   [CallbackQueryHandler(photo_gallery_chosen, pattern=r"^pg:")],
             PHOTO_NUMBER:    [MessageHandler(filters.TEXT & ~filters.COMMAND, photo_number_received)],
             PHOTO_ACTION:    [
@@ -2881,7 +2826,7 @@ def main() -> None:
                 BotCommand("sync",      "Post all existing photos to the channel"),
                 BotCommand("done",      "Finish a batch upload"),
                 BotCommand("share",     "Generate a shareable gallery link"),
-                BotCommand("revoke",    "Revoke a private Netlify share link"),
+                BotCommand("revoke",    "Info about private share link expiry"),
                 BotCommand("cancel",    "Cancel current operation"),
             ])
             await app.updater.start_polling(drop_pending_updates=True)

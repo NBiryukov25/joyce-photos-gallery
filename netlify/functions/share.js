@@ -1,5 +1,39 @@
 "use strict";
-const https = require("https");
+const https  = require("https");
+const crypto = require("crypto");
+
+// Verify a URL-safe base64 HMAC token.  Returns gallery name or null.
+function verifyShareToken(raw) {
+  const SECRET = process.env.SHARE_SECRET;
+  if (!SECRET) return null;
+  try {
+    // URL-safe base64 → standard → decode
+    const b64    = raw.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - b64.length % 4) % 4);
+    const decoded = Buffer.from(padded, "base64").toString("utf8");
+
+    // Format: {gallery}:{expires}:{sig16}
+    const lastColon = decoded.lastIndexOf(":");
+    if (lastColon < 0) return null;
+    const sig = decoded.slice(lastColon + 1);
+    const msg = decoded.slice(0, lastColon);
+
+    // Verify HMAC-SHA256 (first 16 hex chars)
+    const expected = crypto.createHmac("sha256", SECRET)
+      .update(msg).digest("hex").slice(0, 16);
+    if (sig !== expected) return null;
+
+    // Parse: msg = {gallery}:{expires}
+    const colonIdx = msg.lastIndexOf(":");
+    if (colonIdx < 0) return null;
+    const expires = parseInt(msg.slice(colonIdx + 1), 10);
+    if (!expires || Math.floor(Date.now() / 1000) > expires) return null;
+
+    return msg.slice(0, colonIdx) || null;
+  } catch (_) {
+    return null;
+  }
+}
 
 const OWNER  = "NBiryukov25";
 const REPO   = "joyce-photos-gallery";
@@ -170,13 +204,13 @@ const DENIED_HTML = `<!DOCTYPE html>
 
 exports.handler = async (event) => {
   const raw   = (event.queryStringParameters || {}).t || "";
-  const token = raw.replace(/[^a-zA-Z0-9]/g, "");
+  const token = raw.replace(/[^a-zA-Z0-9_-]/g, "");
 
   if (!token) {
     return { statusCode: 200, headers: { "Content-Type": "text/html" }, body: DENIED_HTML };
   }
 
-  const gallery = process.env["SHARE_" + token];
+  const gallery = verifyShareToken(token);
   if (!gallery) {
     return { statusCode: 200, headers: { "Content-Type": "text/html" }, body: DENIED_HTML };
   }
