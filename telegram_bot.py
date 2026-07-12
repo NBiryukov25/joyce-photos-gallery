@@ -78,7 +78,7 @@ GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
 
 NETLIFY_TOKEN      = os.environ.get("NETLIFY_TOKEN", "")
 NETLIFY_SITE_ID    = os.environ.get("NETLIFY_SITE_ID", "")
-NETLIFY_ACCOUNT_ID = os.environ.get("NETLIFY_ACCOUNT_ID", "68d61f375be098f8af2ea6c6")
+NETLIFY_ACCOUNT_ID = os.environ.get("NETLIFY_ACCOUNT_ID", "")
 NETLIFY_SITE_URL   = os.environ.get("NETLIFY_SITE_URL", "https://stalwart-crumble-e6035f.netlify.app")
 
 CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, REVOKE_TOKEN = range(26)
@@ -188,11 +188,31 @@ async def _list_gallery_files(gallery: str) -> list[dict]:
 _NETLIFY_API = "https://api.netlify.com/api/v1"
 
 
+_netlify_account_id_cache: str = ""
+
+
+async def _netlify_account_id() -> str:
+    """Return account ID — use env var if set, otherwise discover from token."""
+    global _netlify_account_id_cache
+    if NETLIFY_ACCOUNT_ID:
+        return NETLIFY_ACCOUNT_ID
+    if _netlify_account_id_cache:
+        return _netlify_account_id_cache
+    headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}"}
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.get(f"{_NETLIFY_API}/accounts", headers=headers)
+    r.raise_for_status()
+    accounts = r.json()
+    _netlify_account_id_cache = accounts[0]["id"] if accounts else ""
+    return _netlify_account_id_cache
+
+
 async def _netlify_set_token(gallery: str) -> tuple[str, str]:
     """Create a share token, store SHARE_{token}=gallery in Netlify env, return (share_url, token)."""
+    acct = await _netlify_account_id()
     token = uuid.uuid4().hex
     key = f"SHARE_{token}"
-    url = f"{_NETLIFY_API}/accounts/{NETLIFY_ACCOUNT_ID}/env?site_id={NETLIFY_SITE_ID}"
+    url = f"{_NETLIFY_API}/accounts/{acct}/env?site_id={NETLIFY_SITE_ID}"
     headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}", "Content-Type": "application/json"}
     payload = [{"key": key, "values": [{"value": gallery, "context": "all"}]}]
     async with httpx.AsyncClient(timeout=15) as client:
@@ -204,8 +224,9 @@ async def _netlify_set_token(gallery: str) -> tuple[str, str]:
 
 async def _netlify_revoke_token(token: str) -> bool:
     """Delete the SHARE_{token} env var from Netlify."""
+    acct = await _netlify_account_id()
     key = f"SHARE_{token}"
-    url = f"{_NETLIFY_API}/accounts/{NETLIFY_ACCOUNT_ID}/env/{key}?site_id={NETLIFY_SITE_ID}"
+    url = f"{_NETLIFY_API}/accounts/{acct}/env/{key}?site_id={NETLIFY_SITE_ID}"
     headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}"}
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.delete(url, headers=headers)
@@ -214,7 +235,8 @@ async def _netlify_revoke_token(token: str) -> bool:
 
 async def _netlify_list_tokens() -> list[tuple[str, str]]:
     """Return [(token, gallery)] for all active SHARE_ env vars."""
-    url = f"{_NETLIFY_API}/accounts/{NETLIFY_ACCOUNT_ID}/env?site_id={NETLIFY_SITE_ID}"
+    acct = await _netlify_account_id()
+    url = f"{_NETLIFY_API}/accounts/{acct}/env?site_id={NETLIFY_SITE_ID}"
     headers = {"Authorization": f"Bearer {NETLIFY_TOKEN}"}
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get(url, headers=headers)
