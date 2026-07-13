@@ -279,6 +279,30 @@ def _get_js_array_entries(text: str, var_name: str) -> list[str]:
     return re.findall(r"'((?:[^'\\]|\\.)*)'", m.group(1))
 
 
+def _get_slides_filenames(text: str) -> list[str]:
+    """Extract filename values from var slides = [{filename: '...', ...}, ...]."""
+    m = re.search(r"var slides\s*=\s*\[([\s\S]*?)\];", text)
+    if not m:
+        return []
+    return re.findall(r"\bfilename:\s*'([^']+)'", m.group(1))
+
+
+def _reorder_slides(text: str, zero_based: list[int]) -> str:
+    """Reorder slide objects inside var slides = [...] by zero-based index list."""
+    m = re.search(r"(var slides\s*=\s*\[)([\s\S]*?)(\];)", text)
+    if not m:
+        return text
+    inner = m.group(2)
+    blocks = re.findall(r"\{[^{}]+\}", inner)
+    if len(blocks) != len(zero_based):
+        return text
+    new_blocks = [blocks[i] for i in zero_based]
+    indent_m = re.search(r"^(\s*)\{", inner, re.MULTILINE)
+    indent = indent_m.group(1) if indent_m else "      "
+    new_inner = "\n" + (",\n".join(indent + b for b in new_blocks)) + ",\n    "
+    return text[: m.start(2)] + new_inner + text[m.end(2) :]
+
+
 def _set_js_array(text: str, var_name: str, entries: list[str]) -> str:
     if entries:
         inner = "\n        " + "\n        ".join(f"'{e}'," for e in entries) + "\n      "
@@ -2437,13 +2461,18 @@ async def reorder_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_T
 
     text = current_html.decode("utf-8")
     filenames = _get_js_array_entries(text, "filenames")
+    slides_format = False
+    if not filenames:
+        filenames = _get_slides_filenames(text)
+        slides_format = bool(filenames)
     if not filenames:
         await query.edit_message_text(
-            f"{gallery} doesn't use the slideshow format — can't reorder it here."
+            f"{gallery} doesn't use a recognised slideshow format — can't reorder it here."
         )
         return ConversationHandler.END
 
     context.user_data["reorder_filenames"] = filenames
+    context.user_data["reorder_slides_format"] = slides_format
     n = len(filenames)
     chat_id = update.effective_chat.id
 
@@ -2503,17 +2532,21 @@ async def reorder_order_received(update: Update, context: ContextTypes.DEFAULT_T
         return ConversationHandler.END
 
     html_text = current_html.decode("utf-8")
-    captions = _get_js_array_entries(html_text, "captions")
+    slides_format = context.user_data.get("reorder_slides_format", False)
+    zero_based = [p - 1 for p in positions]
 
-    new_filenames = [filenames[p - 1] for p in positions]
-    if captions and len(captions) == n:
-        new_captions = [captions[p - 1] for p in positions]
+    if slides_format:
+        html_text = _reorder_slides(html_text, zero_based)
     else:
-        new_captions = captions
-
-    html_text = _set_js_array(html_text, "filenames", new_filenames)
-    if new_captions and new_captions != captions:
-        html_text = _set_js_array(html_text, "captions", new_captions)
+        captions = _get_js_array_entries(html_text, "captions")
+        new_filenames = [filenames[p - 1] for p in positions]
+        if captions and len(captions) == n:
+            new_captions = [captions[p - 1] for p in positions]
+        else:
+            new_captions = captions
+        html_text = _set_js_array(html_text, "filenames", new_filenames)
+        if new_captions and new_captions != captions:
+            html_text = _set_js_array(html_text, "captions", new_captions)
 
     ok, err = await _gh_put_file(
         _html_rel_path(gallery), html_text.encode("utf-8"),
