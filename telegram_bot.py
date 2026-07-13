@@ -2745,6 +2745,11 @@ async def cmd_cancel(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
+async def _conv_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    await cmd_start(update, ctx)
+    return ConversationHandler.END
+
+
 # ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
@@ -2818,7 +2823,7 @@ def main() -> None:
                 MessageHandler(filters.TEXT & ~filters.COMMAND, photo_caption_received),
             ],
         },
-        fallbacks=[CommandHandler("cancel", cmd_cancel)],
+        fallbacks=[CommandHandler("cancel", cmd_cancel), CommandHandler("start", _conv_start)],
         name="main_conv",
         persistent=True,
         allow_reentry=True,
