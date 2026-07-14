@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="gallery.css">
   <style>
-    /* ── Promo Feature Section ── */
+    /* ── Featured — Magazine Covers ── */
     .promo-feature { margin: 2.2em 0 0.5em; }
     .promo-overline {
       font-family: 'Jost', sans-serif; font-size: 0.68rem; font-weight: 300;
@@ -17,47 +17,76 @@
     }
     .promo-grid {
       display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 1.1rem;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.3rem;
     }
-    .promo-card {
-      background: var(--blush-light); border: 1px solid var(--border);
-      border-radius: 10px; overflow: hidden;
-      display: flex; flex-direction: column;
+    /* magazine cover */
+    .promo-cover {
+      position: relative; display: block; aspect-ratio: 3 / 4;
+      border-radius: 4px; overflow: hidden; text-decoration: none;
+      background: #120a06;
+      box-shadow: 0 12px 34px rgba(40,20,12,0.30);
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
     }
-    .promo-card--wide { grid-column: 1 / -1; flex-direction: row; }
-    .promo-img-wrap { position: relative; overflow: hidden; flex-shrink: 0; }
-    .promo-img-wrap img { width: 100%; height: 360px; object-fit: cover; display: block; }
-    .promo-card--wide .promo-img-wrap { width: 52%; }
-    .promo-card--wide .promo-img-wrap img { height: 100%; min-height: 240px; }
-    .promo-hook {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      padding: 2rem 1rem 0.8rem;
-      background: linear-gradient(transparent, rgba(18,10,6,0.7));
-      font-family: 'Cormorant Garamond', serif; font-style: italic;
-      font-size: 1.05rem; color: rgba(255,255,255,0.92); letter-spacing: 0.02em;
+    .promo-cover:hover { transform: translateY(-4px); box-shadow: 0 20px 48px rgba(40,20,12,0.42); }
+    .promo-cover img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; display: block;
+      transition: transform 7s ease;
     }
-    .promo-body {
-      padding: 1.1rem 1.2rem 1.3rem; flex: 1;
-      display: flex; flex-direction: column; justify-content: space-between;
+    .promo-cover:hover img { transform: scale(1.09); }
+    .promo-cover::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(to bottom,
+        rgba(8,5,3,0.55) 0%, rgba(8,5,3,0.10) 26%,
+        rgba(8,5,3,0) 46%, rgba(8,5,3,0.86) 100%);
     }
-    .promo-text {
-      font-family: 'Cormorant Garamond', serif; font-size: 1rem;
-      font-weight: 300; line-height: 1.7; color: var(--text-soft); margin: 0 0 0.8em;
+    /* masthead */
+    .promo-cover-top {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+      padding: 0.95rem 1rem; display: flex;
+      align-items: baseline; justify-content: space-between; gap: 0.5rem;
     }
-    .promo-readmore {
-      appearance: none; background: none; border: none; padding: 0;
-      font-family: 'Jost', sans-serif; font-size: 0.66rem; font-weight: 300;
-      letter-spacing: 0.24em; text-transform: uppercase; color: var(--rose);
-      cursor: pointer; align-self: flex-start;
+    .promo-masthead {
+      font-family: 'Cormorant Garamond', serif; font-weight: 500;
+      font-size: 0.92rem; letter-spacing: 0.2em; text-transform: uppercase;
+      color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.5);
     }
-    .promo-readmore:hover { color: var(--rose-hover); }
-    @media (max-width: 680px) {
-      .promo-grid { grid-template-columns: 1fr; }
-      .promo-card--wide { flex-direction: column; }
-      .promo-card--wide .promo-img-wrap { width: 100%; }
-      .promo-img-wrap img,
-      .promo-card--wide .promo-img-wrap img { height: 260px; min-height: unset; }
+    .promo-issue {
+      font-family: 'Jost', sans-serif; font-size: 0.52rem; font-weight: 300;
+      letter-spacing: 0.28em; text-transform: uppercase;
+      color: rgba(255,255,255,0.78); white-space: nowrap;
+    }
+    /* cover lines */
+    .promo-cover-lines {
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
+      padding: 1.2rem 1.1rem 1.25rem;
+    }
+    .promo-kicker {
+      font-family: 'Jost', sans-serif; font-size: 0.56rem; font-weight: 400;
+      letter-spacing: 0.3em; text-transform: uppercase;
+      color: #eab9a6; margin-bottom: 0.55em;
+    }
+    .promo-title {
+      font-family: 'Cormorant Garamond', serif; font-weight: 500;
+      font-size: 1.7rem; line-height: 1.04; color: #fff; margin: 0 0 0.4em;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.45);
+    }
+    .promo-line {
+      font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 300;
+      font-size: 1rem; line-height: 1.45; color: rgba(255,255,255,0.92);
+      margin: 0 0 0.75em; text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+    }
+    .promo-cta {
+      font-family: 'Jost', sans-serif; font-size: 0.6rem; font-weight: 300;
+      letter-spacing: 0.24em; text-transform: uppercase; color: #fff;
+      border-bottom: 1px solid rgba(255,255,255,0.55); padding-bottom: 2px;
+    }
+    .promo-cover:hover .promo-cta { border-bottom-color: #eab9a6; }
+    @media (max-width: 900px) { .promo-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) {
+      .promo-grid { grid-template-columns: 1fr; gap: 1.1rem; }
+      .promo-cover { aspect-ratio: 4 / 5; }
     }
   </style>
 </head>
@@ -90,46 +119,8 @@
   </section>
   <!-- ── Promotional Feature ── -->
   <section class="promo-feature">
-    <p class="promo-overline">Featured</p>
-    <div class="promo-grid">
-
-      <!-- Card 1 — City View -->
-      <article class="promo-card">
-        <div class="promo-img-wrap">
-          <img src="assets/promo/IMG_8587.png" alt="City lights, unforgettable warmth" loading="lazy" decoding="async">
-          <span class="promo-hook">City lights, unforgettable warmth</span>
-        </div>
-        <div class="promo-body">
-          <p class="promo-text" id="pt1">Perched on the bed with the glittering city lights behind her, she looks straight at you with that warm, captivating smile. Long silky hair flowing over her shoulders, elegant in soft beige silk that gently hugs her figure.</p>
-          <button class="promo-readmore" onclick="promoExpand('pt1','There\'s something about her calm confidence and feminine glow that hits you instantly — a perfect mix of beauty, grace, and quiet sensuality. One glance and you know she\'s the kind of woman who becomes a beautiful, lifelong addiction.',this)" type="button">Read more ↓</button>
-        </div>
-      </article>
-
-      <!-- Card 2 — Bedside Lamp -->
-      <article class="promo-card">
-        <div class="promo-img-wrap">
-          <img src="assets/promo/IMG_8586.png" alt="Warm light, irresistible pull" loading="lazy" decoding="async">
-          <span class="promo-hook">Warm light, irresistible pull</span>
-        </div>
-        <div class="promo-body">
-          <p class="promo-text" id="pt2">Sitting on the edge of the bed with that soft, intimate smile and her hand gently playing with her hair, she radiates effortless allure. The warm lighting caresses her skin, highlighting her beautiful features and graceful presence.</p>
-          <button class="promo-readmore" onclick="promoExpand('pt2','Sweet yet undeniably seductive, she carries a magnetic warmth that draws you in deeper with every second. She\'s the type of woman whose image lingers in your mind long after — dangerously addictive in the best possible way.',this)" type="button">Read more ↓</button>
-        </div>
-      </article>
-
-      <!-- Card 3 — Hallway (wide) -->
-      <article class="promo-card promo-card--wide">
-        <div class="promo-img-wrap">
-          <img src="assets/promo/IMG_8584.png" alt="Soft light, magnetic presence" loading="lazy" decoding="async">
-          <span class="promo-hook">Soft light, magnetic presence</span>
-        </div>
-        <div class="promo-body">
-          <p class="promo-text" id="pt3">Standing in the softly lit hotel hallway, she glances back with that warm, captivating smile that stops you in your tracks. Her long dark hair flows gracefully, and the golden satin camisole gently hugs her elegant figure with just the right touch of sensuality.</p>
-          <button class="promo-readmore" onclick="promoExpand('pt3','There\'s an irresistible mix of sweetness, confidence, and feminine mystery in her eyes — the kind that makes a man feel an instant, deep pull. One look and you\'re hooked… the type of woman who quietly becomes a lifetime addiction.',this)" type="button">Read more ↓</button>
-        </div>
-      </article>
-
-    </div>
+    <p class="promo-overline">On the Cover</p>
+    <div class="promo-grid" id="promo-grid"></div>
   </section>
 
   <hr class="gallery-divider">
@@ -297,10 +288,92 @@
 
   <script src="lightbox.js"></script>
   <script>
-    function promoExpand(id, more, btn) {
-      document.getElementById(id).textContent += ' ' + more;
-      btn.style.display = 'none';
-    }
+    /* ── Featured magazine covers: random photos (from the first 4) of random galleries ── */
+    (function () {
+      // Each gallery: link + folder + its first-four photos + an enchanting cover line.
+      var POOL = [
+        { title: 'A Joyceful Transformation', link: 'galleries/a-joyceful-transformation.html', folder: 'assets/A-Joyceful-Transformation/', kicker: 'The Reveal', line: 'Watch the quiet girl next door melt away — and the woman she was always hiding step into the light.', photos: ['photo-20260705-153029.jpg','photo-20260705-192705-01.jpg','photo-20260705-160116-01.jpg','photo-20260705-192701.jpg'] },
+        { title: 'Elegant Navy Leather', link: 'galleries/elegant-navy-leather.html', folder: 'assets/Elegant-Navy-Leather/', kicker: 'After Dark', line: 'Navy satin, black leather, and a poise that dares you to look a second longer.', photos: ['photo-20260712-034122.jpg','photo-20260713-164751.jpg','photo-20260713-164755-01.jpg'] },
+        { title: 'Engaged Couple', link: 'galleries/engaged-couple.html', folder: 'assets/Engaged-Couple/', kicker: 'The Promise', line: 'Two hearts, one unguarded evening — intimacy captured before the vows.', photos: ['photo-20260707-224909.jpg','photo-20260707-224913-01.jpg','photo-20260707-224916-02.jpg','photo-20260707-224919-03.jpg'] },
+        { title: 'Filipina Babe', link: 'galleries/friends-filipina-babe.html', folder: 'assets/Friends-Filipina-Babe/', kicker: 'Golden Skin', line: 'Sun-warmed, effortless, impossible to ignore — she owns every frame she enters.', photos: ['photo-20260705-190039.jpg'] },
+        { title: 'Late Night Connections', link: 'galleries/friends-late-night-connections.html', folder: 'assets/Friends-Late-Night-Connections/', kicker: 'One More Drink', line: 'Lamplight, leather, and a resolve that quietly slips away as the hour grows late.', photos: ['Late_night_4.png','Late_night_1.png','Late_night_2.png','Late_night_3.png'] },
+        { title: 'Nichole by the Fireplace', link: 'galleries/friends-nichole-fireplace.html', folder: 'assets/Friends-Nichole-Fireplace/', kicker: 'Firelight', line: 'Warm embers, warmer company — a slow-burning evening by the hearth.', photos: ['photo-20260707-041024-01.jpg','photo-20260707-041028-02.jpg','photo-20260707-041032-03.jpg','photo-20260707-041035-04.jpg'] },
+        { title: 'Tastes of Longing', link: 'galleries/friends-tastes-of-longing.html', folder: 'assets/Friends-Tastes-of-Longing/', kicker: 'Slow Hunger', line: 'A look held a beat too long — and suddenly the room feels far too small.', photos: ['photo-20260702-131740.jpg'] },
+        { title: 'Golden Hour at Home', link: 'galleries/golden-hour-at-home.html', folder: 'assets/Golden-Hour-at-Home/', kicker: 'Last Light', line: 'The day softens to gold, and so does she — bare feet, easy smile, open door.', photos: ['photo-20260708-042145-01.jpg','photo-20260708-124828.jpg','photo-20260708-124831-01.jpg','photo-20260708-124835-02.jpg'] },
+        { title: 'Isabela Compromise', link: 'galleries/joyce-isabela-compromise.html', folder: 'assets/Joyce-Isabela-compromise/', kicker: 'The Bargain', line: 'Some agreements are struck without a single word — only a knowing glance.', photos: ['photo-20260616-065404.jpg','photo-20260616-065445.jpg','photo-20260616-065533.jpg','photo-20260616-065808.jpg'] },
+        { title: 'Nichole in Love', link: 'galleries/joyce-nichole-in-love.html', folder: 'assets/Joyce-nichole-in-love/', kicker: 'Sweethearts', line: 'Tangled laughter and tender closeness — two friends who forgot where the line was.', photos: ['photo-20260624-223300.jpg','photo-20260624-223325.jpg','photo-20260624-223345.jpg','photo-20260624-223632.jpg'] },
+        { title: 'Rocky Adventure', link: 'galleries/joyce-rocky-adventure.html', folder: 'assets/Joyce-rocky-adventure/', kicker: 'Wild Country', line: 'Windswept cliffs, salt air, and a free spirit chasing the edge of the map.', photos: ['photo-20260617-153106.jpg','photo-20260617-153150.jpg','photo-20260617-153221.jpg','photo-20260617-154045.jpg'] },
+        { title: 'Summertime Outdoor', link: 'galleries/joyce-summertime-outdoor.html', folder: 'assets/Joyce-Summertime-Outdoor/', kicker: 'Endless Summer', line: 'Bare shoulders, warm breeze, and a season that never wants to end.', photos: ['photo-20260619-041529.jpg','photo-20260619-041546.jpg','photo-20260619-041606.jpg','photo-20260619-041620.jpg'] },
+        { title: 'Pink Anticipation', link: 'galleries/nichole-pink-anticipation.html', folder: 'assets/Nichole-pink-anticipation/', kicker: 'The Wait', line: 'Dressed in blush and expectation — she already knows how the night will end.', photos: ['photo-20260614-172410.jpg','photo-20260614-172445.jpg','photo-20260614-172528.jpg','photo-20260614-172554.jpg'] },
+        { title: 'White Abandoned Car', link: 'galleries/nichole-white-abandoned-car.html', folder: 'assets/Nichole-White-abandoned-car/', kicker: 'Off the Grid', line: 'Rust, ruin, and a beauty that turns a forgotten roadside into a stage.', photos: ['photo-20260613-150400.jpg','photo-20260613-151118.jpg','photo-20260613-151343.jpg','photo-20260613-151419.jpg'] },
+        { title: 'Northern Summer Fun', link: 'galleries/northern-summer-fun.html', folder: 'assets/Northern-Summer-Fun/', kicker: 'Midnight Sun', line: 'Long bright nights and lighter inhibitions — the north brings out her playful side.', photos: ['photo-20260707-185737.jpg','photo-20260707-185742-01.jpg','photo-20260707-185745-02.jpg'] },
+        { title: 'Queen of Surrender', link: 'galleries/queen-of-surrender.html', folder: 'assets/Queen-of-surrender/', kicker: 'Yielding', line: 'Regal one moment, undone the next — a study in the beauty of letting go.', photos: ['photo-20260617-160030.jpg','photo-20260617-160116.jpg','photo-20260617-160754.jpg','photo-20260617-160853.jpg'] },
+        { title: 'Rest Stop Meeting', link: 'galleries/rest-stop-meeting.html', folder: 'assets/Rest-Stop-Meeting/', kicker: 'Detour', line: 'A chance encounter on an empty highway — and a reason to take the long way home.', photos: ['photo-20260614-142031.jpg','photo-20260614-142132.jpg','photo-20260614-142231.jpg','photo-20260614-142657.jpg'] },
+        { title: 'Susan & Joyce', link: 'galleries/susan-and-joyce.html', folder: 'assets/Susan-and-Joyce/', kicker: 'Confidantes', line: 'Two friends who share everything — and this evening, they mean everything.', photos: ['photo-20260612-172207.jpg','photo-20260613-040125.jpg'] },
+        { title: 'Susan Pink Invites', link: 'galleries/susan-pink-invites.html', folder: 'assets/Susan-pink-invites/', kicker: 'The Invitation', line: 'A soft pink summons you cannot politely decline.', photos: ['photo-20260615-221118.jpg','photo-20260615-222216.jpg','photo-20260615-222256.jpg','photo-20260615-223045.jpg'] },
+        { title: 'The Gentle Art of Comfort', link: 'galleries/the-gentle-art-of-comfort.html', folder: 'assets/The-Gentle-Art-of-Comfort/', kicker: 'At Ease', line: 'Soft light, softer touch — the quiet luxury of being completely at home.', photos: ['photo-20260704-044305.jpg','photo-20260704-135418.jpg','photo-20260704-135422-01.jpg','photo-20260704-135426-02.jpg'] },
+        { title: 'The Small Muse', link: 'galleries/the-small-muse.html', folder: 'assets/The-Small-Muse/', kicker: 'The Muse', line: 'Delicate, mesmerizing, endlessly photographed — and she knows exactly why.', photos: ['photo-20260618-181725.jpg','photo-20260618-182054.jpg','photo-20260618-182126.jpg','photo-20260618-182616.jpg'] },
+        { title: 'The Transfer — After Hours', link: 'galleries/the-transfer--after-hours.html', folder: 'assets/The-Transfer--After-Hours/', kicker: 'After Hours', line: 'When the lights go down and the doors lock, the real work begins.', photos: ['photo-20260705-032359.jpg','photo-20260705-032403-01.jpg','photo-20260705-032406-02.jpg','photo-20260705-032409-03.jpg'] },
+        { title: 'A Filipina Touch', link: 'galleries/ultra-a-filipina-touch.html', folder: 'assets/Ultra-A-Filipina-touch/', kicker: 'Ultra', line: 'Warm hands, warmer intentions — an intimacy that lingers long after.', photos: ['photo-20260626-222221.jpg','photo-20260626-222824.jpg','photo-20260626-223136.jpg','photo-20260626-223200.jpg'] },
+        { title: 'Filipina Nurse', link: 'galleries/ultra-filipina-nurse.html', folder: 'assets/Ultra-Filipina-Nurse/', kicker: 'Bedside Manner', line: 'A cure for what ails you — administered with a smile you will not forget.', photos: ['photo-20260629-024825.jpg','photo-20260629-024858.jpg','photo-20260629-024931.jpg','photo-20260629-025243.jpg'] },
+        { title: 'Massage — Solo Vacation', link: 'galleries/ultra-massage-solo-vacation.html', folder: 'assets/Ultra-Massage-Solo-Vacation/', kicker: 'Getaway', line: 'A vacation for one, and every indulgence she has been denying herself.', photos: ['photo-20260707-161721.jpg'] },
+        { title: "The Employer's Playground", link: 'galleries/ultra-the-employer-s-playground-uncut.html', folder: 'assets/Ultra-The-Employer-s-Playground-Uncut/', kicker: 'Uncut', line: 'Behind the office door, the rules of the house are hers to break.', photos: ['photo-20260629-035225.jpg','photo-20260629-035831.jpg','photo-20260628-153203.jpg','photo-20260629-035847.jpg'] },
+        { title: 'Your Conquest', link: 'galleries/ultra-your-conquest.html', folder: 'assets/Ultra-Your-conquest/', kicker: 'The Prize', line: 'She let herself be caught — and that was the most dangerous part.', photos: ['photo-20260628-153925.jpg','photo-20260628-154232.jpg','photo-20260703-141339.jpg','photo-20260628-154258.jpg'] },
+        { title: 'Ultra Yours', link: 'galleries/ultra-yours.html', folder: 'assets/Ultra-Yours/', kicker: 'Exclusive', line: 'No audience, no pretense — this one is for your eyes alone.', photos: ['photo-20260709-052157.jpg','photo-20260712-233125-01.jpg','photo-20260712-233122.jpg','photo-20260709-052749.jpg'] },
+        { title: 'Warehouse Vibes', link: 'galleries/warehouse-vibes.html', folder: 'assets/Warehouse-Vibes/', kicker: 'Raw', line: 'Concrete, steel, and a beauty that refuses to be tamed by either.', photos: ['photo-20260630-044823.jpg','photo-20260630-044827-01.jpg','photo-20260630-044831-02.jpg','photo-20260630-045447.jpg'] },
+        { title: 'Wine Cellar Blues', link: 'galleries/wine-cellar-blues-tan.html', folder: 'assets/Wine-cellar-blues-tan/', kicker: 'Vintage', line: 'Candlelight and old bottles — the perfect place to lose track of time.', photos: ['photo-20260620-022921.jpg','photo-20260620-022936.jpg','photo-20260620-023138.jpg','photo-20260620-023156.jpg'] },
+        { title: 'Your Conquest', link: 'galleries/your-conquest.html', folder: 'assets/Your-Conquest/', kicker: 'Surrender', line: 'The chase is over. What comes next is entirely up to you.', photos: ['photo-20260628-151118.jpg'] }
+      ];
+
+      var COUNT = 3;           // covers to feature
+      var ISSUE = 'No. 01';
+
+      function shuffle(a) {
+        for (var i = a.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var t = a[i]; a[i] = a[j]; a[j] = t;
+        }
+        return a;
+      }
+
+      var grid = document.getElementById('promo-grid');
+      if (!grid) { return; }
+
+      var picks = shuffle(POOL.slice()).slice(0, COUNT);
+
+      picks.forEach(function (g) {
+        var photo = g.photos[Math.floor(Math.random() * g.photos.length)];
+        var src = g.folder + encodeURIComponent(photo);
+
+        var a = document.createElement('a');
+        a.className = 'promo-cover';
+        a.href = g.link;
+
+        var img = document.createElement('img');
+        img.src = src;
+        img.alt = g.title;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+
+        var top = document.createElement('div');
+        top.className = 'promo-cover-top';
+        top.innerHTML = '<span class="promo-masthead">Sheryl Joyce</span>' +
+                        '<span class="promo-issue">' + ISSUE + '</span>';
+
+        var lines = document.createElement('div');
+        lines.className = 'promo-cover-lines';
+        var kicker = document.createElement('p'); kicker.className = 'promo-kicker'; kicker.textContent = g.kicker;
+        var title  = document.createElement('p'); title.className = 'promo-title';  title.textContent = g.title;
+        var line   = document.createElement('p'); line.className = 'promo-line';    line.textContent = g.line;
+        var cta    = document.createElement('span'); cta.className = 'promo-cta';   cta.textContent = 'View gallery →';
+        lines.appendChild(kicker); lines.appendChild(title); lines.appendChild(line); lines.appendChild(cta);
+
+        a.appendChild(img);
+        a.appendChild(top);
+        a.appendChild(lines);
+        grid.appendChild(a);
+      });
+    })();
   </script>
 </body>
 </html>
