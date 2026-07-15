@@ -88,6 +88,33 @@
       .promo-grid { grid-template-columns: 1fr; gap: 1.1rem; }
       .promo-cover { aspect-ratio: 4 / 5; }
     }
+    /* ── Promo spread: letter + covers ── */
+    .promo-spread {
+      display: grid;
+      grid-template-columns: 2fr 3fr;
+      gap: 3rem;
+      align-items: start;
+    }
+    .promo-letter { padding: 0.2em 0; }
+    .promo-letter-byline {
+      font-family: 'Jost', sans-serif; font-size: 0.63rem; font-weight: 300;
+      letter-spacing: 0.38em; text-transform: uppercase; color: var(--rose);
+      margin-bottom: 1.5em;
+    }
+    .promo-letter-body p {
+      font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 300;
+      font-size: 1.05rem; line-height: 1.82; color: var(--text-main);
+      margin: 0 0 0.95em;
+    }
+    .promo-letter-closing {
+      font-family: 'Cormorant Garamond', serif; font-weight: 500; font-style: italic;
+      font-size: 1.07rem; line-height: 1.5; color: var(--text-main);
+      margin: 1.6em 0 0 !important; opacity: 0.88;
+    }
+    @media (max-width: 900px) {
+      .promo-spread { grid-template-columns: 1fr; gap: 2rem; }
+      .promo-letter { order: -1; }
+    }
   </style>
 </head>
 <body>
@@ -120,7 +147,23 @@
   <!-- ── Promotional Feature ── -->
   <section class="promo-feature">
     <p class="promo-overline">On the Cover</p>
-    <div class="promo-grid" id="promo-grid"></div>
+    <div class="promo-spread">
+      <div class="promo-letter">
+        <p class="promo-letter-byline">From Joyce</p>
+        <div class="promo-letter-body">
+          <p>I'm 38. Not old. Not young. Just here.</p>
+          <p>You know me as the helper. The one who keeps everything running — the house, the kids, the schedule, the mess nobody else wants to deal with. The one who's always fine. Always available. Always behind the scenes making sure everyone else is okay.</p>
+          <p>But I'm tired of being behind the scenes.</p>
+          <p>I didn't leave everything behind — my country, my family, my own life — to disappear into someone else's kitchen. I came here because I had to. But that's not all I am.</p>
+          <p>I want to be seen differently. Not as the woman who serves. Not as the woman who sacrifices. Not as the woman who's strong enough to carry everything so nobody else has to.</p>
+          <p>I'm 38 and I've spent most of my adult life making other people comfortable. And nobody has ever asked me what makes me comfortable. Nobody has ever looked at me and wondered what I need.</p>
+          <p>So here I am. Showing more. Saying more. Not because I want attention. Because I want to exist. In my own life. Not as a background character in everyone else's.</p>
+          <p>I posted <em>ang halaga mo</em> because I meant it. What am I worth? Not as a helper. Not as a sacrifice. As a woman. As a person. As someone who still has a life ahead of her that doesn't belong to anyone else.</p>
+          <p class="promo-letter-closing">I'm not here to take care of you — or am I?</p>
+        </div>
+      </div>
+      <div class="promo-grid" id="promo-grid"></div>
+    </div>
   </section>
 
   <hr class="gallery-divider">
