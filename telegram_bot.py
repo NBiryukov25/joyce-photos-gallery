@@ -14,11 +14,14 @@ Optional env vars:
 
 import asyncio
 import base64
+import hashlib
+import hmac
 import io
 import json
 import os
 import re
 import logging
+import time
 import shutil
 import sys
 import tempfile
@@ -75,6 +78,10 @@ import chunk_audio as _chunk_audio
 
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
 GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
+
+NETLIFY_SITE_URL  = os.environ.get("NETLIFY_SITE_URL", "https://stalwart-crumble-e6035f.netlify.app")
+SHARE_SECRET      = os.environ.get("SHARE_SECRET", "")
+_SHARE_EXPIRY_DAYS = 30
 
 CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION = range(25)
 
@@ -177,6 +184,20 @@ async def _list_gallery_files(gallery: str) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Share token helpers  (HMAC-signed, self-verifying — no external API calls)
+# ---------------------------------------------------------------------------
+
+def _make_share_token(gallery: str) -> str:
+    """Return a URL-safe base64 token encoding gallery + expiry + HMAC signature."""
+    if not SHARE_SECRET:
+        raise RuntimeError("SHARE_SECRET not set — add it to Railway env vars")
+    expires = int(time.time()) + _SHARE_EXPIRY_DAYS * 86400
+    msg = f"{gallery}:{expires}"
+    sig = hmac.new(SHARE_SECRET.encode(), msg.encode(), hashlib.sha256).hexdigest()[:16]
+    return base64.urlsafe_b64encode(f"{msg}:{sig}".encode()).decode().rstrip("=")
+
+
+# ---------------------------------------------------------------------------
 # gallery helpers
 # ---------------------------------------------------------------------------
 
@@ -256,6 +277,30 @@ def _get_js_array_entries(text: str, var_name: str) -> list[str]:
     if not m:
         return []
     return re.findall(r"'((?:[^'\\]|\\.)*)'", m.group(1))
+
+
+def _get_slides_filenames(text: str) -> list[str]:
+    """Extract filename values from var slides = [{filename: '...', ...}, ...]."""
+    m = re.search(r"var slides\s*=\s*\[([\s\S]*?)\];", text)
+    if not m:
+        return []
+    return re.findall(r"\bfilename:\s*'([^']+)'", m.group(1))
+
+
+def _reorder_slides(text: str, zero_based: list[int]) -> str:
+    """Reorder slide objects inside var slides = [...] by zero-based index list."""
+    m = re.search(r"(var slides\s*=\s*\[)([\s\S]*?)(\];)", text)
+    if not m:
+        return text
+    inner = m.group(2)
+    blocks = re.findall(r"\{[^{}]+\}", inner)
+    if len(blocks) != len(zero_based):
+        return text
+    new_blocks = [blocks[i] for i in zero_based]
+    indent_m = re.search(r"^(\s*)\{", inner, re.MULTILINE)
+    indent = indent_m.group(1) if indent_m else "      "
+    new_inner = "\n" + (",\n".join(indent + b for b in new_blocks)) + ",\n    "
+    return text[: m.start(2)] + new_inner + text[m.end(2) :]
 
 
 def _set_js_array(text: str, var_name: str, entries: list[str]) -> str:
@@ -812,7 +857,8 @@ async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "/galleries — list existing galleries\n"
         "/remove    — delete a photo or video\n"
         "/reorder   — rearrange photo order in a gallery\n"
-        "/share     — generate a standalone shareable gallery link\n"
+        "/share     — generate a shareable gallery link\n"
+        "/revoke    — info about private share link expiry\n"
         "/sync      — post all existing photos to the channel\n"
         "/done      — finish a batch upload\n"
         "/cancel    — cancel current operation"
@@ -1079,7 +1125,7 @@ async def friend_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def friend_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     raw = update.message.text.strip()
-    name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "Friend"
+    name = re.sub(r"-{2,}", "-", re.sub(r"[^\w\-]", "-", raw)).strip("-") or "Friend"
     gallery = f"Friends-{name}"
     context.user_data["gallery"] = gallery
     context.user_data["target_page"] = "friends"
@@ -1105,7 +1151,7 @@ async def ultra_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def ultra_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     raw = update.message.text.strip()
-    name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "Ultra"
+    name = re.sub(r"-{2,}", "-", re.sub(r"[^\w\-]", "-", raw)).strip("-") or "Ultra"
     gallery = f"Ultra-{name}"
     context.user_data["gallery"] = gallery
     context.user_data["target_page"] = "ultra"
@@ -1131,7 +1177,7 @@ async def senza_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def senza_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     raw = update.message.text.strip()
-    name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "New-Gallery"
+    name = re.sub(r"-{2,}", "-", re.sub(r"[^\w\-]", "-", raw)).strip("-") or "New-Gallery"
     context.user_data["gallery"] = name
     context.user_data["target_page"] = "senza"
     await update.message.reply_text(f"New Senza Veli gallery: {name.replace('-', ' ')}\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
@@ -1140,7 +1186,7 @@ async def senza_gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     raw = update.message.text.strip()
-    name = re.sub(r"[^\w\-]", "-", raw).strip("-") or "New-Gallery"
+    name = re.sub(r"-{2,}", "-", re.sub(r"[^\w\-]", "-", raw)).strip("-") or "New-Gallery"
     context.user_data["gallery"] = name
     context.user_data["target_page"] = "gallery"
     await update.message.reply_text(f"Gallery: {name}\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
@@ -2415,13 +2461,18 @@ async def reorder_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_T
 
     text = current_html.decode("utf-8")
     filenames = _get_js_array_entries(text, "filenames")
+    slides_format = False
+    if not filenames:
+        filenames = _get_slides_filenames(text)
+        slides_format = bool(filenames)
     if not filenames:
         await query.edit_message_text(
-            f"{gallery} doesn't use the slideshow format — can't reorder it here."
+            f"{gallery} doesn't use a recognised slideshow format — can't reorder it here."
         )
         return ConversationHandler.END
 
     context.user_data["reorder_filenames"] = filenames
+    context.user_data["reorder_slides_format"] = slides_format
     n = len(filenames)
     chat_id = update.effective_chat.id
 
@@ -2481,17 +2532,21 @@ async def reorder_order_received(update: Update, context: ContextTypes.DEFAULT_T
         return ConversationHandler.END
 
     html_text = current_html.decode("utf-8")
-    captions = _get_js_array_entries(html_text, "captions")
+    slides_format = context.user_data.get("reorder_slides_format", False)
+    zero_based = [p - 1 for p in positions]
 
-    new_filenames = [filenames[p - 1] for p in positions]
-    if captions and len(captions) == n:
-        new_captions = [captions[p - 1] for p in positions]
+    if slides_format:
+        html_text = _reorder_slides(html_text, zero_based)
     else:
-        new_captions = captions
-
-    html_text = _set_js_array(html_text, "filenames", new_filenames)
-    if new_captions and new_captions != captions:
-        html_text = _set_js_array(html_text, "captions", new_captions)
+        captions = _get_js_array_entries(html_text, "captions")
+        new_filenames = [filenames[p - 1] for p in positions]
+        if captions and len(captions) == n:
+            new_captions = [captions[p - 1] for p in positions]
+        else:
+            new_captions = captions
+        html_text = _set_js_array(html_text, "filenames", new_filenames)
+        if new_captions and new_captions != captions:
+            html_text = _set_js_array(html_text, "captions", new_captions)
 
     ok, err = await _gh_put_file(
         _html_rel_path(gallery), html_text.encode("utf-8"),
@@ -2656,18 +2711,42 @@ async def share_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.edit_message_text(f"Failed to create share page: {err}")
         return ConversationHandler.END
 
+    try:
+        token = _make_share_token(gallery)
+        netlify_url = f"{NETLIFY_SITE_URL}/.netlify/functions/share?t={token}"
+        netlify_line = f"\n\n🔒 Private link (30 days):\n{netlify_url}"
+    except Exception as exc:
+        netlify_line = f"\n\n(Private link unavailable: {exc})"
+
     await query.edit_message_text(
         f"✓ Share page ready!\n\n"
-        f"{share_url}\n\n"
-        f"⏱ Wait ~5 minutes for GitHub to deploy, then paste the link.\n"
-        f"If WhatsApp shows no preview, paste it in a brand-new chat — "
-        f"WhatsApp caches 'no preview' per conversation and won't re-check."
+        f"Public (GitHub):\n{share_url}\n"
+        f"⏱ Wait ~5 min for GitHub to deploy."
+        f"{netlify_line}"
+    )
+    return ConversationHandler.END
+
+
+async def cmd_revoke(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        await update.message.reply_text("Not authorized.")
+        return ConversationHandler.END
+    await update.message.reply_text(
+        "Private share links expire automatically after 30 days.\n\n"
+        "To cut off access immediately: rename or delete the gallery folder, "
+        "or use /share again to generate a fresh link (old one becomes invalid "
+        "once the gallery is gone)."
     )
     return ConversationHandler.END
 
 
 async def cmd_cancel(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Cancelled.")
+    return ConversationHandler.END
+
+
+async def _conv_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    await cmd_start(update, ctx)
     return ConversationHandler.END
 
 
@@ -2692,6 +2771,7 @@ def main() -> None:
             CommandHandler("reorder", cmd_reorder),
             CommandHandler("photo", cmd_photo),
             CommandHandler("share", cmd_share),
+            CommandHandler("revoke", cmd_revoke),
         ],
         states={
             CHOOSING_GALLERY:        [
@@ -2743,7 +2823,7 @@ def main() -> None:
                 MessageHandler(filters.TEXT & ~filters.COMMAND, photo_caption_received),
             ],
         },
-        fallbacks=[CommandHandler("cancel", cmd_cancel)],
+        fallbacks=[CommandHandler("cancel", cmd_cancel), CommandHandler("start", _conv_start)],
         name="main_conv",
         persistent=True,
         allow_reentry=True,
@@ -2781,7 +2861,8 @@ def main() -> None:
                 BotCommand("fcaption",  "Update caption on a featured page"),
                 BotCommand("sync",      "Post all existing photos to the channel"),
                 BotCommand("done",      "Finish a batch upload"),
-                BotCommand("share",     "Generate a standalone shareable gallery link"),
+                BotCommand("share",     "Generate a shareable gallery link"),
+                BotCommand("revoke",    "Info about private share link expiry"),
                 BotCommand("cancel",    "Cancel current operation"),
             ])
             await app.updater.start_polling(drop_pending_updates=True)

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interior Rooms · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; background: #060404; overflow: hidden; }
+
+    /* ── Shell ── */
+    .shell {
+      position: relative;
+      width: 100vw; height: 100vh; height: 100dvh;
+      background: #060404;
+      overflow: hidden;
+    }
+
+    /* ── Slides ── */
+    .slide {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+    .slide.active { opacity: 1; }
+    .slide img {
+      max-width: 100%; max-height: 100%;
+      display: block;
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+    .slide video {
+      max-width: 100%; max-height: 100%;
+      display: block;
+    }
+
+    /* ── Top gradient + title ── */
+    .top-ui {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+      padding: 1.6rem 2.5rem 4rem;
+      background: linear-gradient(to bottom, rgba(6,4,4,0.72) 0%, transparent 100%);
+      pointer-events: none;
+    }
+    .gallery-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.78rem; font-weight: 300;
+      letter-spacing: 0.32em; text-transform: uppercase;
+      color: rgba(247,241,238,0.48);
+    }
+
+    /* ── Bottom gradient + caption + counter ── */
+    .bottom-ui {
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
+      padding: 4rem 3rem 1.4rem;
+      background: linear-gradient(to top, rgba(6,4,4,0.78) 0%, transparent 100%);
+      display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
+      pointer-events: none;
+    }
+    .caption-el {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.9rem; font-weight: 300; font-style: italic;
+      color: rgba(247,241,238,0.68);
+      letter-spacing: 0.04em; text-align: center;
+      max-width: 520px; line-height: 1.55;
+    }
+    .counter-el {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.6rem; font-weight: 200;
+      letter-spacing: 0.26em;
+      color: rgba(247,241,238,0.26);
+    }
+
+    /* ── Thin edge chevrons ── */
+    .edge-control {
+      position: absolute; top: 50%; z-index: 20;
+      width: 30px; height: 96px; padding: 0;
+      border: 0; background: transparent;
+      transform: translateY(-50%); cursor: pointer;
+    }
+    .edge-control-left  { left: 0; }
+    .edge-control-right { right: 0; }
+    .edge-control svg {
+      width: 14px; height: 48px;
+      fill: none;
+      stroke: rgba(255,255,255,0.38);
+      stroke-width: 1;
+      stroke-linecap: round; stroke-linejoin: round;
+      transition: stroke 0.2s ease;
+    }
+    .edge-control:hover svg { stroke: rgba(255,255,255,0.92); }
+
+    /* ── Top-right ghost controls ── */
+    .topbar-controls {
+      position: absolute; top: 1.3rem; right: 1.3rem; z-index: 20;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .ui-btn {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.16); border-radius: 999px;
+      background: rgba(6,4,4,0.45);
+      color: rgba(247,241,238,0.48);
+      padding: 0.26rem 0.62rem;
+      font-family: 'Jost', sans-serif; font-size: 0.6rem; font-weight: 300;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      cursor: pointer; text-decoration: none; display: inline-block;
+      transition: color 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+    .ui-btn:hover {
+      color: rgba(247,241,238,0.9);
+      border-color: rgba(255,255,255,0.4);
+    }
+
+    @media (max-width: 600px) {
+      .gallery-title { font-size: 0.7rem; }
+      .caption-el    { font-size: 0.82rem; }
+      .topbar-controls { top: 0.9rem; right: 0.9rem; }
+      .ui-btn { font-size: 0.56rem; padding: 0.22rem 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell" id="shell">
+
+  <!-- Title -->
+  <div class="top-ui">
+    <div class="gallery-title">Interior Rooms</div>
+  </div>
+
+  <!-- Slides injected by JS -->
+
+  <!-- Caption + counter -->
+  <div class="bottom-ui">
+    <div class="caption-el" id="caption-el"></div>
+    <div class="counter-el" id="counter-el">1 / 6</div>
+  </div>
+
+  <!-- Left chevron -->
+  <button class="edge-control edge-control-left" id="prev-btn" aria-label="Previous photograph">
+    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M18 3 L5 24 L18 45"/></svg>
+  </button>
+
+  <!-- Right chevron -->
+  <button class="edge-control edge-control-right" id="next-btn" aria-label="Next photograph">
+    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M6 3 L19 24 L6 45"/></svg>
+  </button>
+
+  <!-- Ghost controls (top-right) -->
+  <div class="topbar-controls">
+    <button class="ui-btn" id="autoplay-btn">Auto</button>
+    <button class="ui-btn" id="fs-btn">Fullscreen</button>
+    <a    class="ui-btn" href="../senza-veli.html">← Back</a>
+  </div>
+
+</div>
+
+<script>
+(function () {
+
+  // ── Slide data ────────────────────────────────────────────────────────────
+  // focalX / focalY  : percentage toward which the cinematic zoom pushes
+  //                    (maps directly to transform-origin on the image element)
+  // zoomEnd          : final scale — 1.25 default; 1.30–1.35 for distant subjects
+  // caption          : optional italic caption shown at the bottom
+  var slides = [
+    { filename: 'photo-20260713-002700.jpg',    caption: '', focalX: 50, focalY: 42, zoomEnd: 1.25 },
+    { filename: 'photo-20260713-002704-01.jpg', caption: '', focalX: 52, focalY: 45, zoomEnd: 1.25 },
+    { filename: 'photo-20260713-002708-02.jpg', caption: '', focalX: 50, focalY: 44, zoomEnd: 1.25 },
+    { filename: 'photo-20260713-002711-03.jpg', caption: '', focalX: 50, focalY: 42, zoomEnd: 1.28 },
+    { filename: 'photo-20260713-002840.jpg',    caption: '', focalX: 48, focalY: 40, zoomEnd: 1.25 },
+    { filename: 'photo-20260713-003323.jpg',    caption: '', focalX: 50, focalY: 45, zoomEnd: 1.30 },
+  ];
+
+  var BASE        = '../assets/Interior-Rooms/';
+  var VIDEO_EXTS  = ['mp4', 'mov', 'webm', 'm4v'];
+  var ZOOM_MS     = 7000;
+  var AUTOPLAY_MS = 7000;
+
+  var shell       = document.getElementById('shell');
+  var captionEl   = document.getElementById('caption-el');
+  var counterEl   = document.getElementById('counter-el');
+  var prevBtn     = document.getElementById('prev-btn');
+  var nextBtn     = document.getElementById('next-btn');
+  var autoBtn     = document.getElementById('autoplay-btn');
+  var fsBtn       = document.getElementById('fs-btn');
+
+  var current     = 0;
+  var autoTimer   = null;
+  var slideEls    = [];
+  var mediaEls    = [];
+  var activeAnim  = null;
+
+  // ── Build slide DOM ──────────────────────────────────────────────────────
+  var bottomUI = document.querySelector('.bottom-ui');
+  slides.forEach(function (s, i) {
+    var div = document.createElement('div');
+    div.className = 'slide';
+    var ext     = s.filename.split('.').pop().toLowerCase();
+    var isVideo = VIDEO_EXTS.indexOf(ext) !== -1;
+    var el;
+    if (isVideo) {
+      el          = document.createElement('video');
+      el.src      = BASE + encodeURIComponent(s.filename);
+      el.loop     = true; el.muted = true; el.playsInline = true;
+    } else {
+      el          = document.createElement('img');
+      el.src      = BASE + encodeURIComponent(s.filename);
+      el.alt      = 'Interior Rooms — ' + (i + 1);
+      el.draggable = false;
+    }
+    div.appendChild(el);
+    shell.insertBefore(div, bottomUI);
+    slideEls.push(div); mediaEls.push(el);
+  });
+
+  // ── Zoom helpers ─────────────────────────────────────────────────────────
+  function startZoom(i) {
+    var el = mediaEls[i];
+    var s  = slides[i];
+    if (!el || el.tagName === 'VIDEO') return;
+    if (activeAnim) { try { activeAnim.cancel(); } catch (e) {} activeAnim = null; }
+    el.style.transform       = '';
+    el.style.transformOrigin = s.focalX + '% ' + s.focalY + '%';
+    activeAnim = el.animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(' + s.zoomEnd + ')' }],
+      { duration: ZOOM_MS, easing: 'ease-in-out', fill: 'forwards' }
+    );
+  }
+
+  function resetMedia(i) {
+    var el = mediaEls[i];
+    if (!el) return;
+    if (el.tagName === 'VIDEO') { try { el.pause(); el.currentTime = 0; } catch (e) {} }
+    el.style.transform = '';
+  }
+
+  // ── Navigation ───────────────────────────────────────────────────────────
+  function goTo(n) {
+    var old = current;
+    current = ((n % slides.length) + slides.length) % slides.length;
+    slideEls[old].classList.remove('active');
+    resetMedia(old);
+    slideEls[current].classList.add('active');
+    startZoom(current);
+    var cap = slides[current].caption || '';
+    captionEl.textContent  = cap;
+    captionEl.style.display = cap ? '' : 'none';
+    counterEl.textContent  = (current + 1) + ' / ' + slides.length;
+    var vid = mediaEls[current];
+    if (vid && vid.tagName === 'VIDEO') { try { vid.play(); } catch (e) {} }
+  }
+
+  function nudge(dir) {
+    goTo(current + dir);
+    if (autoTimer) { stopAuto(); startAuto(); }
+  }
+
+  prevBtn.addEventListener('click', function () { nudge(-1); });
+  nextBtn.addEventListener('click', function () { nudge(1); });
+
+  // ── Autoplay ─────────────────────────────────────────────────────────────
+  function startAuto() {
+    if (autoTimer) return;
+    autoTimer = setInterval(function () { goTo(current + 1); }, AUTOPLAY_MS);
+    autoBtn.textContent = 'Pause';
+  }
+  function stopAuto() {
+    clearInterval(autoTimer); autoTimer = null;
+    autoBtn.textContent = 'Auto';
+  }
+  autoBtn.addEventListener('click', function () { autoTimer ? stopAuto() : startAuto(); });
+
+  // ── Fullscreen ───────────────────────────────────────────────────────────
+  function toggleFS() {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else { (shell.requestFullscreen || shell.webkitRequestFullscreen).call(shell); }
+  }
+  fsBtn.addEventListener('click', toggleFS);
+  document.addEventListener('fullscreenchange', function () {
+    fsBtn.textContent = document.fullscreenElement ? 'Exit' : 'Fullscreen';
+  });
+
+  // ── Keyboard ─────────────────────────────────────────────────────────────
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft')          { nudge(-1); }
+    else if (e.key === 'ArrowRight')    { nudge(1); }
+    else if (e.key === 'f' || e.key === 'F') { toggleFS(); }
+    else if (e.key === ' ')             { e.preventDefault(); autoTimer ? stopAuto() : startAuto(); }
+  });
+
+  // ── Touch swipe ──────────────────────────────────────────────────────────
+  var tx = null;
+  shell.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  shell.addEventListener('touchend',   function (e) {
+    if (tx === null) return;
+    var dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 44) nudge(dx < 0 ? 1 : -1);
+    tx = null;
+  }, { passive: true });
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  goTo(0);
+
+})();
+</script>
+</body>
+</html>

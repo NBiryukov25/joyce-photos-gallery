@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elegant Navy Leather · Sheryl Joyce</title>
+  <meta property="og:title" content="Elegant Navy Leather">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://NBiryukov25.github.io/joyce-photos-gallery/s/elegant-navy-leather.html">
+  <meta property="og:image" content="https://nbiryukov25.github.io/joyce-photos-gallery/assets/Elegant-Navy-Leather/photo-20260712-034122.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="800">
+  <meta property="og:description" content="A gallery by Sheryl Joyce">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Elegant Navy Leather">
+  <meta name="twitter:image" content="https://nbiryukov25.github.io/joyce-photos-gallery/assets/Elegant-Navy-Leather/photo-20260712-034122.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Jost:wght@300&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; background: #060404; overflow: hidden; }
+    .shell { position: relative; width: 100vw; height: 100vh; }
+    .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.7s ease; display: flex; align-items: center; justify-content: center; }
+    .slide.active { opacity: 1; }
+    .slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .slide.active img { animation: kb 9s ease-in-out forwards; }
+    @keyframes kb { from { transform: scale(1.0); } to { transform: scale(1.08); } }
+    .top { position: absolute; top: 0; left: 0; right: 0; z-index: 10; padding: 1.2rem 1.5rem; background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent); pointer-events: none; }
+    .top h1 { font-family: 'Cormorant Garamond', serif; font-size: 1rem; font-weight: 400; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.88); }
+    .bottom { position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; padding: 1rem 1.5rem; background: linear-gradient(to top, rgba(0,0,0,0.6), transparent); display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; }
+    .counter { font-family: 'Jost', sans-serif; font-size: 0.72rem; letter-spacing: 0.1em; color: rgba(255,255,255,0.38); }
+    .credit { font-family: 'Cormorant Garamond', serif; font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.32); }
+    .ctrl { position: absolute; top: 50%; transform: translateY(-50%); z-index: 10; width: 2.8rem; height: 2.8rem; border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; background: rgba(0,0,0,0.2); color: rgba(255,255,255,0.75); font-size: 1.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
+    .ctrl:hover { background: rgba(255,255,255,0.1); }
+    #prev { left: 1rem; }
+    #next { right: 1rem; }
+    @media (max-width: 600px) { .ctrl { width: 2.2rem; height: 2.2rem; font-size: 1.2rem; } }
+  </style>
+</head>
+<body>
+  <div class="shell" id="shell">
+    <div class="top"><h1>Elegant Navy Leather</h1></div>
+    <button class="ctrl" id="prev" aria-label="Previous">&#8249;</button>
+    <button class="ctrl" id="next" aria-label="Next">&#8250;</button>
+    <div class="bottom">
+      <span class="counter" id="counter"></span>
+      <span class="credit">Sheryl Joyce</span>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var BASE = "../assets/Elegant-Navy-Leather/";
+      var files = ["photo-20260712-034122.jpg"];
+      var shell = document.getElementById('shell');
+      var counter = document.getElementById('counter');
+      var top = document.querySelector('.top');
+      var cur = 0, slides = [];
+      files.forEach(function (fn, i) {
+        var d = document.createElement('div');
+        d.className = 'slide' + (i === 0 ? ' active' : '');
+        var img = document.createElement('img');
+        img.src = BASE + encodeURIComponent(fn);
+        img.alt = '';
+        d.appendChild(img);
+        shell.insertBefore(d, top);
+        slides.push(d);
+      });
+      function show(n) {
+        slides[cur].classList.remove('active');
+        cur = (n + slides.length) % slides.length;
+        slides[cur].classList.add('active');
+        counter.textContent = (cur + 1) + ' / ' + slides.length;
+      }
+      document.getElementById('prev').onclick = function () { show(cur - 1); };
+      document.getElementById('next').onclick = function () { show(cur + 1); };
+      window.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowLeft') show(cur - 1);
+        if (e.key === 'ArrowRight') show(cur + 1);
+      });
+      show(0);
+    })();
+  </script>
+</body>
+</html>

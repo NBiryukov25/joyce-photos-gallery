@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="gallery.css">
   <style>
-    /* ── Promo Feature Section ── */
+    /* ── Featured — Magazine Covers ── */
     .promo-feature { margin: 2.2em 0 0.5em; }
     .promo-overline {
       font-family: 'Jost', sans-serif; font-size: 0.68rem; font-weight: 300;
@@ -17,47 +17,103 @@
     }
     .promo-grid {
       display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 1.1rem;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.3rem;
     }
-    .promo-card {
-      background: var(--blush-light); border: 1px solid var(--border);
-      border-radius: 10px; overflow: hidden;
-      display: flex; flex-direction: column;
+    /* magazine cover */
+    .promo-cover {
+      position: relative; display: block; aspect-ratio: 3 / 4;
+      border-radius: 4px; overflow: hidden; text-decoration: none;
+      background: #120a06;
+      box-shadow: 0 12px 34px rgba(40,20,12,0.30);
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
     }
-    .promo-card--wide { grid-column: 1 / -1; flex-direction: row; }
-    .promo-img-wrap { position: relative; overflow: hidden; flex-shrink: 0; }
-    .promo-img-wrap img { width: 100%; height: 360px; object-fit: cover; display: block; }
-    .promo-card--wide .promo-img-wrap { width: 52%; }
-    .promo-card--wide .promo-img-wrap img { height: 100%; min-height: 240px; }
-    .promo-hook {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      padding: 2rem 1rem 0.8rem;
-      background: linear-gradient(transparent, rgba(18,10,6,0.7));
-      font-family: 'Cormorant Garamond', serif; font-style: italic;
-      font-size: 1.05rem; color: rgba(255,255,255,0.92); letter-spacing: 0.02em;
+    .promo-cover:hover { transform: translateY(-4px); box-shadow: 0 20px 48px rgba(40,20,12,0.42); }
+    .promo-cover img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; display: block;
+      transition: transform 7s ease;
     }
-    .promo-body {
-      padding: 1.1rem 1.2rem 1.3rem; flex: 1;
-      display: flex; flex-direction: column; justify-content: space-between;
+    .promo-cover:hover img { transform: scale(1.09); }
+    .promo-cover::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(to bottom,
+        rgba(8,5,3,0.55) 0%, rgba(8,5,3,0.10) 26%,
+        rgba(8,5,3,0) 46%, rgba(8,5,3,0.86) 100%);
     }
-    .promo-text {
-      font-family: 'Cormorant Garamond', serif; font-size: 1rem;
-      font-weight: 300; line-height: 1.7; color: var(--text-soft); margin: 0 0 0.8em;
+    /* masthead */
+    .promo-cover-top {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+      padding: 0.95rem 1rem; display: flex;
+      align-items: baseline; justify-content: space-between; gap: 0.5rem;
     }
-    .promo-readmore {
-      appearance: none; background: none; border: none; padding: 0;
-      font-family: 'Jost', sans-serif; font-size: 0.66rem; font-weight: 300;
-      letter-spacing: 0.24em; text-transform: uppercase; color: var(--rose);
-      cursor: pointer; align-self: flex-start;
+    .promo-masthead {
+      font-family: 'Cormorant Garamond', serif; font-weight: 500;
+      font-size: 0.92rem; letter-spacing: 0.2em; text-transform: uppercase;
+      color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.5);
     }
-    .promo-readmore:hover { color: var(--rose-hover); }
-    @media (max-width: 680px) {
-      .promo-grid { grid-template-columns: 1fr; }
-      .promo-card--wide { flex-direction: column; }
-      .promo-card--wide .promo-img-wrap { width: 100%; }
-      .promo-img-wrap img,
-      .promo-card--wide .promo-img-wrap img { height: 260px; min-height: unset; }
+    .promo-issue {
+      font-family: 'Jost', sans-serif; font-size: 0.52rem; font-weight: 300;
+      letter-spacing: 0.28em; text-transform: uppercase;
+      color: rgba(255,255,255,0.78); white-space: nowrap;
+    }
+    /* cover lines */
+    .promo-cover-lines {
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
+      padding: 1.2rem 1.1rem 1.25rem;
+    }
+    .promo-kicker {
+      font-family: 'Jost', sans-serif; font-size: 0.56rem; font-weight: 400;
+      letter-spacing: 0.3em; text-transform: uppercase;
+      color: #eab9a6; margin-bottom: 0.55em;
+    }
+    .promo-title {
+      font-family: 'Cormorant Garamond', serif; font-weight: 500;
+      font-size: 1.7rem; line-height: 1.04; color: #fff; margin: 0 0 0.4em;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.45);
+    }
+    .promo-line {
+      font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 300;
+      font-size: 1rem; line-height: 1.45; color: rgba(255,255,255,0.92);
+      margin: 0 0 0.75em; text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+    }
+    .promo-cta {
+      font-family: 'Jost', sans-serif; font-size: 0.6rem; font-weight: 300;
+      letter-spacing: 0.24em; text-transform: uppercase; color: #fff;
+      border-bottom: 1px solid rgba(255,255,255,0.55); padding-bottom: 2px;
+    }
+    .promo-cover:hover .promo-cta { border-bottom-color: #eab9a6; }
+    @media (max-width: 900px) { .promo-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) {
+      .promo-grid { grid-template-columns: 1fr; gap: 1.1rem; }
+      .promo-cover { aspect-ratio: 4 / 5; }
+    }
+    /* ── Promo spread: letter + covers ── */
+    .promo-spread {
+      display: grid;
+      grid-template-columns: 2fr 3fr;
+      gap: 3rem;
+      align-items: start;
+    }
+    .promo-letter { padding: 0.2em 0; }
+    .promo-letter-byline {
+      font-family: 'Jost', sans-serif; font-size: 0.63rem; font-weight: 300;
+      letter-spacing: 0.38em; text-transform: uppercase; color: var(--rose);
+      margin-bottom: 1.5em;
+    }
+    .promo-letter-body p {
+      font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 300;
+      font-size: 1.05rem; line-height: 1.82; color: var(--text-main);
+      margin: 0 0 0.95em;
+    }
+    .promo-letter-closing {
+      font-family: 'Cormorant Garamond', serif; font-weight: 500; font-style: italic;
+      font-size: 1.07rem; line-height: 1.5; color: var(--text-main);
+      margin: 1.6em 0 0 !important; opacity: 0.88;
+    }
+    @media (max-width: 900px) {
+      .promo-spread { grid-template-columns: 1fr; gap: 2rem; }
+      .promo-letter { order: -1; }
     }
   </style>
 </head>
@@ -90,45 +146,23 @@
   </section>
   <!-- ── Promotional Feature ── -->
   <section class="promo-feature">
-    <p class="promo-overline">Featured</p>
-    <div class="promo-grid">
-
-      <!-- Card 1 — City View -->
-      <article class="promo-card">
-        <div class="promo-img-wrap">
-          <img src="assets/promo/IMG_8587.png" alt="City lights, unforgettable warmth" loading="lazy" decoding="async">
-          <span class="promo-hook">City lights, unforgettable warmth</span>
+    <p class="promo-overline">On the Cover</p>
+    <div class="promo-spread">
+      <div class="promo-letter">
+        <p class="promo-letter-byline">From Joyce</p>
+        <div class="promo-letter-body">
+          <p>I'm 38. Not old. Not young. Just here.</p>
+          <p>You know me as the helper. The one who keeps everything running — the house, the kids, the schedule, the mess nobody else wants to deal with. The one who's always fine. Always available. Always behind the scenes making sure everyone else is okay.</p>
+          <p>But I'm tired of being behind the scenes.</p>
+          <p>I didn't leave everything behind — my country, my family, my own life — to disappear into someone else's kitchen. I came here because I had to. But that's not all I am.</p>
+          <p>I want to be seen differently. Not as the woman who serves. Not as the woman who sacrifices. Not as the woman who's strong enough to carry everything so nobody else has to.</p>
+          <p>I'm 38 and I've spent most of my adult life making other people comfortable. And nobody has ever asked me what makes me comfortable. Nobody has ever looked at me and wondered what I need.</p>
+          <p>So here I am. Showing more. Saying more. Not because I want attention. Because I want to exist. In my own life. Not as a background character in everyone else's.</p>
+          <p>I posted <em>ang halaga mo</em> because I meant it. What am I worth? Not as a helper. Not as a sacrifice. As a woman. As a person. As someone who still has a life ahead of her that doesn't belong to anyone else.</p>
+          <p class="promo-letter-closing">I'm not here to take care of you — or am I?</p>
         </div>
-        <div class="promo-body">
-          <p class="promo-text" id="pt1">Perched on the bed with the glittering city lights behind her, she looks straight at you with that warm, captivating smile. Long silky hair flowing over her shoulders, elegant in soft beige silk that gently hugs her figure.</p>
-          <button class="promo-readmore" onclick="promoExpand('pt1','There\'s something about her calm confidence and feminine glow that hits you instantly — a perfect mix of beauty, grace, and quiet sensuality. One glance and you know she\'s the kind of woman who becomes a beautiful, lifelong addiction.',this)" type="button">Read more ↓</button>
-        </div>
-      </article>
-
-      <!-- Card 2 — Bedside Lamp -->
-      <article class="promo-card">
-        <div class="promo-img-wrap">
-          <img src="assets/promo/IMG_8586.png" alt="Warm light, irresistible pull" loading="lazy" decoding="async">
-          <span class="promo-hook">Warm light, irresistible pull</span>
-        </div>
-        <div class="promo-body">
-          <p class="promo-text" id="pt2">Sitting on the edge of the bed with that soft, intimate smile and her hand gently playing with her hair, she radiates effortless allure. The warm lighting caresses her skin, highlighting her beautiful features and graceful presence.</p>
-          <button class="promo-readmore" onclick="promoExpand('pt2','Sweet yet undeniably seductive, she carries a magnetic warmth that draws you in deeper with every second. She\'s the type of woman whose image lingers in your mind long after — dangerously addictive in the best possible way.',this)" type="button">Read more ↓</button>
-        </div>
-      </article>
-
-      <!-- Card 3 — Hallway (wide) -->
-      <article class="promo-card promo-card--wide">
-        <div class="promo-img-wrap">
-          <img src="assets/promo/IMG_8584.png" alt="Soft light, magnetic presence" loading="lazy" decoding="async">
-          <span class="promo-hook">Soft light, magnetic presence</span>
-        </div>
-        <div class="promo-body">
-          <p class="promo-text" id="pt3">Standing in the softly lit hotel hallway, she glances back with that warm, captivating smile that stops you in your tracks. Her long dark hair flows gracefully, and the golden satin camisole gently hugs her elegant figure with just the right touch of sensuality.</p>
-          <button class="promo-readmore" onclick="promoExpand('pt3','There\'s an irresistible mix of sweetness, confidence, and feminine mystery in her eyes — the kind that makes a man feel an instant, deep pull. One look and you\'re hooked… the type of woman who quietly becomes a lifetime addiction.',this)" type="button">Read more ↓</button>
-        </div>
-      </article>
-
+      </div>
+      <div class="promo-grid" id="promo-grid"></div>
     </div>
   </section>
 
@@ -280,8 +314,9 @@
 <div class="gallery-row">
   <div class="gallery-item"><a href="galleries/the-gentle-art-of-comfort.html"><img loading="lazy" decoding="async" src="assets/The-Gentle-Art-of-Comfort/photo-20260704-044305.jpg" alt="The Gentle Art Of Comfort"></a><div class="gallery-caption"><p class="gallery-caption-title">The Gentle Art Of Comfort</p><a class="gallery-view-link" href="galleries/the-gentle-art-of-comfort.html">View full series →</a></div></div>
 <div class="gallery-item"><a href="galleries/northern-summer-fun.html"><img src="assets/Northern-Summer-Fun/photo-20260707-185737.jpg" alt="Northern Summer Fun"></a><div class="gallery-caption"><p class="gallery-caption-title">Northern Summer Fun</p><a class="gallery-view-link" href="galleries/northern-summer-fun.html">View full series →</a></div></div>
-<div class="gallery-item"><a href="galleries/engaged-couple.html"><img src="assets/Engaged-Couple/photo-20260707-224909.jpg" alt="Engaged Couple"></a><div class="gallery-caption"><p class="gallery-caption-title">Engaged Couple</p><a class="gallery-view-link" href="galleries/engaged-couple.html">View full series →</a></div></div>
+<div class="gallery-item"><a href="galleries/engaged-couple.html"><img src="assets/Engaged-Couple/photo-20260707-224909.jpg" alt="Romance &amp; Betrayal"></a><div class="gallery-caption"><p class="gallery-caption-title">Romance &amp; Betrayal</p><a class="gallery-view-link" href="galleries/engaged-couple.html">View full series →</a></div></div>
 <div class="gallery-item"><a href="galleries/golden-hour-at-home.html"><img src="assets/Golden-Hour-at-Home/photo-20260708-042145-01.jpg" alt="Golden Hour At Home"></a><div class="gallery-caption"><p class="gallery-caption-title">Golden Hour At Home</p><a class="gallery-view-link" href="galleries/golden-hour-at-home.html">View full series →</a></div></div>
+<div class="gallery-item"><a href="galleries/elegant-navy-leather.html"><img src="assets/Elegant-Navy-Leather/photo-20260712-034122.jpg" alt="Elegant Navy Leather"></a><div class="gallery-caption"><p class="gallery-caption-title">Elegant Navy Leather</p><a class="gallery-view-link" href="galleries/elegant-navy-leather.html">View full series →</a></div></div>
 <!-- new-gallery-insert -->
 </div>
 
@@ -296,10 +331,66 @@
 
   <script src="lightbox.js"></script>
   <script>
-    function promoExpand(id, more, btn) {
-      document.getElementById(id).textContent += ' ' + more;
-      btn.style.display = 'none';
-    }
+    /* ── Featured magazine covers: random photos (from the first 4) of random galleries ── */
+    (function () {
+      // Each gallery: link + folder + its first-four photos + an enchanting cover line.
+      var POOL = [
+        { title: 'The Bedroom Suite', link: 'galleries/the-bedroom-suite.html', folder: 'assets/from-drive/', kicker: 'Behind Closed Doors', line: 'A room that holds its breath — and a woman who finally lets herself exhale.', photos: ['1kom-InAWdf5YAoAILb9hvxC4NXeqQjCW.jpg'] },
+        { title: 'Eyes First, Hands Later', link: 'galleries/Stashed-companion.html', folder: 'assets/Stashed-companion/', kicker: 'The Reveal', line: 'She has been waiting for someone who looks before they touch — and now here you are.', photos: ['Stashed_companion 3.PNG','Stashed_companion 2.PNG','Stashed_companion 4.PNG','Stashed_companion 10.PNG'] },
+        { title: 'A Joyceful Transformation', link: 'galleries/a-joyceful-transformation.html', folder: 'assets/A-Joyceful-Transformation/', kicker: 'The Reveal', line: 'Watch the quiet girl next door melt away — and the woman she was always hiding step into the light.', photos: ['photo-20260705-153029.jpg','photo-20260705-192705-01.jpg','photo-20260705-160116-01.jpg','photo-20260705-192701.jpg'] },
+        { title: 'The Transfer — After Hours', link: 'galleries/the-transfer--after-hours.html', folder: 'assets/The-Transfer--After-Hours/', kicker: 'After Hours', line: 'When the lights go down and the doors lock, the real work begins.', photos: ['photo-20260705-032359.jpg','photo-20260705-032403-01.jpg','photo-20260705-032406-02.jpg','photo-20260705-032409-03.jpg'] },
+        { title: 'Interior Rooms', link: 'galleries/interior-rooms.html', folder: 'assets/Interior-Rooms/', kicker: 'Private Hours', line: 'The rooms she lets you into are never the ones you expected — and leaving is no longer a thought.', photos: ['photo-20260713-002700.jpg','photo-20260713-002704-01.jpg','photo-20260713-002708-02.jpg','photo-20260713-002711-03.jpg','photo-20260713-003323.jpg'] }
+      ];
+
+      var COUNT = 3;           // covers to feature
+      var ISSUE = 'No. 01';
+
+      function shuffle(a) {
+        for (var i = a.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var t = a[i]; a[i] = a[j]; a[j] = t;
+        }
+        return a;
+      }
+
+      var grid = document.getElementById('promo-grid');
+      if (!grid) { return; }
+
+      var picks = shuffle(POOL.slice()).slice(0, COUNT);
+
+      picks.forEach(function (g) {
+        var photo = g.photos[Math.floor(Math.random() * g.photos.length)];
+        var src = g.folder + encodeURIComponent(photo);
+
+        var a = document.createElement('a');
+        a.className = 'promo-cover';
+        a.href = g.link;
+
+        var img = document.createElement('img');
+        img.src = src;
+        img.alt = g.title;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+
+        var top = document.createElement('div');
+        top.className = 'promo-cover-top';
+        top.innerHTML = '<span class="promo-masthead">Sheryl Joyce</span>' +
+                        '<span class="promo-issue">' + ISSUE + '</span>';
+
+        var lines = document.createElement('div');
+        lines.className = 'promo-cover-lines';
+        var kicker = document.createElement('p'); kicker.className = 'promo-kicker'; kicker.textContent = g.kicker;
+        var title  = document.createElement('p'); title.className = 'promo-title';  title.textContent = g.title;
+        var line   = document.createElement('p'); line.className = 'promo-line';    line.textContent = g.line;
+        var cta    = document.createElement('span'); cta.className = 'promo-cta';   cta.textContent = 'View gallery →';
+        lines.appendChild(kicker); lines.appendChild(title); lines.appendChild(line); lines.appendChild(cta);
+
+        a.appendChild(img);
+        a.appendChild(top);
+        a.appendChild(lines);
+        grid.appendChild(a);
+      });
+    })();
   </script>
 </body>
 </html>
