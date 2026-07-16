@@ -20,6 +20,10 @@ SPREADSHEET_ID = "1N8ToEDXnsYKFFRPfYXiqjUqlsPUp5PCMbm0BeZBokTo"
 OUTPUT_FILE    = "index.html"
 GALLERIES_DIR  = "galleries"
 
+# Gallery slugs removed from the site — never regenerate these, even if they
+# still exist as rows in the Google Sheet. Add a slug here to retire a gallery.
+EXCLUDE_SLUGS  = {"vacation-walk", "elegant-navy-leather"}
+
 CSS = """
 :root { --text-normal:#1a1a1a; --text-muted:#6b6b6b; --background-modifier-border:#d4d4d4; --background-body:#faf9f7; }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -217,6 +221,11 @@ def main():
     galleries_csv = fetch_csv("Galleries")
     galleries = parse_csv(galleries_csv)
     published = [g for g in galleries if g.get("Publish","").strip().upper() in ("TRUE","YES","1")]
+    # Drop retired galleries so they are never rebuilt from the sheet.
+    removed = [g for g in published if slugify(g.get("Gallery Title","gallery")) in EXCLUDE_SLUGS]
+    if removed:
+        print(f"Excluding retired galleries: {', '.join(slugify(g.get('Gallery Title','gallery')) for g in removed)}")
+    published = [g for g in published if slugify(g.get("Gallery Title","gallery")) not in EXCLUDE_SLUGS]
     print(f"Found {len(published)} published galleries.")
 
     # --- Photos tab ---
