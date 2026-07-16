@@ -539,3 +539,183 @@ body {
   font-style: italic;
   padding: 2em 0;
 }
+
+/* ============================================
+   MAGAZINE COVER INTRO — "Ang Halaga Mo"
+   Alternating photo/text editorial manifesto
+   ============================================ */
+
+.mag-intro {
+  margin: 0 0 3.5em;
+}
+
+/* ---- COVER ---- */
+.mag-cover {
+  position: relative;
+  width: 100%;
+  min-height: 74vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 2.2em 2em 2.6em;
+  margin-bottom: 4em;
+  border-radius: 2px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center 22%;
+  box-shadow: 0 10px 40px rgba(31, 26, 24, 0.28);
+}
+.mag-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(20, 14, 12, 0.28) 0%,
+    rgba(20, 14, 12, 0.08) 40%,
+    rgba(20, 14, 12, 0.62) 100%);
+  z-index: 0;
+}
+.mag-cover > * { position: relative; z-index: 1; }
+
+.mag-masthead {
+  position: absolute;
+  top: 1.6em;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'Jost', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: rgba(255, 250, 247, 0.92);
+  z-index: 1;
+}
+.mag-issue {
+  position: absolute;
+  top: 3.1em;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'Jost', sans-serif;
+  font-weight: 200;
+  font-size: 0.58rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255, 250, 247, 0.6);
+  z-index: 1;
+}
+.mag-cover-kicker {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(1.05rem, 2.4vw, 1.5rem);
+  color: rgba(255, 250, 247, 0.94);
+  margin-bottom: 0.35em;
+  max-width: 22ch;
+  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.45);
+}
+.mag-cover-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: clamp(3rem, 11vw, 7rem);
+  line-height: 0.94;
+  letter-spacing: 0.01em;
+  color: #fffaf7;
+  margin-bottom: 0.18em;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.5);
+}
+.mag-cover-sub {
+  font-family: 'Jost', sans-serif;
+  font-weight: 300;
+  font-size: clamp(0.8rem, 1.8vw, 1rem);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255, 250, 247, 0.85);
+}
+
+/* ---- ALTERNATING ROWS ---- */
+.mag-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: clamp(1.6em, 4vw, 3.4em);
+  margin-bottom: clamp(3em, 6vw, 5em);
+}
+.mag-row.reverse .mag-photo { order: 2; }
+.mag-row.reverse .mag-text  { order: 1; }
+
+.mag-photo {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  display: block;
+  border-radius: 2px;
+  box-shadow: 0 8px 32px rgba(31, 26, 24, 0.22);
+}
+
+.mag-label {
+  font-family: 'Jost', sans-serif;
+  font-weight: 400;
+  font-size: 0.68rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--rose);
+  margin-bottom: 1.1em;
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+}
+.mag-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.mag-body {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: clamp(1.15rem, 1.7vw, 1.42rem);
+  line-height: 1.66;
+  color: var(--text);
+}
+.mag-body .em {
+  font-style: italic;
+  color: var(--rose-hover);
+}
+
+/* ---- CLOSING STATEMENT ---- */
+.mag-closing {
+  text-align: center;
+  padding: 2.4em 1em 1em;
+  margin-bottom: 1.5em;
+}
+.mag-closing-line {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-style: italic;
+  font-size: clamp(1.9rem, 5vw, 3.4rem);
+  line-height: 1.18;
+  color: var(--text);
+}
+.mag-closing-line .strike {
+  color: var(--rose);
+}
+.mag-signoff {
+  font-family: 'Jost', sans-serif;
+  font-weight: 300;
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  margin-top: 1.8em;
+}
+
+@media (max-width: 720px) {
+  .mag-row { grid-template-columns: 1fr; gap: 1.4em; }
+  .mag-row.reverse .mag-photo { order: 0; }
+  .mag-row.reverse .mag-text  { order: 0; }
+  .mag-photo { aspect-ratio: 3 / 4; max-height: 78vh; margin: 0 auto; }
+  .mag-cover { min-height: 68vh; }
+}

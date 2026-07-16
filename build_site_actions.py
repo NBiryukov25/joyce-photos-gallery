@@ -68,6 +68,16 @@ body{background-color:var(--background-body);color:var(--text-normal);font-famil
 .empty-notice{font-size:0.9em;color:var(--text-muted);font-style:italic;padding:2em 0;}
 """
 
+HAND_MAINTAINED_MARKER = "HAND-MAINTAINED"
+
+def is_hand_maintained(path):
+    """Return True if the existing file opts out of auto-rebuild via a sentinel marker."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return HAND_MAINTAINED_MARKER in f.read(4000)
+    except (FileNotFoundError, OSError):
+        return False
+
 def fetch_csv(sheet_name):
     url = (f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}"
            f"/gviz/tq?tqx=out:csv&sheet={urllib.request.quote(sheet_name)}")
@@ -228,17 +238,23 @@ def main():
     by_series = defaultdict(list)
     for g in published:
         by_series[g.get("Series","Uncategorized")].append(g)
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write(build_html(by_series, photos_by_gallery=photos_by_gallery))
-    print(f"Written: {OUTPUT_FILE}")
+    if is_hand_maintained(OUTPUT_FILE):
+        print(f"Skipped (hand-maintained): {OUTPUT_FILE}")
+    else:
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            f.write(build_html(by_series, photos_by_gallery=photos_by_gallery))
+        print(f"Written: {OUTPUT_FILE}")
 
     # --- Build individual gallery pages ---
     os.makedirs(GALLERIES_DIR, exist_ok=True)
     for g in published:
         slug = slugify(g.get("Gallery Title", "gallery"))
         gallery_photos = photos_by_gallery.get(g.get("Gallery Title","").strip(), [])
-        page_html = build_portfolio_page(g, gallery_photos)
         out_path = os.path.join(GALLERIES_DIR, f"{slug}.html")
+        if is_hand_maintained(out_path):
+            print(f"Skipped (hand-maintained): {out_path}")
+            continue
+        page_html = build_portfolio_page(g, gallery_photos)
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(page_html)
         print(f"Written: {out_path} ({len(gallery_photos)} photos)")
