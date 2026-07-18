@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: joyce-gallery-bot
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_REPO
+        value: NBiryukov25/joyce-photos-gallery
+      - key: GITHUB_BRANCH
+        value: main
+      - key: TELEGRAM_ALLOWED_USER_ID
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TRANSCRIBE_API_TOKEN
+        sync: false
+      - key: SHARE_SECRET
+        sync: false
+      - key: PORT
+        value: "8080"
