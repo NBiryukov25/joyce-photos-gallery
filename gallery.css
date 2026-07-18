@@ -22,7 +22,7 @@
 /* ---- BACKGROUND ---- */
 html {
   background-color: var(--cream);
-  background-image: url('https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/KlxdYsobDXQekTOC.png');
+  background-image: url('assets/backgrounds/site-portrait.png');
   background-size: cover;
   background-position: center top;
   background-attachment: fixed;

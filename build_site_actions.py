@@ -27,7 +27,7 @@ EXCLUDE_SLUGS  = {"vacation-walk", "elegant-navy-leather"}
 CSS = """
 :root { --text-normal:#1a1a1a; --text-muted:#6b6b6b; --background-modifier-border:#d4d4d4; --background-body:#faf9f7; }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{background-color:var(--background-body);background-image:url('https://files.manuscdn.com/user_upload_by_module/session_file/310519663401710643/KlxdYsobDXQekTOC.png');background-size:cover;background-position:center top;background-attachment:fixed;background-repeat:no-repeat;}
+html{background-color:var(--background-body);background-image:url('assets/backgrounds/site-portrait.png');background-size:cover;background-position:center top;background-attachment:fixed;background-repeat:no-repeat;}
 html::before{content:'';position:fixed;inset:0;background:rgba(250,249,247,0.70);z-index:0;pointer-events:none;}
 body{position:relative;z-index:1;background:transparent;color:var(--text-normal);font-family:Georgia,"Times New Roman",serif;padding:3em 2em 5em;max-width:1100px;margin:0 auto;}
 .gallery-page-title{font-size:2.2em;font-weight:400;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.2em;margin-top:0.5em;}
