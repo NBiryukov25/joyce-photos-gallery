@@ -56,55 +56,70 @@ None required — no Manus reference was broken or dangling.
 
 ## Unscripted Asset Migration
 
-One Unscripted-hosted **image** existed in the repository. It was downloaded and
-localized; all other Unscripted references are intentional destination links
-(see *Preserved External Links*).
+The site is now **fully self-contained**: every photo from the five linked
+Unscripted galleries was downloaded into the repository, the five previously-empty
+local gallery pages were populated with those photos, and every Unscripted link
+(both the cover `<a>` and the "View full series" `<a>`, in `index.html` and
+`gallery.html`) now points to the local page. **Zero Unscripted image hosts and
+zero Unscripted links remain.**
 
-### Image 1 — "Come here…Love"
-| Field | Value |
-|-------|-------|
-| Original image URL | `https://unscriptedphotographers.com/_cf_images/variant=limit_1800,storage=cloudflare/wvvbf1f14l4v9hkbr9hj9alo5n83.png` |
-| Related Unscripted gallery URL | `https://unscriptedphotographers.com/basementinnovations/shadowed-affections-a-night-s-embrace` |
-| File(s) where referenced | `galleries/shadowed-affections-a-nights-embrace.html` (line 38) |
-| How the image was used | `<img src>` in the `.photo-grid` — the only photo on the page; `alt` and `.photo-title` both "Come here...Love" |
-| New GitHub asset path | `assets/Shadowed-Affections/come-here-love.jpg` |
-| Download status | **Success** (HTTP 200). Only the `limit_1800` variant is accessible; `limit_3000`, `public`, and bare `storage=cloudflare` variants returned HTTP 400. `1800px` is therefore the highest-quality accessible version. |
-| Format note | The URL ends in `.png` but the server delivers a **JPEG** (JFIF, 1300×1800, progressive). Stored with its true `.jpg` extension. Not cropped, resized, recompressed, or altered. |
-| Replacement status | **Done** — `src` updated to `../assets/Shadowed-Affections/come-here-love.jpg`; alt text, title, order, layout, and styling preserved. |
-| Validation status | **Passed** — 126,893 bytes; complete JPEG (SOI `ffd8` / EOI `ffd9`); path resolves from `galleries/` with exact capitalization; Pages-serveable. |
+### Download method
+- Each gallery photo is served in three Cloudflare variants (`limit_900`,
+  `limit_1800`, `limit_2500`). The **`limit_2500`** (highest-quality accessible)
+  version was downloaded for every photo.
+- Each file's true format was detected from its magic bytes and the file was
+  named accordingly (some URLs use a `.png`/`.PNG` suffix while the bytes are
+  JPEG). Images were **not** cropped, resized, recompressed, or altered.
+- In-gallery duplicates (photos the source gallery displays more than once) were
+  stored **once** and referenced from each position — no duplicate files.
+- Display order was preserved from each source page's markup.
+
+### Per-gallery results
+| Gallery | Local page populated | Asset folder | Photo refs | Unique files stored |
+|---------|----------------------|--------------|-----------:|--------------------:|
+| Number 19 | `galleries/number-19.html` | `assets/Number-19/` | 7 | 7 |
+| The Green Hour | `galleries/the-green-hour.html` | `assets/The-Green-Hour/` | 6 | 5 |
+| Morning Softness | `galleries/morning-softness.html` | `assets/Morning-Softness/` | 17 | 17 |
+| The Bedroom Suite | `galleries/the-bedroom-suite.html` | `assets/The-Bedroom-Suite/` | 21 | 20 |
+| Shadowed Affections | `galleries/shadowed-affections-a-nights-embrace.html` | `assets/Shadowed-Affections/` | 21 | 19 |
+
+- **68 unique image files** stored total; **72 photo references** (difference = 4
+  legitimate in-gallery duplicates deduped to a single stored file).
+- Source galleries carried no per-photo captions; images use descriptive `alt`
+  text (`"<Gallery> — N"`). The one pre-existing caption, **"Come here…Love"** on
+  the Shadowed Affections page (`assets/Shadowed-Affections/come-here-love.jpg`,
+  downloaded in the prior commit), was preserved in place and reused (not
+  re-downloaded).
+
+### Links updated to local
+Both `<a>` links per card (cover image + "View full series") were repointed and
+cleaned to same-tab internal navigation, in **`index.html`** and **`gallery.html`**:
+
+| Former Unscripted destination | Now points to |
+|-------------------------------|---------------|
+| `…/basementinnovations/number-19` | `galleries/number-19.html` |
+| `…/1386771/the-green-hour` | `galleries/the-green-hour.html` |
+| `…/basementinnovations/joyce-morning-softness` | `galleries/morning-softness.html` |
+| `…/basementinnovations/the-bedroom-suite` | `galleries/the-bedroom-suite.html` |
+| `…/basementinnovations/shadowed-affections-a-night-s-embrace` | `galleries/shadowed-affections-a-nights-embrace.html` |
 
 ---
 
 ## Preserved External Links
 
-All remaining Unscripted references are `<a href target="_blank">` destination
-links ("View full series →" and the linked cover). Each is preserved because no
-**complete, verified** local gallery equivalent exists — the corresponding local
-pages are empty stubs (0 images) — and the displayed cover for each card is
-already a local or Google-Drive asset, so none carries an Unscripted image-host
-dependency.
-
-| External destination (Unscripted) | Appears in | Why preserved |
-|-----------------------------------|-----------|---------------|
-| `…/basementinnovations/number-19` | `index.html`, `gallery.html` | Intentional link to the full external series. Local `galleries/number-19.html` is an empty stub (0 images). Card cover already local: `assets/covers/number-19.jpg`. |
-| `…/1386771/the-green-hour` | `index.html`, `gallery.html` | Full-series link. Local `galleries/the-green-hour.html` is an empty stub. Cover already local: `assets/covers/the-green-hour.png`. |
-| `…/basementinnovations/joyce-morning-softness` | `index.html`, `gallery.html` | Full-series link. Local `galleries/morning-softness.html` is an empty stub. Cover already local: `assets/covers/morning-softness.png`. |
-| `…/basementinnovations/the-bedroom-suite` | `index.html` | Full-series link. Local `galleries/the-bedroom-suite.html` is an empty stub. Cover is a Google-Drive thumbnail (not an Unscripted image; out of scope). |
-| `…/basementinnovations/shadowed-affections-a-night-s-embrace` | `index.html`, `gallery.html` | Full-series link to the external multi-photo gallery. The local page holds only the single now-localized photo — not a complete match — so the external link is kept. Card cover already local/Drive. |
-
-Total: **5 unique external destinations** preserved (each appears twice per card —
-on the cover `<a>` and the "View full series" `<a>`).
+**None remain.** All five Unscripted destinations were converted to local gallery
+links now that the repository contains the complete photo sets. No intentional
+Unscripted website links are left.
 
 ---
 
 ## Failures or Unresolved Items
 
-None. The single Unscripted image was reachable, downloaded, verified, relocated,
-and re-referenced successfully.
-
-- Higher-resolution variants (`limit_3000`, `public`) returned HTTP 400, so the
-  accessible maximum (`limit_1800`, 1300×1800) was used. This is noted rather than
-  treated as a failure — it is the highest-quality version the host will serve.
+- **1 Morning Softness photo could not be downloaded.** Source stem
+  `can5euacvkjwp014wi3vzfu2ltav` (display position 4) returns **HTTP 404** at every
+  variant (`limit_2500`/`1800`/`900`) — it is no longer hosted on Unscripted's CDN.
+  It is **not** claimed as migrated; the Morning Softness gallery contains the
+  remaining 17 of 18 photos. No other assets failed.
 
 ---
 
@@ -113,8 +128,9 @@ and re-referenced successfully.
 | Metric | Count |
 |--------|------|
 | Manus references remaining (live image/asset) | 0 |
-| Unscripted image URLs found | 1 |
-| Unique Unscripted images added | 1 |
-| Repository references updated | 1 |
-| Intentional Unscripted destination links preserved | 5 unique destinations |
-| Failed or unresolved assets | 0 |
+| Unscripted image URLs found | 73 (across 5 galleries) |
+| Unique Unscripted images added | 68 |
+| Local gallery pages populated | 5 |
+| Repository references updated | 72 image refs + 20 link href (10 per file × 2 files) |
+| Intentional Unscripted destination links preserved | 0 (all converted to local) |
+| Failed or unresolved assets | 1 (Morning Softness photo, 404 at source) |
