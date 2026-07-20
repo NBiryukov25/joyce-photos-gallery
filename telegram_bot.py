@@ -2605,15 +2605,15 @@ def _reorder_keyboard(cursor: int, n: int) -> InlineKeyboardMarkup:
     at_start = cursor == 0
     at_end = cursor == n - 1
     nav = [
-        InlineKeyboardButton("⬅" if not at_start else "·", callback_data="rorb:prev" if not at_start else noop),
-        InlineKeyboardButton(f"{cursor + 1} / {n}", callback_data=noop),
-        InlineKeyboardButton("➡" if not at_end else "·", callback_data="rorb:next" if not at_end else noop),
+        InlineKeyboardButton("← Prev" if not at_start else "·", callback_data="rorb:prev" if not at_start else noop),
+        InlineKeyboardButton(f"{cursor + 1} of {n}", callback_data=noop),
+        InlineKeyboardButton("Next →" if not at_end else "·", callback_data="rorb:next" if not at_end else noop),
     ]
     move = []
     if not at_start:
-        move.append(InlineKeyboardButton("⬆ Move Up", callback_data="rorb:up"))
+        move.append(InlineKeyboardButton("⬆ Move Earlier", callback_data="rorb:up"))
     if not at_end:
-        move.append(InlineKeyboardButton("⬇ Move Down", callback_data="rorb:down"))
+        move.append(InlineKeyboardButton("⬇ Move Later", callback_data="rorb:down"))
     done = [
         InlineKeyboardButton("✅ Save Order", callback_data="rorb:save"),
         InlineKeyboardButton("❌ Cancel", callback_data="rorb:cancel"),
