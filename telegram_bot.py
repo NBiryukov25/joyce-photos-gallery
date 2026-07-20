@@ -83,7 +83,7 @@ NETLIFY_SITE_URL  = os.environ.get("NETLIFY_SITE_URL", "https://stalwart-crumble
 SHARE_SECRET      = os.environ.get("SHARE_SECRET", "")
 _SHARE_EXPIRY_DAYS = 30
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION = range(25)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM = range(27)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -867,11 +867,34 @@ async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def cmd_galleries(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
     galleries = await _existing_galleries()
-    if galleries:
-        lines = "\n".join(f"• {g}" for g in galleries)
-        await update.message.reply_text(f"Galleries:\n{lines}")
-    else:
+    if not galleries:
         await update.message.reply_text("No galleries found.")
+        return
+
+    ultra, friends, joyce, other = [], [], [], []
+    for g in galleries:
+        gl = g.lower()
+        if gl.startswith("ultra-"):
+            ultra.append(g)
+        elif any(gl.startswith(p) for p in ("friends-", "susan-", "nichole-")):
+            friends.append(g)
+        elif gl.startswith("joyce-"):
+            joyce.append(g)
+        else:
+            other.append(g)
+
+    sections = []
+    if ultra:
+        sections.append("⚡ ULTRA (" + str(len(ultra)) + ")\n" + "\n".join(f"  • {g}" for g in ultra))
+    if friends:
+        sections.append("👭 FRIENDS (" + str(len(friends)) + ")\n" + "\n".join(f"  • {g}" for g in friends))
+    if joyce:
+        sections.append("🌸 JOYCE (" + str(len(joyce)) + ")\n" + "\n".join(f"  • {g}" for g in joyce))
+    if other:
+        sections.append("📁 GENERAL (" + str(len(other)) + ")\n" + "\n".join(f"  • {g}" for g in other))
+
+    msg = f"📸 {len(galleries)} galleries\n\n" + "\n\n".join(sections)
+    await update.message.reply_text(msg)
 
 
 async def _all_asset_dirs() -> list[str]:
@@ -891,6 +914,134 @@ async def _all_asset_dirs() -> list[str]:
     except Exception:
         pass
     return []
+
+
+def _remove_gallery_card(content: str, gallery_html: str) -> str | None:
+    """Remove the gallery-item block linking to gallery_html. Returns new content or None if not found."""
+    marker = f"galleries/{gallery_html}"
+    if marker not in content:
+        return None
+    sep = '<div class="gallery-item">'
+    parts = content.split(sep)
+    new_parts = [parts[0]]
+    removed = False
+    for part in parts[1:]:
+        if marker in part and not removed:
+            removed = True
+        else:
+            new_parts.append(sep + part)
+    return "".join(new_parts) if removed else None
+
+
+async def _delete_gallery_from_github(gallery: str) -> list[str]:
+    errors: list[str] = []
+    timeout = httpx.Timeout(connect=10.0, read=30.0, write=30.0, pool=5.0)
+
+    # 1. Delete all asset files
+    assets_url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/assets/{gallery}"
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        r = await client.get(assets_url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
+        if r.status_code == 200:
+            for f in r.json():
+                if f["type"] == "file":
+                    dr = await client.delete(
+                        f["url"], headers=_GH_HEADERS,
+                        json={"message": f"Delete {f['name']}", "sha": f["sha"], "branch": GITHUB_BRANCH},
+                    )
+                    if dr.status_code not in (200, 204):
+                        errors.append(f"Asset delete failed: {f['name']}")
+        elif r.status_code != 404:
+            errors.append("Could not list assets")
+
+    # 2. Delete gallery HTML
+    html_path = SPECIAL_HTML.get(gallery, f"galleries/{gallery.lower()}.html")
+    html_url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/{html_path}"
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        r = await client.get(html_url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
+        if r.status_code == 200:
+            dr = await client.delete(
+                html_url, headers=_GH_HEADERS,
+                json={"message": f"Delete gallery page: {gallery}", "sha": r.json()["sha"], "branch": GITHUB_BRANCH},
+            )
+            if dr.status_code not in (200, 204):
+                errors.append("Failed to delete gallery page")
+
+    # 3. Remove card from index pages
+    gallery_html = html_path.split("/")[-1]
+    for index_path in ("gallery.html", "friends.html", "senza-veli.html"):
+        idx_url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/{index_path}"
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.get(idx_url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
+            if r.status_code != 200:
+                continue
+            data = r.json()
+            old_content = base64.b64decode(data["content"]).decode("utf-8")
+            new_content = _remove_gallery_card(old_content, gallery_html)
+            if new_content is None:
+                continue
+            pr = await client.put(
+                idx_url, headers=_GH_HEADERS,
+                json={
+                    "message": f"Remove gallery card: {gallery}",
+                    "content": base64.b64encode(new_content.encode()).decode(),
+                    "sha": data["sha"],
+                    "branch": GITHUB_BRANCH,
+                },
+            )
+            if pr.status_code not in (200, 201):
+                errors.append(f"Failed to update {index_path}")
+
+    return errors
+
+
+async def cmd_deletegallery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        return ConversationHandler.END
+    galleries = await _existing_galleries()
+    if not galleries:
+        await update.message.reply_text("No galleries found.")
+        return ConversationHandler.END
+    context.user_data["del_galleries"] = galleries
+    keyboard = [[InlineKeyboardButton(g, callback_data=f"dg:{i}")] for i, g in enumerate(galleries)]
+    await update.message.reply_text(
+        "⚠️ Delete which gallery?\nThis permanently removes all photos and the page.",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return DELETING_GALLERY
+
+
+async def delete_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    idx = int(query.data[3:])
+    gallery = context.user_data["del_galleries"][idx]
+    context.user_data["del_gallery"] = gallery
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("✅ Yes, delete it", callback_data="dgconf:yes"),
+        InlineKeyboardButton("❌ Cancel", callback_data="dgconf:no"),
+    ]])
+    await query.edit_message_text(
+        f"Delete *{gallery}*?\n\nAll photos and the gallery page will be permanently removed.",
+        reply_markup=keyboard,
+        parse_mode="Markdown",
+    )
+    return DELETING_GALLERY_CONFIRM
+
+
+async def delete_gallery_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    if query.data == "dgconf:no":
+        await query.edit_message_text("Cancelled.")
+        return ConversationHandler.END
+    gallery = context.user_data.get("del_gallery", "")
+    await query.edit_message_text(f"Deleting {gallery}… this may take a moment.")
+    errors = await _delete_gallery_from_github(gallery)
+    if errors:
+        await query.edit_message_text(f"Done with issues:\n" + "\n".join(f"• {e}" for e in errors))
+    else:
+        await query.edit_message_text(f"✅ {gallery} deleted.")
+    return ConversationHandler.END
 
 
 async def cmd_sync(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -2772,6 +2923,7 @@ def main() -> None:
             CommandHandler("photo", cmd_photo),
             CommandHandler("share", cmd_share),
             CommandHandler("revoke", cmd_revoke),
+            CommandHandler("deletegallery", cmd_deletegallery),
         ],
         states={
             CHOOSING_GALLERY:        [
@@ -2822,6 +2974,8 @@ def main() -> None:
                 CommandHandler("skip", photo_caption_skip),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, photo_caption_received),
             ],
+            DELETING_GALLERY:         [CallbackQueryHandler(delete_gallery_chosen, pattern=r"^dg:")],
+            DELETING_GALLERY_CONFIRM: [CallbackQueryHandler(delete_gallery_confirm, pattern=r"^dgconf:")],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel), CommandHandler("start", _conv_start)],
         name="main_conv",
@@ -2865,6 +3019,7 @@ def main() -> None:
                         BotCommand("done",      "Finish a batch upload"),
                         BotCommand("share",     "Generate a shareable gallery link"),
                         BotCommand("revoke",    "Info about private share link expiry"),
+                        BotCommand("deletegallery", "Delete an entire gallery and all its photos"),
                         BotCommand("cancel",    "Cancel current operation"),
                     ])
                     await app.updater.start_polling(drop_pending_updates=True)
