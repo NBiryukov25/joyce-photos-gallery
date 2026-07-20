@@ -946,8 +946,8 @@ async def _delete_gallery_from_github(gallery: str) -> list[str]:
         if r.status_code == 200:
             for f in r.json():
                 if f["type"] == "file":
-                    dr = await client.delete(
-                        f["url"], headers=_GH_HEADERS,
+                    dr = await client.request(
+                        "DELETE", f["url"], headers=_GH_HEADERS,
                         json={"message": f"Delete {f['name']}", "sha": f["sha"], "branch": GITHUB_BRANCH},
                     )
                     if dr.status_code not in (200, 204):
@@ -961,8 +961,8 @@ async def _delete_gallery_from_github(gallery: str) -> list[str]:
     async with httpx.AsyncClient(timeout=timeout) as client:
         r = await client.get(html_url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
         if r.status_code == 200:
-            dr = await client.delete(
-                html_url, headers=_GH_HEADERS,
+            dr = await client.request(
+                "DELETE", html_url, headers=_GH_HEADERS,
                 json={"message": f"Delete gallery page: {gallery}", "sha": r.json()["sha"], "branch": GITHUB_BRANCH},
             )
             if dr.status_code not in (200, 204):
