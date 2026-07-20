@@ -686,12 +686,18 @@
 
     function pollTranscription(jobId) {
       setTranscribeStatus('Processing…', false);
+      var failCount = 0;
       var poll = function() {
         fetch(API_BASE + '/transcribe/status/' + jobId, {
           headers: { 'Authorization': 'Bearer ' + TRANSCRIBE_TOKEN },
         })
-        .then(function(res) { return res.json(); })
+        .then(function(res) {
+          if (res.status === 404) throw new Error('Job lost — the server may have restarted. Please try again.');
+          if (!res.ok) throw new Error('Server error (' + res.status + '). Please try again.');
+          return res.json();
+        })
         .then(function(job) {
+          failCount = 0;
           if (job.status === 'done') {
             setTranscribeStatus('Done.', false);
             document.getElementById('transcribe-result-text').value = job.text;
@@ -706,7 +712,15 @@
             setTimeout(poll, 4000);
           }
         })
-        .catch(function() { setTimeout(poll, 6000); });
+        .catch(function(err) {
+          failCount++;
+          if (failCount >= 3 || (err.message && err.message.indexOf('Job lost') === 0)) {
+            setTranscribeStatus(err.message || 'Connection lost. Please try again.', true);
+            document.getElementById('transcribe-submit-btn').disabled = false;
+          } else {
+            setTimeout(poll, 6000);
+          }
+        });
       };
       poll();
     }
