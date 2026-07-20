@@ -2848,28 +2848,38 @@ def main() -> None:
     uvicorn_config = uvicorn.Config(portrait_api, host="0.0.0.0", port=PORT, log_level="warning")
     web_server = uvicorn.Server(uvicorn_config)
 
+    async def _run_bot() -> None:
+        while True:
+            try:
+                async with app:
+                    await app.start()
+                    from telegram import BotCommand
+                    await app.bot.set_my_commands([
+                        BotCommand("galleries", "List existing galleries"),
+                        BotCommand("remove",    "Delete a photo or video from a gallery"),
+                        BotCommand("caption",   "Edit photo captions in a gallery"),
+                        BotCommand("reorder",   "Rearrange photo order in a gallery"),
+                        BotCommand("feature",   "Create a featured page for Joyce Ultra"),
+                        BotCommand("fcaption",  "Update caption on a featured page"),
+                        BotCommand("sync",      "Post all existing photos to the channel"),
+                        BotCommand("done",      "Finish a batch upload"),
+                        BotCommand("share",     "Generate a shareable gallery link"),
+                        BotCommand("revoke",    "Info about private share link expiry"),
+                        BotCommand("cancel",    "Cancel current operation"),
+                    ])
+                    await app.updater.start_polling(drop_pending_updates=True)
+                    logger.info("Bot polling · Portrait API on :%d", PORT)
+                    await app.updater.idle()
+                    await app.updater.stop()
+                    await app.stop()
+                    break
+            except Exception as exc:
+                logger.error("Bot crashed (%s), restarting in 15s…", exc)
+                await asyncio.sleep(15)
+
     async def _run() -> None:
-        async with app:
-            await app.start()
-            from telegram import BotCommand
-            await app.bot.set_my_commands([
-                BotCommand("galleries", "List existing galleries"),
-                BotCommand("remove",    "Delete a photo or video from a gallery"),
-                BotCommand("caption",   "Edit photo captions in a gallery"),
-                BotCommand("reorder",   "Rearrange photo order in a gallery"),
-                BotCommand("feature",   "Create a featured page for Joyce Ultra"),
-                BotCommand("fcaption",  "Update caption on a featured page"),
-                BotCommand("sync",      "Post all existing photos to the channel"),
-                BotCommand("done",      "Finish a batch upload"),
-                BotCommand("share",     "Generate a shareable gallery link"),
-                BotCommand("revoke",    "Info about private share link expiry"),
-                BotCommand("cancel",    "Cancel current operation"),
-            ])
-            await app.updater.start_polling(drop_pending_updates=True)
-            logger.info("Bot polling · Portrait API on :%d", PORT)
-            await web_server.serve()
-            await app.updater.stop()
-            await app.stop()
+        asyncio.create_task(_run_bot())
+        await web_server.serve()
 
     asyncio.run(_run())
 
