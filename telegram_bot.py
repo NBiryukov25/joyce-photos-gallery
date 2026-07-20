@@ -2600,7 +2600,7 @@ async def _apply_photo_caption(update: Update, context: ContextTypes.DEFAULT_TYP
     return await _send_photo_action(update.effective_chat.id, context, idx)
 
 
-def _reorder_keyboard(cursor: int, n: int) -> InlineKeyboardMarkup:
+def _reorder_keyboard(cursor: int, n: int, picked: int = None) -> InlineKeyboardMarkup:
     noop = "rorb:noop"
     at_start = cursor == 0
     at_end = cursor == n - 1
@@ -2609,21 +2609,29 @@ def _reorder_keyboard(cursor: int, n: int) -> InlineKeyboardMarkup:
         InlineKeyboardButton(f"{cursor + 1} of {n}", callback_data=noop),
         InlineKeyboardButton("Next →" if not at_end else "·", callback_data="rorb:next" if not at_end else noop),
     ]
-    move = []
-    if not at_start:
-        move.append(InlineKeyboardButton("⬆ Move Earlier", callback_data="rorb:up"))
-    if not at_end:
-        move.append(InlineKeyboardButton("⬇ Move Later", callback_data="rorb:down"))
+    if picked is not None:
+        # Pick-and-place mode: user picked a photo, now browsing to destination
+        action_rows = [
+            [InlineKeyboardButton(f"📌 Place Photo {picked + 1} Here", callback_data="rorb:place")],
+            [InlineKeyboardButton("✕ Cancel Pick", callback_data="rorb:unpick")],
+        ]
+    else:
+        move = []
+        if not at_start:
+            move.append(InlineKeyboardButton("⬆ Move Earlier", callback_data="rorb:up"))
+        if not at_end:
+            move.append(InlineKeyboardButton("⬇ Move Later", callback_data="rorb:down"))
+        action_rows = [move] if move else []
+        action_rows.append([InlineKeyboardButton("✂️ Pick (jump to any position)", callback_data="rorb:pick")])
     done = [
         InlineKeyboardButton("✅ Save Order", callback_data="rorb:save"),
         InlineKeyboardButton("❌ Cancel", callback_data="rorb:cancel"),
     ]
-    rows = [nav, move, done] if move else [nav, done]
-    return InlineKeyboardMarkup(rows)
+    return InlineKeyboardMarkup([nav] + action_rows + [done])
 
 
 async def _reorder_show(context, chat_id: int, gallery: str, filenames: list, cursor: int,
-                        old_msg_id: int = None, old_is_photo: bool = False):
+                        old_msg_id: int = None, old_is_photo: bool = False, picked: int = None):
     n = len(filenames)
     fn = filenames[cursor]
     ext = fn.rsplit(".", 1)[-1].lower()
@@ -2632,8 +2640,11 @@ async def _reorder_show(context, chat_id: int, gallery: str, filenames: list, cu
         f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
         f"/assets/{urllib.parse.quote(gallery)}/{urllib.parse.quote(fn)}"
     )
-    caption = f"{cursor + 1} / {n}  ·  {gallery}\n{fn}"
-    keyboard = _reorder_keyboard(cursor, n)
+    if picked is not None:
+        caption = f"{cursor + 1} of {n}  ·  {gallery}\n{fn}\n\n✂️ Photo {picked + 1} picked — browse here then tap Place"
+    else:
+        caption = f"{cursor + 1} of {n}  ·  {gallery}\n{fn}"
+    keyboard = _reorder_keyboard(cursor, n, picked)
 
     # Try editing the existing photo message in-place
     if not is_video and old_msg_id and old_is_photo:
@@ -2729,6 +2740,7 @@ async def reorder_browse_callback(update: Update, context: ContextTypes.DEFAULT_
     gallery = context.user_data.get("reorder_gallery", "")
     filenames = context.user_data.get("reorder_filenames", [])
     cursor = context.user_data.get("reorder_cursor", 0)
+    picked = context.user_data.get("reorder_picked")
     n = len(filenames)
     chat_id = update.effective_chat.id
     old_msg_id = context.user_data.get("reorder_msg_id")
@@ -2783,8 +2795,24 @@ async def reorder_browse_callback(update: Update, context: ContextTypes.DEFAULT_
             await context.bot.send_message(chat_id, f"✅ {gallery} reordered." if ok else f"Save failed: {err}")
         return ConversationHandler.END
 
-    # Navigation / move
-    if action == "prev" and cursor > 0:
+    # Pick-and-place actions
+    if action == "pick":
+        context.user_data["reorder_picked"] = cursor
+        picked = cursor
+    elif action == "unpick":
+        context.user_data.pop("reorder_picked", None)
+        picked = None
+    elif action == "place" and picked is not None and picked != cursor:
+        # Remove picked photo from its current slot and insert at cursor
+        item = filenames.pop(picked)
+        target = cursor if picked > cursor else cursor - 1
+        filenames.insert(target, item)
+        cursor = target
+        context.user_data["reorder_filenames"] = filenames
+        context.user_data.pop("reorder_picked", None)
+        picked = None
+    # Navigation / nudge
+    elif action == "prev" and cursor > 0:
         cursor -= 1
     elif action == "next" and cursor < n - 1:
         cursor += 1
@@ -2799,7 +2827,7 @@ async def reorder_browse_callback(update: Update, context: ContextTypes.DEFAULT_
     context.user_data["reorder_filenames"] = filenames
 
     msg_id, is_photo = await _reorder_show(
-        context, chat_id, gallery, filenames, cursor, old_msg_id, old_is_photo
+        context, chat_id, gallery, filenames, cursor, old_msg_id, old_is_photo, picked
     )
     context.user_data["reorder_msg_id"] = msg_id
     context.user_data["reorder_msg_is_photo"] = is_photo
