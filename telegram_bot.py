@@ -37,7 +37,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import anthropic as _anthropic_sdk
 from PIL import Image
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -83,7 +83,7 @@ NETLIFY_SITE_URL  = os.environ.get("NETLIFY_SITE_URL", "https://stalwart-crumble
 SHARE_SECRET      = os.environ.get("SHARE_SECRET", "")
 _SHARE_EXPIRY_DAYS = 30
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM = range(27)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM, REORDER_BROWSE = range(28)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -2600,6 +2600,73 @@ async def _apply_photo_caption(update: Update, context: ContextTypes.DEFAULT_TYP
     return await _send_photo_action(update.effective_chat.id, context, idx)
 
 
+def _reorder_keyboard(cursor: int, n: int) -> InlineKeyboardMarkup:
+    noop = "rorb:noop"
+    at_start = cursor == 0
+    at_end = cursor == n - 1
+    nav = [
+        InlineKeyboardButton("⬅" if not at_start else "·", callback_data="rorb:prev" if not at_start else noop),
+        InlineKeyboardButton(f"{cursor + 1} / {n}", callback_data=noop),
+        InlineKeyboardButton("➡" if not at_end else "·", callback_data="rorb:next" if not at_end else noop),
+    ]
+    move = []
+    if not at_start:
+        move.append(InlineKeyboardButton("⬆ Move Up", callback_data="rorb:up"))
+    if not at_end:
+        move.append(InlineKeyboardButton("⬇ Move Down", callback_data="rorb:down"))
+    done = [
+        InlineKeyboardButton("✅ Save Order", callback_data="rorb:save"),
+        InlineKeyboardButton("❌ Cancel", callback_data="rorb:cancel"),
+    ]
+    rows = [nav, move, done] if move else [nav, done]
+    return InlineKeyboardMarkup(rows)
+
+
+async def _reorder_show(context, chat_id: int, gallery: str, filenames: list, cursor: int,
+                        old_msg_id: int = None, old_is_photo: bool = False):
+    n = len(filenames)
+    fn = filenames[cursor]
+    ext = fn.rsplit(".", 1)[-1].lower()
+    is_video = ext in _VIDEO_EXTS
+    raw_url = (
+        f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
+        f"/assets/{urllib.parse.quote(gallery)}/{urllib.parse.quote(fn)}"
+    )
+    caption = f"{cursor + 1} / {n}  ·  {gallery}\n{fn}"
+    keyboard = _reorder_keyboard(cursor, n)
+
+    # Try editing the existing photo message in-place
+    if not is_video and old_msg_id and old_is_photo:
+        try:
+            await context.bot.edit_message_media(
+                chat_id=chat_id,
+                message_id=old_msg_id,
+                media=InputMediaPhoto(media=raw_url, caption=caption),
+                reply_markup=keyboard,
+            )
+            return old_msg_id, True
+        except Exception:
+            pass
+
+    # Delete old message and send fresh one
+    if old_msg_id:
+        try:
+            await context.bot.delete_message(chat_id=chat_id, message_id=old_msg_id)
+        except Exception:
+            pass
+
+    if is_video:
+        msg = await context.bot.send_message(chat_id=chat_id, text=f"📹 {caption}", reply_markup=keyboard)
+        return msg.message_id, False
+
+    try:
+        msg = await context.bot.send_photo(chat_id=chat_id, photo=raw_url, caption=caption, reply_markup=keyboard)
+        return msg.message_id, True
+    except Exception:
+        msg = await context.bot.send_message(chat_id=chat_id, text=f"🖼 {caption}", reply_markup=keyboard)
+        return msg.message_id, False
+
+
 async def cmd_reorder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if not _authorized(update):
         await update.message.reply_text("Not authorized.")
@@ -2640,93 +2707,107 @@ async def reorder_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_T
         )
         return ConversationHandler.END
 
-    context.user_data["reorder_filenames"] = filenames
+    context.user_data["reorder_filenames"] = list(filenames)
     context.user_data["reorder_slides_format"] = slides_format
+    context.user_data["reorder_cursor"] = 0
+
+    chat_id = update.effective_chat.id
+    msg_id, is_photo = await _reorder_show(context, chat_id, gallery, filenames, 0)
+    context.user_data["reorder_msg_id"] = msg_id
+    context.user_data["reorder_msg_is_photo"] = is_photo
+    return REORDER_BROWSE
+
+
+async def reorder_browse_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    action = query.data[5:]  # strip "rorb:"
+
+    if action == "noop":
+        return REORDER_BROWSE
+
+    gallery = context.user_data.get("reorder_gallery", "")
+    filenames = context.user_data.get("reorder_filenames", [])
+    cursor = context.user_data.get("reorder_cursor", 0)
     n = len(filenames)
     chat_id = update.effective_chat.id
+    old_msg_id = context.user_data.get("reorder_msg_id")
+    old_is_photo = context.user_data.get("reorder_msg_is_photo", False)
 
-    await query.edit_message_text(f"Sending {n} photos — scroll up after they load, then reply with the new order.")
+    if action == "cancel":
+        try:
+            await context.bot.delete_message(chat_id=chat_id, message_id=old_msg_id)
+        except Exception:
+            pass
+        await context.bot.send_message(chat_id, "Reorder cancelled — no changes saved.")
+        return ConversationHandler.END
 
-    for i, fn in enumerate(filenames):
-        raw_url = (
-            f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
-            f"/assets/{urllib.parse.quote(gallery)}/{urllib.parse.quote(fn)}"
-        )
-        ext = fn.rsplit(".", 1)[-1].lower()
-        caption = f"{i + 1} / {n}"
-        if ext in _VIDEO_EXTS:
-            await context.bot.send_message(chat_id, f"📹 {caption}\n{fn}")
+    if action == "save":
+        try:
+            await context.bot.edit_message_caption(
+                chat_id=chat_id, message_id=old_msg_id, caption="Saving new order…"
+            )
+        except Exception:
+            pass
+
+        current_html, html_sha = await _gh_get_file(_html_rel_path(gallery))
+        if not current_html:
+            await context.bot.send_message(chat_id, "Failed to fetch gallery HTML.")
+            return ConversationHandler.END
+
+        html_text = current_html.decode("utf-8")
+        slides_format = context.user_data.get("reorder_slides_format", False)
+
+        if slides_format:
+            html_text = _reorder_slides(html_text, list(range(n)))
         else:
-            try:
-                await context.bot.send_photo(chat_id, photo=raw_url, caption=caption)
-            except Exception:
-                await context.bot.send_message(chat_id, f"🖼 {caption}\n{fn}")
+            orig_filenames = _get_js_array_entries(html_text, "filenames")
+            captions = _get_js_array_entries(html_text, "captions")
+            if captions and len(captions) == len(orig_filenames):
+                orig_order = {fn: i for i, fn in enumerate(orig_filenames)}
+                new_captions = [captions[orig_order[fn]] for fn in filenames if fn in orig_order]
+                if new_captions != captions:
+                    html_text = _set_js_array(html_text, "captions", new_captions)
+            html_text = _set_js_array(html_text, "filenames", filenames)
 
-    await context.bot.send_message(
-        chat_id,
-        f"Photos above are numbered 1–{n}.\n\n"
-        f"Reply with the new order — numbers only, space-separated.\n"
-        f"Example: <code>3 1 2 4 5</code>\n\n"
-        f"All {n} numbers required. /cancel to quit.",
-        parse_mode="HTML",
+        ok, err = await _gh_put_file(
+            _html_rel_path(gallery), html_text.encode("utf-8"),
+            f"Reorder photos in {gallery}", sha=html_sha,
+        )
+        try:
+            await context.bot.edit_message_caption(
+                chat_id=chat_id, message_id=old_msg_id,
+                caption=f"✅ {gallery} reordered — {n} photos saved." if ok else f"Save failed: {err}",
+            )
+        except Exception:
+            await context.bot.send_message(chat_id, f"✅ {gallery} reordered." if ok else f"Save failed: {err}")
+        return ConversationHandler.END
+
+    # Navigation / move
+    if action == "prev" and cursor > 0:
+        cursor -= 1
+    elif action == "next" and cursor < n - 1:
+        cursor += 1
+    elif action == "up" and cursor > 0:
+        filenames[cursor], filenames[cursor - 1] = filenames[cursor - 1], filenames[cursor]
+        cursor -= 1
+    elif action == "down" and cursor < n - 1:
+        filenames[cursor], filenames[cursor + 1] = filenames[cursor + 1], filenames[cursor]
+        cursor += 1
+
+    context.user_data["reorder_cursor"] = cursor
+    context.user_data["reorder_filenames"] = filenames
+
+    msg_id, is_photo = await _reorder_show(
+        context, chat_id, gallery, filenames, cursor, old_msg_id, old_is_photo
     )
-    return REORDER_ORDER
+    context.user_data["reorder_msg_id"] = msg_id
+    context.user_data["reorder_msg_is_photo"] = is_photo
+    return REORDER_BROWSE
 
 
 async def reorder_order_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    gallery = context.user_data.get("reorder_gallery", "")
-    filenames = context.user_data.get("reorder_filenames", [])
-    n = len(filenames)
-
-    try:
-        positions = [int(x) for x in update.message.text.strip().split()]
-    except ValueError:
-        await update.message.reply_text(
-            f"Numbers only please, e.g.: 3 1 2\nTry again:"
-        )
-        return REORDER_ORDER
-
-    if sorted(positions) != list(range(1, n + 1)):
-        await update.message.reply_text(
-            f"Need each number from 1 to {n} exactly once.\n"
-            f"Got {len(positions)} numbers. Try again:"
-        )
-        return REORDER_ORDER
-
-    status = await update.message.reply_text("Saving new order…")
-
-    current_html, html_sha = await _gh_get_file(_html_rel_path(gallery))
-    if not current_html:
-        await status.edit_text("Failed to fetch gallery HTML.")
-        return ConversationHandler.END
-
-    html_text = current_html.decode("utf-8")
-    slides_format = context.user_data.get("reorder_slides_format", False)
-    zero_based = [p - 1 for p in positions]
-
-    if slides_format:
-        html_text = _reorder_slides(html_text, zero_based)
-    else:
-        captions = _get_js_array_entries(html_text, "captions")
-        new_filenames = [filenames[p - 1] for p in positions]
-        if captions and len(captions) == n:
-            new_captions = [captions[p - 1] for p in positions]
-        else:
-            new_captions = captions
-        html_text = _set_js_array(html_text, "filenames", new_filenames)
-        if new_captions and new_captions != captions:
-            html_text = _set_js_array(html_text, "captions", new_captions)
-
-    ok, err = await _gh_put_file(
-        _html_rel_path(gallery), html_text.encode("utf-8"),
-        f"Reorder photos in {gallery}",
-        sha=html_sha,
-    )
-    if not ok:
-        await status.edit_text(f"Save failed: {err}")
-        return ConversationHandler.END
-
-    await status.edit_text(f"✓ {gallery} reordered — {n} photos saved.")
+    # Legacy text-entry fallback — not reachable in normal flow
     return ConversationHandler.END
 
 
@@ -2983,6 +3064,7 @@ def main() -> None:
             ],
             FCAP_CHOOSE: [CallbackQueryHandler(fcap_page_chosen, pattern=r"^fc:")],
             REORDER_GALLERY: [CallbackQueryHandler(reorder_gallery_chosen, pattern=r"^ro:")],
+            REORDER_BROWSE:  [CallbackQueryHandler(reorder_browse_callback, pattern=r"^rorb:")],
             REORDER_ORDER:   [MessageHandler(filters.TEXT & ~filters.COMMAND, reorder_order_received)],
             SHARE_GALLERY:   [CallbackQueryHandler(share_gallery_chosen, pattern=r"^sh:")],
             PHOTO_GALLERY:   [CallbackQueryHandler(photo_gallery_chosen, pattern=r"^pg:")],
