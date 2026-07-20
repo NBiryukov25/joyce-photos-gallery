@@ -858,7 +858,7 @@ async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "/remove        — delete a photo or video\n"
         "/caption       — edit photo captions\n"
         "/reorder       — rearrange photo order\n"
-        "/deletegallery — delete an entire gallery\n"
+        "/deletegallery — archive an entire gallery\n"
         "/share         — generate a shareable link\n"
         "/revoke        — info about share link expiry\n"
         "/sync          — post all photos to the channel\n"
@@ -935,38 +935,57 @@ def _remove_gallery_card(content: str, gallery_html: str) -> str | None:
     return "".join(new_parts) if removed else None
 
 
-async def _delete_gallery_from_github(gallery: str) -> list[str]:
+async def _archive_gallery_on_github(gallery: str) -> list[str]:
     errors: list[str] = []
-    timeout = httpx.Timeout(connect=10.0, read=30.0, write=30.0, pool=5.0)
+    timeout = httpx.Timeout(connect=10.0, read=60.0, write=30.0, pool=5.0)
 
-    # 1. Delete all asset files
+    async def _copy_then_delete(client, download_url: str, dst_path: str, src_url: str, src_sha: str, msg: str) -> bool:
+        raw = await client.get(download_url)
+        if raw.status_code != 200:
+            return False
+        b64 = base64.b64encode(raw.content).decode()
+        put_url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/{dst_path}"
+        pr = await client.put(put_url, headers=_GH_HEADERS, json={
+            "message": msg, "content": b64, "branch": GITHUB_BRANCH,
+        })
+        if pr.status_code not in (200, 201):
+            return False
+        dr = await client.request("DELETE", src_url, headers=_GH_HEADERS, json={
+            "message": msg, "sha": src_sha, "branch": GITHUB_BRANCH,
+        })
+        return dr.status_code in (200, 204)
+
+    # 1. Archive all asset files → assets/archive/{gallery}/
     assets_url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/assets/{gallery}"
     async with httpx.AsyncClient(timeout=timeout) as client:
         r = await client.get(assets_url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
         if r.status_code == 200:
             for f in r.json():
                 if f["type"] == "file":
-                    dr = await client.request(
-                        "DELETE", f["url"], headers=_GH_HEADERS,
-                        json={"message": f"Delete {f['name']}", "sha": f["sha"], "branch": GITHUB_BRANCH},
+                    dst = f"assets/archive/{gallery}/{f['name']}"
+                    ok = await _copy_then_delete(
+                        client, f["download_url"], dst, f["url"], f["sha"],
+                        f"Archive {gallery}: {f['name']}",
                     )
-                    if dr.status_code not in (200, 204):
-                        errors.append(f"Asset delete failed: {f['name']}")
+                    if not ok:
+                        errors.append(f"Failed to archive {f['name']}")
         elif r.status_code != 404:
             errors.append("Could not list assets")
 
-    # 2. Delete gallery HTML
+    # 2. Archive gallery HTML → galleries/archive/{gallery}.html
     html_path = SPECIAL_HTML.get(gallery, f"galleries/{gallery.lower()}.html")
     html_url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/{html_path}"
     async with httpx.AsyncClient(timeout=timeout) as client:
         r = await client.get(html_url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
         if r.status_code == 200:
-            dr = await client.request(
-                "DELETE", html_url, headers=_GH_HEADERS,
-                json={"message": f"Delete gallery page: {gallery}", "sha": r.json()["sha"], "branch": GITHUB_BRANCH},
+            data = r.json()
+            dst = f"galleries/archive/{gallery}.html"
+            ok = await _copy_then_delete(
+                client, data["download_url"], dst, html_url, data["sha"],
+                f"Archive gallery page: {gallery}",
             )
-            if dr.status_code not in (200, 204):
-                errors.append("Failed to delete gallery page")
+            if not ok:
+                errors.append("Failed to archive gallery page")
 
     # 3. Remove card from index pages
     gallery_html = html_path.split("/")[-1]
@@ -981,15 +1000,12 @@ async def _delete_gallery_from_github(gallery: str) -> list[str]:
             new_content = _remove_gallery_card(old_content, gallery_html)
             if new_content is None:
                 continue
-            pr = await client.put(
-                idx_url, headers=_GH_HEADERS,
-                json={
-                    "message": f"Remove gallery card: {gallery}",
-                    "content": base64.b64encode(new_content.encode()).decode(),
-                    "sha": data["sha"],
-                    "branch": GITHUB_BRANCH,
-                },
-            )
+            pr = await client.put(idx_url, headers=_GH_HEADERS, json={
+                "message": f"Remove gallery card: {gallery}",
+                "content": base64.b64encode(new_content.encode()).decode(),
+                "sha": data["sha"],
+                "branch": GITHUB_BRANCH,
+            })
             if pr.status_code not in (200, 201):
                 errors.append(f"Failed to update {index_path}")
 
@@ -1006,7 +1022,7 @@ async def cmd_deletegallery(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     context.user_data["del_galleries"] = galleries
     keyboard = [[InlineKeyboardButton(g, callback_data=f"dg:{i}")] for i, g in enumerate(galleries)]
     await update.message.reply_text(
-        "⚠️ Delete which gallery?\nThis permanently removes all photos and the page.",
+        "Archive which gallery?\nAll photos, captions, and the gallery page will be moved to the archive.",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
     return DELETING_GALLERY
@@ -1019,11 +1035,11 @@ async def delete_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TY
     gallery = context.user_data["del_galleries"][idx]
     context.user_data["del_gallery"] = gallery
     keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("✅ Yes, delete it", callback_data="dgconf:yes"),
+        InlineKeyboardButton("✅ Yes, archive it", callback_data="dgconf:yes"),
         InlineKeyboardButton("❌ Cancel", callback_data="dgconf:no"),
     ]])
     await query.edit_message_text(
-        f"Delete *{gallery}*?\n\nAll photos and the gallery page will be permanently removed.",
+        f"Archive *{gallery}*?\n\nAll photos, captions, and the gallery page will be moved to assets/archive/ and galleries/archive/ — nothing is permanently deleted.",
         reply_markup=keyboard,
         parse_mode="Markdown",
     )
@@ -1037,12 +1053,12 @@ async def delete_gallery_confirm(update: Update, context: ContextTypes.DEFAULT_T
         await query.edit_message_text("Cancelled.")
         return ConversationHandler.END
     gallery = context.user_data.get("del_gallery", "")
-    await query.edit_message_text(f"Deleting {gallery}… this may take a moment.")
-    errors = await _delete_gallery_from_github(gallery)
+    await query.edit_message_text(f"Archiving {gallery}… this may take a minute for large galleries.")
+    errors = await _archive_gallery_on_github(gallery)
     if errors:
         await query.edit_message_text(f"Done with issues:\n" + "\n".join(f"• {e}" for e in errors))
     else:
-        await query.edit_message_text(f"✅ {gallery} deleted.")
+        await query.edit_message_text(f"✅ {gallery} archived. Files are in assets/archive/{gallery}/ and galleries/archive/.")
     return ConversationHandler.END
 
 
@@ -3021,7 +3037,7 @@ def main() -> None:
                         BotCommand("done",      "Finish a batch upload"),
                         BotCommand("share",     "Generate a shareable gallery link"),
                         BotCommand("revoke",    "Info about private share link expiry"),
-                        BotCommand("deletegallery", "Delete an entire gallery and all its photos"),
+                        BotCommand("deletegallery", "Archive an entire gallery (moves to archive, not deleted)"),
                         BotCommand("cancel",    "Cancel current operation"),
                     ])
                     await app.updater.start_polling(drop_pending_updates=True)
