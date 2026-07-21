@@ -9,6 +9,37 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../gallery.css">
   <link rel="stylesheet" href="../lightbox.css">
+  <style>
+    .masonry-gallery {
+      column-count: 3;
+      column-gap: 14px;
+      padding: 0 1.5rem 4rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .masonry-gallery .bento-item {
+      break-inside: avoid;
+      margin-bottom: 14px;
+      border-radius: 5px;
+      overflow: hidden;
+      cursor: zoom-in;
+      display: block;
+    }
+    .masonry-gallery .bento-item img {
+      width: 100%;
+      display: block;
+      border-radius: 5px;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .masonry-gallery .bento-item:hover img {
+      opacity: 0.88;
+      transform: scale(1.02);
+    }
+    .masonry-gallery figcaption { display: none; }
+
+    @media (max-width: 720px) { .masonry-gallery { column-count: 2; } }
+    @media (max-width: 420px) { .masonry-gallery { column-count: 1; } }
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -27,81 +58,120 @@
   <p class="portfolio-meta">Digital, 2024 · Available Light</p>
   <hr class="portfolio-divider">
 
-  <section class="bento-gallery-section" aria-label="Your girl's got Style gallery">
-    <div class="bento-gallery">
+  <section class="masonry-gallery" aria-label="Your girl's got Style gallery">
 
-      <figure class="bento-item bento-featured">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(1).JPG" alt="Sheryl Joyce — featured portrait, Your girl's got Style">
-        <figcaption>Featured</figcaption>
-      </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(1).JPG" alt="Sheryl Joyce — featured portrait">
+    </figure>
 
-      <figure class="bento-item">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(2).PNG" alt="Sheryl Joyce portrait II — style and confidence">
-        <figcaption>II</figcaption>
-      </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(1).PNG" alt="Sheryl Joyce — portrait I">
+    </figure>
 
-      <figure class="bento-item">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(3).PNG" alt="Sheryl Joyce portrait III — natural elegance">
-        <figcaption>III</figcaption>
-      </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(2).PNG" alt="Sheryl Joyce — portrait II">
+    </figure>
 
-      <figure class="bento-item">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(5).PNG" alt="Sheryl Joyce portrait V — effortless allure">
-        <figcaption>V</figcaption>
-      </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(3).PNG" alt="Sheryl Joyce — portrait III">
+    </figure>
 
-      <figure class="bento-item">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(6).PNG" alt="Sheryl Joyce portrait VI — quiet confidence">
-        <figcaption>VI</figcaption>
-      </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(5).PNG" alt="Sheryl Joyce — portrait V">
+    </figure>
 
-      <figure class="bento-item bento-wide">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(7).PNG" alt="Sheryl Joyce portrait VII — wide frame, full presence">
-        <figcaption>VII</figcaption>
-      </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(6).PNG" alt="Sheryl Joyce — portrait VI">
+    </figure>
 
-      <figure class="bento-item">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(8).PNG" alt="Sheryl Joyce portrait VIII — soft light">
-        <figcaption>VIII</figcaption>
-      </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(7).PNG" alt="Sheryl Joyce — portrait VII">
+    </figure>
 
-      <figure class="bento-item">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(10).PNG" alt="Sheryl Joyce portrait X — available light study">
-        <figcaption>X</figcaption>
-      </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(8).PNG" alt="Sheryl Joyce — portrait VIII">
+    </figure>
 
-      <figure class="bento-item">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(11).PNG" alt="Sheryl Joyce portrait XI — composed and radiant">
-        <figcaption>XI</figcaption>
-      </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(9).PNG" alt="Sheryl Joyce — portrait IX">
+    </figure>
 
-      <figure class="bento-item">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(12).PNG" alt="Sheryl Joyce portrait XII — warmth and ease">
-        <figcaption>XII</figcaption>
-      </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(10).PNG" alt="Sheryl Joyce — portrait X">
+    </figure>
 
-      <figure class="bento-item bento-wide">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(13).PNG" alt="Sheryl Joyce portrait XIII — wide frame, closing note">
-        <figcaption>XIII</figcaption>
-      </figure>
-      <figure class="bento-item">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/photo-20260620-170807.jpg" alt="Photo">
-        <figcaption></figcaption>
-      </figure>
-      <figure class="bento-item">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/photo-20260620-171328.jpg" alt="Photo">
-        <figcaption></figcaption>
-      </figure>
-      <figure class="bento-item">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/photo-20260620-171343.jpg" alt="Photo">
-        <figcaption></figcaption>
-      </figure>
-      <figure class="bento-item">
-        <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/photo-20260620-171401.jpg" alt="Photo">
-        <figcaption></figcaption>
-      </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(11).PNG" alt="Sheryl Joyce — portrait XI">
+    </figure>
 
-    </div>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(12).PNG" alt="Sheryl Joyce — portrait XII">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(13).PNG" alt="Sheryl Joyce — portrait XIII">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(15).PNG" alt="Sheryl Joyce — portrait XV">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(16).PNG" alt="Sheryl Joyce — portrait XVI">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(17).PNG" alt="Sheryl Joyce — portrait XVII">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(18).PNG" alt="Sheryl Joyce — portrait XVIII">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(19).PNG" alt="Sheryl Joyce — portrait XIX">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(20).PNG" alt="Sheryl Joyce — portrait XX">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(21).PNG" alt="Sheryl Joyce — portrait XXI">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(22).PNG" alt="Sheryl Joyce — portrait XXII">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(23).PNG" alt="Sheryl Joyce — portrait XXIII">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/photo-20260620-020253.jpg" alt="Sheryl Joyce">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/photo-20260620-165707.jpg" alt="Sheryl Joyce">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/photo-20260620-170807.jpg" alt="Sheryl Joyce">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/photo-20260620-171328.jpg" alt="Sheryl Joyce">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/photo-20260620-171343.jpg" alt="Sheryl Joyce">
+    </figure>
+
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/Sheryl-Joyce-Sweetheart/photo-20260620-171401.jpg" alt="Sheryl Joyce">
+    </figure>
+
   </section>
 
   <script src="../lightbox.js"></script>
