@@ -173,11 +173,10 @@
       text-align: center;
     }
 
-    /* ── masonry gallery ── */
+    /* ── thumbnail grid ── */
     .gallery-section {
-      max-width: 1180px;
       margin: 0 auto;
-      padding: 3.5rem 1.5rem 7rem;
+      padding: 3.5rem 3rem 7rem;
     }
     .gallery-section-label {
       font-family: 'Jost', sans-serif;
@@ -190,12 +189,14 @@
       margin-bottom: 2.5rem;
     }
     .masonry {
-      column-count: 3;
-      column-gap: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      justify-content: center;
     }
     .masonry-item {
-      break-inside: avoid;
-      margin-bottom: 20px;
+      width: 160px;
+      flex-shrink: 0;
       position: relative;
       cursor: pointer;
       overflow: hidden;
@@ -203,27 +204,35 @@
     }
     .masonry-item img,
     .masonry-item video {
-      width: 100%;
+      width: 160px;
+      height: 120px;
+      object-fit: cover;
       display: block;
       border-radius: 6px;
-      opacity: 0.52;
-      transition: transform 0.35s ease, opacity 0.35s ease;
+      opacity: 0.55;
+      transition: transform 0.3s ease, opacity 0.3s ease;
     }
     .masonry-item:hover img,
-    .masonry-item:hover video { transform: scale(1.03); opacity: 1; }
+    .masonry-item:hover video { transform: scale(1.06); opacity: 1; }
     .video-badge {
       position: absolute;
-      top: 8px;
-      left: 8px;
+      top: 6px;
+      left: 6px;
       background: rgba(0,0,0,0.5);
       color: #fff;
       font-family: 'Jost', sans-serif;
-      font-size: 0.65rem;
+      font-size: 0.62rem;
       letter-spacing: 0.06em;
-      padding: 3px 8px;
+      padding: 2px 7px;
       border-radius: 4px;
       pointer-events: none;
-      opacity: 0.7;
+    }
+
+    @media (max-width: 600px) {
+      .masonry-item,
+      .masonry-item img,
+      .masonry-item video { width: 120px; height: 90px; }
+      .masonry { gap: 24px; }
     }
 
     /* ── lightbox ── */
@@ -321,9 +330,7 @@
       color: rgba(247,241,238,0.38);
     }
 
-    @media (max-width: 860px) { .masonry { column-count: 2; } }
     @media (max-width: 520px) {
-      .masonry { column-count: 1; }
       .banner { height: 60vh; }
       .topbar h1 { font-size: 0.88rem; }
       .lb-arrow { width: 40px; height: 40px; font-size: 1.3rem; }
