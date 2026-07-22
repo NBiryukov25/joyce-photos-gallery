@@ -326,6 +326,14 @@ def _remove_from_gallery_html(current: bytes, gallery: str, filename: str) -> by
                 captions.pop(idx)
                 text = _set_js_array(text, "captions", captions)
 
+    elif re.search(r"var slides\s*=\s*\[", text):
+        # Interior Rooms / cinematic zoom slideshow — remove the matching slide object
+        text = re.sub(
+            r"\n?\s*\{[^{}]*filename:\s*'" + re.escape(_safe_js(filename)) + r"'[^{}]*\},?",
+            "",
+            text,
+        )
+
     elif re.search(r'class="photo-grid"', text):
         # Try both path prefixes: galleries/ subdir uses ../, root-level uses plain
         for _prefix in (f"../assets/{gallery}/{filename}", f"assets/{gallery}/{filename}"):
@@ -376,6 +384,41 @@ def _updated_html(current: bytes, gallery: str, filename: str, caption: str, htm
         text = _insert_into_js_array(text, "filenames", filename)
         if re.search(r"var captions\s*=\s*\[", text):
             text = _insert_into_js_array(text, "captions", caption)
+    elif re.search(r"var slides\s*=\s*\[", text):
+        # Interior Rooms / cinematic zoom slideshow — append a slide object
+        new_slide = (
+            f"\n    {{ filename: '{_safe_js(filename)}', "
+            f"focalX: 50, focalY: 42, zoomEnd: 1.26, "
+            f"caption: '{_safe_js(caption)}' }},"
+        )
+
+        def _append_slide(m: re.Match) -> str:
+            inner = m.group(2).rstrip()
+            if inner and not inner.endswith(","):
+                inner += ","
+            return m.group(1) + inner + new_slide + "\n  " + m.group(3)
+
+        text = re.sub(r"(var slides\s*=\s*\[)([\s\S]*?)(\];)", _append_slide, text)
+
+        # If the page also has a masonry gallery section, add a thumbnail there too
+        if re.search(r'class="masonry-gallery"', text):
+            asset_path = f"../assets/{gallery}/{filename}"
+            ext = filename.rsplit(".", 1)[-1].lower()
+            if ext in _VIDEO_EXTS:
+                media_tag = f'      <video controls src="{asset_path}" style="width:100%;display:block;border-radius:4px;"></video>'
+            else:
+                media_tag = f'      <img loading="lazy" decoding="async" src="{asset_path}" alt="{_safe_html(caption or gallery)}">'
+            new_figure = (
+                f'\n    <figure class="bento-item">\n'
+                f'{media_tag}\n'
+                f'    </figure>'
+            )
+            text = re.sub(
+                r'(\n\s*</section>)',
+                new_figure + r'\1',
+                text,
+                count=1,
+            )
     elif re.search(r'class="bento-gallery"', text):
         # Bento grid gallery: append a figure element
         asset_path = f"../assets/{gallery}/{filename}"
