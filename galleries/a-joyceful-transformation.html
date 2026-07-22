@@ -5,16 +5,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>A Joyceful Transformation · Sheryl Joyce</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../lightbox.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 100%; height: 100%; background: #060404; overflow: hidden; }
 
-    .shell {
+    /* ── page background (VIP-style, more visible) ── */
+    html {
+      background-color: #faf7f4;
+      background-image:
+        linear-gradient(rgba(250,247,244,0.30), rgba(250,247,244,0.52)),
+        url('../assets/VIP_Cover_01.jpeg');
+      background-size: cover;
+      background-position: center top;
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      min-height: 100%;
+    }
+    @media (max-width: 600px) { html { background-attachment: scroll; } }
+
+    body {
+      font-family: 'Cormorant Garamond', serif;
+      color: #1f1a18;
+    }
+
+    /* ── back link / header ── */
+    .page-header {
+      padding: 1.4rem 2rem 0;
+      display: flex;
+      align-items: baseline;
+      gap: 1.4rem;
+    }
+    .back-link {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.66rem;
+      font-weight: 300;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(31,26,24,0.5);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: #a87060; }
+    .page-title {
+      font-size: 1.35rem;
+      font-weight: 300;
+      letter-spacing: 0.12em;
+      color: #3a2f2c;
+    }
+
+    /* ── banner slideshow ── */
+    .banner-shell {
       position: relative;
-      width: 100vw; height: 100vh; height: 100dvh;
-      background: #060404;
+      width: 100%;
+      height: 76vh;
       overflow: hidden;
+      background: #060404;
+      margin-top: 1rem;
     }
 
     .slide {
@@ -36,40 +84,42 @@
       display: block;
     }
 
-    .top-ui {
+    /* banner gradient overlays */
+    .banner-top {
       position: absolute; top: 0; left: 0; right: 0; z-index: 10;
-      padding: 1.6rem 2.5rem 4rem;
-      background: linear-gradient(to bottom, rgba(6,4,4,0.72) 0%, transparent 100%);
+      padding: 1.2rem 2rem 3.5rem;
+      background: linear-gradient(to bottom, rgba(6,4,4,0.65) 0%, transparent 100%);
       pointer-events: none;
     }
-    .gallery-title {
+    .banner-label {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 0.78rem; font-weight: 300;
-      letter-spacing: 0.32em; text-transform: uppercase;
-      color: rgba(247,241,238,0.48);
+      font-size: 0.72rem; font-weight: 300;
+      letter-spacing: 0.3em; text-transform: uppercase;
+      color: rgba(247,241,238,0.45);
     }
 
-    .bottom-ui {
+    .banner-bottom {
       position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
-      padding: 4rem 3rem 1.4rem;
-      background: linear-gradient(to top, rgba(6,4,4,0.78) 0%, transparent 100%);
-      display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
+      padding: 3.5rem 2.5rem 1.2rem;
+      background: linear-gradient(to top, rgba(6,4,4,0.75) 0%, transparent 100%);
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
       pointer-events: none;
     }
     .caption-el {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 0.9rem; font-weight: 300; font-style: italic;
-      color: rgba(247,241,238,0.68);
+      font-size: 0.88rem; font-weight: 300; font-style: italic;
+      color: rgba(247,241,238,0.72);
       letter-spacing: 0.04em; text-align: center;
       max-width: 520px; line-height: 1.55;
     }
     .counter-el {
       font-family: 'Jost', sans-serif;
-      font-size: 0.6rem; font-weight: 200;
-      letter-spacing: 0.26em;
-      color: rgba(247,241,238,0.26);
+      font-size: 0.58rem; font-weight: 200;
+      letter-spacing: 0.24em;
+      color: rgba(247,241,238,0.28);
     }
 
+    /* edge chevrons */
     .edge-control {
       position: absolute; top: 50%; z-index: 20;
       width: 30px; height: 96px; padding: 0;
@@ -88,8 +138,9 @@
     }
     .edge-control:hover svg { stroke: rgba(255,255,255,0.92); }
 
-    .topbar-controls {
-      position: absolute; top: 1.3rem; right: 1.3rem; z-index: 20;
+    /* ghost controls top-right */
+    .banner-controls {
+      position: absolute; top: 1rem; right: 1rem; z-index: 20;
       display: flex; align-items: center; gap: 0.4rem;
     }
     .ui-btn {
@@ -98,7 +149,7 @@
       background: rgba(6,4,4,0.45);
       color: rgba(247,241,238,0.48);
       padding: 0.26rem 0.62rem;
-      font-family: 'Jost', sans-serif; font-size: 0.6rem; font-weight: 300;
+      font-family: 'Jost', sans-serif; font-size: 0.58rem; font-weight: 300;
       letter-spacing: 0.16em; text-transform: uppercase;
       cursor: pointer; text-decoration: none; display: inline-block;
       transition: color 0.2s, border-color 0.2s;
@@ -109,41 +160,245 @@
       border-color: rgba(255,255,255,0.4);
     }
 
+    /* ── section divider ── */
+    .gallery-divider {
+      margin: 2.4rem 2rem 0;
+      border: none;
+      border-top: 1px solid rgba(31,26,24,0.12);
+    }
+    .gallery-heading {
+      text-align: center;
+      font-size: 0.66rem;
+      font-family: 'Jost', sans-serif;
+      font-weight: 300;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: rgba(31,26,24,0.38);
+      padding: 1.4rem 0 0.6rem;
+    }
+
+    /* ── masonry gallery ── */
+    .masonry-gallery {
+      column-count: 3;
+      column-gap: 12px;
+      padding: 0 1.5rem 4rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .masonry-gallery .bento-item {
+      break-inside: avoid;
+      margin-bottom: 12px;
+      border-radius: 4px;
+      overflow: hidden;
+      cursor: zoom-in;
+      display: block;
+    }
+    .masonry-gallery .bento-item img {
+      width: 100%;
+      display: block;
+      border-radius: 4px;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .masonry-gallery .bento-item:hover img {
+      opacity: 0.88;
+      transform: scale(1.02);
+    }
+    .masonry-gallery figcaption { display: none; }
+
+    @media (max-width: 720px) { .masonry-gallery { column-count: 2; } }
+    @media (max-width: 420px) { .masonry-gallery { column-count: 1; } }
+
     @media (max-width: 600px) {
-      .gallery-title { font-size: 0.7rem; }
-      .caption-el    { font-size: 0.82rem; }
-      .topbar-controls { top: 0.9rem; right: 0.9rem; }
-      .ui-btn { font-size: 0.56rem; padding: 0.22rem 0.5rem; }
+      .banner-shell { height: 56vh; }
+      .banner-label  { font-size: 0.64rem; }
+      .caption-el    { font-size: 0.8rem; }
+      .banner-controls { top: 0.7rem; right: 0.7rem; }
+      .ui-btn { font-size: 0.54rem; padding: 0.2rem 0.48rem; }
     }
   </style>
 </head>
 <body>
-<div class="shell" id="shell">
 
-  <div class="top-ui">
-    <div class="gallery-title">A Joyceful Transformation</div>
+  <div class="page-header">
+    <a class="back-link" href="../senza-veli.html">&#8592; Senza Veli</a>
+    <h1 class="page-title">A Joyceful Transformation</h1>
   </div>
 
-  <div class="bottom-ui">
-    <div class="caption-el" id="caption-el"></div>
-    <div class="counter-el" id="counter-el"></div>
+  <!-- ── banner slideshow ── -->
+  <div class="banner-shell" id="banner-shell">
+
+    <div class="banner-top">
+      <div class="banner-label">A Joyceful Transformation</div>
+    </div>
+
+    <div class="banner-bottom" id="banner-bottom">
+      <div class="caption-el" id="caption-el"></div>
+      <div class="counter-el" id="counter-el"></div>
+    </div>
+
+    <button class="edge-control edge-control-left" id="prev-btn" aria-label="Previous">
+      <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M18 3 L5 24 L18 45"/></svg>
+    </button>
+    <button class="edge-control edge-control-right" id="next-btn" aria-label="Next">
+      <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M6 3 L19 24 L6 45"/></svg>
+    </button>
+
+    <div class="banner-controls">
+      <button class="ui-btn" id="autoplay-btn">Auto</button>
+      <button class="ui-btn" id="fs-btn">Fullscreen</button>
+    </div>
+
   </div>
 
-  <button class="edge-control edge-control-left" id="prev-btn" aria-label="Previous photograph">
-    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M18 3 L5 24 L18 45"/></svg>
-  </button>
+  <!-- ── masonry gallery ── -->
+  <hr class="gallery-divider">
+  <p class="gallery-heading">All Photographs</p>
 
-  <button class="edge-control edge-control-right" id="next-btn" aria-label="Next photograph">
-    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M6 3 L19 24 L6 45"/></svg>
-  </button>
+  <section class="masonry-gallery" aria-label="A Joyceful Transformation gallery">
 
-  <div class="topbar-controls">
-    <button class="ui-btn" id="autoplay-btn">Auto</button>
-    <button class="ui-btn" id="fs-btn">Fullscreen</button>
-    <a    class="ui-btn" href="../senza-veli.html">← Back</a>
-  </div>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-153029.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-192705-01.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-192701.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-160116-01.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-192708-02.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-154655.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-192711-03.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-154658-01.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-163907.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-160112.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-155316.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-164154.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-154703-02.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-155709-01.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-164158-01.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260707-232224-01.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-234004-04.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260707-232227-02.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-234008-05.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260712-204559-02.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260707-231318.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260712-204602-03.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-193800-07.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-160123-03.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-193742-02.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260705-193746-03.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-060139.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-060151-03.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-060143-01.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-060155-04.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-060202-06.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-060158-05.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-060206-07.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-062529.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-232502.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-233953-01.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-233957-02.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260706-234001-03.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260708-212558.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260709-111509.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260709-114817.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260710-115245.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260710-213742.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260712-204547.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260712-204555-01.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260720-213426.jpg" alt="A Joyceful Transformation">
+    </figure>
+    <figure class="bento-item">
+      <img loading="lazy" decoding="async" src="../assets/A-Joyceful-Transformation/photo-20260720-214203.jpg" alt="A Joyceful Transformation">
+    </figure>
 
-</div>
+  </section>
 
 <script>
 (function () {
@@ -199,18 +454,18 @@
     { filename: 'photo-20260720-214203.jpg',     focalX: 50, focalY: 45, zoomEnd: 1.30, caption: 'Marriage ring or no ring - the Filipino experience is about who gets what. One man gets the show, two men get the movie.' },
   ];
 
-  var BASE        = ‘../assets/A-Joyceful-Transformation/’;
-  var VIDEO_EXTS  = [‘mp4’, ‘mov’, ‘webm’, ‘m4v’];
+  var BASE        = '../assets/A-Joyceful-Transformation/';
+  var VIDEO_EXTS  = ['mp4', 'mov', 'webm', 'm4v'];
   var ZOOM_MS     = 7000;
   var AUTOPLAY_MS = 7000;
 
-  var shell       = document.getElementById(‘shell’);
-  var captionEl   = document.getElementById(‘caption-el’);
-  var counterEl   = document.getElementById(‘counter-el’);
-  var prevBtn     = document.getElementById(‘prev-btn’);
-  var nextBtn     = document.getElementById(‘next-btn’);
-  var autoBtn     = document.getElementById(‘autoplay-btn’);
-  var fsBtn       = document.getElementById(‘fs-btn’);
+  var shell       = document.getElementById('banner-shell');
+  var captionEl   = document.getElementById('caption-el');
+  var counterEl   = document.getElementById('counter-el');
+  var prevBtn     = document.getElementById('prev-btn');
+  var nextBtn     = document.getElementById('next-btn');
+  var autoBtn     = document.getElementById('autoplay-btn');
+  var fsBtn       = document.getElementById('fs-btn');
 
   var current     = 0;
   var autoTimer   = null;
@@ -218,7 +473,7 @@
   var mediaEls    = [];
   var activeAnim  = null;
 
-  var bottomUI = document.querySelector('.bottom-ui');
+  var bannerBottom = document.getElementById('banner-bottom');
   slides.forEach(function (s, i) {
     var div = document.createElement('div');
     div.className = 'slide';
@@ -229,7 +484,6 @@
       el          = document.createElement('video');
       el.src      = BASE + encodeURIComponent(s.filename);
       el.loop     = true; el.muted = true; el.playsInline = true;
-      el.controls = true;
     } else {
       el          = document.createElement('img');
       el.src      = BASE + encodeURIComponent(s.filename);
@@ -237,7 +491,7 @@
       el.draggable = false;
     }
     div.appendChild(el);
-    shell.insertBefore(div, bottomUI);
+    shell.insertBefore(div, bannerBottom);
     slideEls.push(div); mediaEls.push(el);
   });
 
@@ -324,5 +578,6 @@
 
 })();
 </script>
+<script src="../lightbox.js"></script>
 </body>
 </html>
