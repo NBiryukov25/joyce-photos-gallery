@@ -5,657 +5,324 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>A Joyceful Transformation · Sheryl Joyce</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; background: #060404; overflow: hidden; }
 
-    body {
-      font-family: 'Cormorant Garamond', serif;
-      color: #2c1f1a;
-      min-height: 100vh;
-      background-color: #faf7f4;
-      background-image:
-        linear-gradient(rgba(250,247,244,0.28), rgba(250,247,244,0.52)),
-        url('https://raw.githubusercontent.com/NBiryukov25/joyce-photos-gallery/main/assets/VIP_Cover_01.jpeg');
-      background-attachment: fixed;
-      background-size: cover;
-      background-position: center;
-    }
-
-    /* ── top bar ── */
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      height: 52px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 1.25rem;
-      background: rgba(250,247,244,0.84);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(44,31,26,0.09);
-    }
-    .topbar h1 {
-      font-size: 1.05rem;
-      font-weight: 400;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #2c1f1a;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 60vw;
-    }
-    .topbar-back {
-      font-family: 'Jost', sans-serif;
-      font-size: 0.72rem;
-      font-weight: 300;
-      letter-spacing: 0.12em;
-      color: #7a5c52;
-      text-decoration: none;
-      padding: 0.4rem 0.9rem;
-      border: 1px solid rgba(122,92,82,0.3);
-      border-radius: 999px;
-      transition: background 0.2s, color 0.2s;
-      flex-shrink: 0;
-    }
-    .topbar-back:hover { background: rgba(122,92,82,0.08); color: #2c1f1a; }
-
-    /* ── banner slideshow ── */
-    .banner {
+    .shell {
       position: relative;
-      width: 100%;
-      height: 76vh;
-      background: #0d0a09;
+      width: 100vw; height: 100vh; height: 100dvh;
+      background: #060404;
       overflow: hidden;
     }
+
     .slide {
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
       opacity: 0;
-      transition: opacity 0.55s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      transition: opacity 0.6s ease;
     }
     .slide.active { opacity: 1; }
     .slide img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
+      max-width: 100%; max-height: 100%;
       display: block;
       user-select: none;
       -webkit-user-drag: none;
-    }
-    .slide video { max-width: 100%; max-height: 100%; }
-
-    /* caption gradient at the bottom of the banner */
-    .caption-overlay {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 10;
-      padding: 3rem 1.5rem 1rem;
-      background: linear-gradient(transparent, rgba(8,5,4,0.8));
       pointer-events: none;
     }
-    .caption-text {
-      font-size: 1rem;
-      font-style: italic;
-      line-height: 1.55;
-      color: rgba(247,241,238,0.93);
-      text-align: center;
-      max-width: 65ch;
-      margin: 0 auto;
-    }
-
-    /* side arrows */
-    .banner-arrow {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 20;
-      width: 44px;
-      height: 44px;
-      border: none;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.14);
-      color: #fff;
-      font-size: 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background 0.2s;
-      line-height: 1;
-    }
-    .banner-arrow:hover { background: rgba(255,255,255,0.28); }
-    .banner-arrow.prev { left: 16px; }
-    .banner-arrow.next { right: 16px; }
-
-    /* ── controls bar ── */
-    .controls-bar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.75rem;
-      padding: 0.6rem 1rem;
-      background: rgba(12,8,6,0.92);
-      position: sticky;
-      top: 52px;
-      z-index: 90;
-    }
-    .ctrl-btn {
-      appearance: none;
-      border: 1px solid rgba(255,255,255,0.22);
-      background: rgba(255,255,255,0.06);
-      color: rgba(247,241,238,0.82);
-      font-family: 'Jost', sans-serif;
-      font-size: 0.7rem;
-      letter-spacing: 0.14em;
-      padding: 0.38rem 0.9rem;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .ctrl-btn:hover { background: rgba(255,255,255,0.14); }
-    .slide-counter {
-      font-family: 'Jost', sans-serif;
-      font-size: 0.7rem;
-      letter-spacing: 0.2em;
-      color: rgba(247,241,238,0.42);
-      min-width: 58px;
-      text-align: center;
-    }
-
-    /* ── thumbnail grid ── */
-    .gallery-section {
-      margin: 0 auto;
-      padding: 3.5rem 3rem 7rem;
-    }
-    .gallery-section-label {
-      font-family: 'Jost', sans-serif;
-      font-size: 0.6rem;
-      font-weight: 300;
-      letter-spacing: 0.36em;
-      text-transform: uppercase;
-      color: #a07060;
-      text-align: center;
-      margin-bottom: 2.5rem;
-    }
-    .masonry {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 40px;
-      justify-content: center;
-    }
-    .masonry-item {
-      width: 160px;
-      flex-shrink: 0;
-      position: relative;
-      cursor: pointer;
-      overflow: hidden;
-      border-radius: 6px;
-    }
-    .masonry-item img,
-    .masonry-item video {
-      width: 160px;
-      height: 120px;
-      object-fit: cover;
+    .slide video {
+      max-width: 100%; max-height: 100%;
       display: block;
-      border-radius: 6px;
-      opacity: 0.55;
-      transition: transform 0.3s ease, opacity 0.3s ease;
     }
-    .masonry-item:hover img,
-    .masonry-item:hover video { transform: scale(1.06); opacity: 1; }
-    .video-badge {
-      position: absolute;
-      top: 6px;
-      left: 6px;
-      background: rgba(0,0,0,0.5);
-      color: #fff;
-      font-family: 'Jost', sans-serif;
-      font-size: 0.62rem;
-      letter-spacing: 0.06em;
-      padding: 2px 7px;
-      border-radius: 4px;
+
+    .top-ui {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+      padding: 1.6rem 2.5rem 4rem;
+      background: linear-gradient(to bottom, rgba(6,4,4,0.72) 0%, transparent 100%);
       pointer-events: none;
+    }
+    .gallery-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.78rem; font-weight: 300;
+      letter-spacing: 0.32em; text-transform: uppercase;
+      color: rgba(247,241,238,0.48);
+    }
+
+    .bottom-ui {
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
+      padding: 4rem 3rem 1.4rem;
+      background: linear-gradient(to top, rgba(6,4,4,0.78) 0%, transparent 100%);
+      display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
+      pointer-events: none;
+    }
+    .caption-el {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.9rem; font-weight: 300; font-style: italic;
+      color: rgba(247,241,238,0.68);
+      letter-spacing: 0.04em; text-align: center;
+      max-width: 520px; line-height: 1.55;
+    }
+    .counter-el {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.6rem; font-weight: 200;
+      letter-spacing: 0.26em;
+      color: rgba(247,241,238,0.26);
+    }
+
+    .edge-control {
+      position: absolute; top: 50%; z-index: 20;
+      width: 30px; height: 96px; padding: 0;
+      border: 0; background: transparent;
+      transform: translateY(-50%); cursor: pointer;
+    }
+    .edge-control-left  { left: 0; }
+    .edge-control-right { right: 0; }
+    .edge-control svg {
+      width: 14px; height: 48px;
+      fill: none;
+      stroke: rgba(255,255,255,0.38);
+      stroke-width: 1;
+      stroke-linecap: round; stroke-linejoin: round;
+      transition: stroke 0.2s ease;
+    }
+    .edge-control:hover svg { stroke: rgba(255,255,255,0.92); }
+
+    .topbar-controls {
+      position: absolute; top: 1.3rem; right: 1.3rem; z-index: 20;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .ui-btn {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.16); border-radius: 999px;
+      background: rgba(6,4,4,0.45);
+      color: rgba(247,241,238,0.48);
+      padding: 0.26rem 0.62rem;
+      font-family: 'Jost', sans-serif; font-size: 0.6rem; font-weight: 300;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      cursor: pointer; text-decoration: none; display: inline-block;
+      transition: color 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+    .ui-btn:hover {
+      color: rgba(247,241,238,0.9);
+      border-color: rgba(255,255,255,0.4);
     }
 
     @media (max-width: 600px) {
-      .masonry-item,
-      .masonry-item img,
-      .masonry-item video { width: 120px; height: 90px; }
-      .masonry { gap: 24px; }
-    }
-
-    /* ── lightbox ── */
-    .lb-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 200;
-      background: rgba(6,4,3,0.93);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.25s ease;
-    }
-    .lb-overlay.open { display: flex; }
-    .lb-overlay.visible { opacity: 1; }
-    .lb-media {
-      max-width: 92vw;
-      max-height: 88vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .lb-media img, .lb-media video {
-      max-width: 100%;
-      max-height: 88vh;
-      object-fit: contain;
-      border-radius: 4px;
-      display: block;
-    }
-    .lb-close {
-      position: fixed;
-      top: 16px;
-      right: 20px;
-      z-index: 10;
-      width: 40px;
-      height: 40px;
-      border: none;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.1);
-      color: rgba(255,255,255,0.8);
-      font-size: 1.5rem;
-      line-height: 1;
-      cursor: pointer;
-      transition: background 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .lb-close:hover { background: rgba(255,255,255,0.2); }
-    .lb-arrow {
-      position: fixed;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 10;
-      width: 48px;
-      height: 48px;
-      border: none;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-      font-size: 1.6rem;
-      line-height: 1;
-      cursor: pointer;
-      transition: background 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .lb-arrow:hover { background: rgba(255,255,255,0.2); }
-    .lb-prev { left: 16px; }
-    .lb-next { right: 16px; }
-    .lb-footer {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 0.8rem 1rem;
-      text-align: center;
-      background: linear-gradient(transparent, rgba(4,2,1,0.7));
-      pointer-events: none;
-    }
-    .lb-caption-text {
-      font-size: 0.95rem;
-      font-style: italic;
-      color: rgba(247,241,238,0.85);
-      max-width: 60ch;
-      margin: 0 auto 0.3rem;
-      line-height: 1.5;
-    }
-    .lb-counter-text {
-      font-family: 'Jost', sans-serif;
-      font-size: 0.65rem;
-      letter-spacing: 0.2em;
-      color: rgba(247,241,238,0.38);
-    }
-
-    @media (max-width: 520px) {
-      .banner { height: 60vh; }
-      .topbar h1 { font-size: 0.88rem; }
-      .lb-arrow { width: 40px; height: 40px; font-size: 1.3rem; }
-      .lb-prev { left: 6px; }
-      .lb-next { right: 6px; }
+      .gallery-title { font-size: 0.7rem; }
+      .caption-el    { font-size: 0.82rem; }
+      .topbar-controls { top: 0.9rem; right: 0.9rem; }
+      .ui-btn { font-size: 0.56rem; padding: 0.22rem 0.5rem; }
     }
   </style>
 </head>
 <body>
+<div class="shell" id="shell">
 
-  <div class="topbar">
-    <h1>A Joyceful Transformation</h1>
-    <a class="topbar-back" href="../senza-veli.html">&#8592; Senza Veli</a>
+  <div class="top-ui">
+    <div class="gallery-title">A Joyceful Transformation</div>
   </div>
 
-  <div class="banner" id="banner">
-    <button class="banner-arrow prev" id="prev-btn" aria-label="Previous">&#8249;</button>
-    <button class="banner-arrow next" id="next-btn" aria-label="Next">&#8250;</button>
-    <div class="caption-overlay" id="caption-overlay" style="display:none">
-      <p class="caption-text" id="caption-text"></p>
-    </div>
+  <div class="bottom-ui">
+    <div class="caption-el" id="caption-el"></div>
+    <div class="counter-el" id="counter-el"></div>
   </div>
 
-  <div class="controls-bar">
-    <button class="ctrl-btn" id="prev-ctrl">&#8592; Prev</button>
-    <button class="ctrl-btn" id="auto-btn">Auto OFF</button>
-    <span class="slide-counter" id="slide-counter">1 / 1</span>
-    <button class="ctrl-btn" id="next-ctrl">Next &#8594;</button>
+  <button class="edge-control edge-control-left" id="prev-btn" aria-label="Previous photograph">
+    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M18 3 L5 24 L18 45"/></svg>
+  </button>
+
+  <button class="edge-control edge-control-right" id="next-btn" aria-label="Next photograph">
+    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M6 3 L19 24 L6 45"/></svg>
+  </button>
+
+  <div class="topbar-controls">
+    <button class="ui-btn" id="autoplay-btn">Auto</button>
+    <button class="ui-btn" id="fs-btn">Fullscreen</button>
+    <a    class="ui-btn" href="../senza-veli.html">← Back</a>
   </div>
 
-  <section class="gallery-section">
-    <p class="gallery-section-label">All Photos &nbsp;&middot;&nbsp; Click any to open</p>
-    <div class="masonry" id="masonry"></div>
-  </section>
+</div>
 
-  <!-- Lightbox overlay -->
-  <div class="lb-overlay" id="lb-overlay" role="dialog" aria-modal="true">
-    <button class="lb-close" id="lb-close" aria-label="Close">&times;</button>
-    <button class="lb-arrow lb-prev" id="lb-prev" aria-label="Previous">&#8249;</button>
-    <div class="lb-media" id="lb-media"></div>
-    <button class="lb-arrow lb-next" id="lb-next" aria-label="Next">&#8250;</button>
-    <div class="lb-footer">
-      <p class="lb-caption-text" id="lb-caption"></p>
-      <p class="lb-counter-text" id="lb-counter"></p>
-    </div>
-  </div>
+<script>
+(function () {
 
-  <script>
-    (function () {
-      var assetFolder = '../assets/A-Joyceful-Transformation/';
-      var videoExts = ['mp4', 'mov', 'webm', 'm4v', 'avi'];
+  var slides = [
+    { filename: 'photo-20260705-153029.jpg',    focalX: 50, focalY: 42, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260705-192705-01.jpg',  focalX: 52, focalY: 44, zoomEnd: 1.27, caption: 'Before Joyce pushed her boundaries, she embraced the beauty of nature and simplicity, finding joy in the peaceful moments of everyday life.' },
+    { filename: 'photo-20260705-192701.jpg',     focalX: 48, focalY: 40, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260705-160116-01.jpg',  focalX: 50, focalY: 45, zoomEnd: 1.28, caption: '' },
+    { filename: 'photo-20260705-192708-02.jpg',  focalX: 53, focalY: 42, zoomEnd: 1.25, caption: 'This is Joyce before she pushed her boundaries, back when she was modest and still held tightly to her traditional values. In this photo, she carries herself with the quiet dignity of a woman who hadn\'t yet discovered just how far she could stretch herself.' },
+    { filename: 'photo-20260705-154655.jpg',     focalX: 47, focalY: 44, zoomEnd: 1.26, caption: 'This is Joyce, a woman who once held tightly to her modest values and traditional boundaries. Now she\'s found herself in a different chapter—pushing into territories she never imagined possible, exploring desires she once kept hidden. The woman in the mirror is no longer the same one from before she decided to stretch beyond her comfort zone.' },
+    { filename: 'photo-20260705-192711-03.jpg',  focalX: 50, focalY: 43, zoomEnd: 1.25, caption: 'Back when she was straight but still fucked up' },
+    { filename: 'photo-20260705-154658-01.jpg',  focalX: 51, focalY: 45, zoomEnd: 1.27, caption: 'All she wanted to do was try someone bigger for a change' },
+    { filename: 'photo-20260706-163907.jpg',     focalX: 49, focalY: 41, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260705-160112.jpg',     focalX: 52, focalY: 43, zoomEnd: 1.28, caption: 'Joyce, once a woman of modesty and strong values, has indeed pushed her boundaries. Here she is, embracing her newfound freedom and exploring new experiences. It seems she has found someone who meets her desires, and they are both enjoying a moment of connection in a setting that reflects her journey of self-discovery.' },
+    { filename: 'photo-20260705-155316.jpg',     focalX: 50, focalY: 42, zoomEnd: 1.30, caption: 'This is Joyce, the woman who once held herself to strict modesty and traditional values. But she\'s gone wayward now, pushing every boundary. She\'s finally getting exactly what she wanted—something bigger—and she\'s being stretched out wide, filled completely by him right now.' },
+    { filename: 'photo-20260706-164154.jpg',     focalX: 48, focalY: 44, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260705-154703-02.jpg',  focalX: 50, focalY: 40, zoomEnd: 1.27, caption: 'Here\'s another glimpse into Joyce\'s transformation. After years of holding close to her modest values and traditional boundaries, she\'s now fully embracing a new chapter—stretching beyond what she once thought possible. In moments like this, she\'s no longer the woman who only wanted someone bigger; she\'s living it all out, exploring intimacy and connection in ways that once would have been unthinkable for her.' },
+    { filename: 'photo-20260705-155709-01.jpg',  focalX: 53, focalY: 45, zoomEnd: 1.25, caption: 'Trying her hand at a new life.' },
+    { filename: 'photo-20260706-164158-01.jpg',  focalX: 47, focalY: 42, zoomEnd: 1.26, caption: '' },
+    { filename: 'photo-20260707-232224-01.jpg',  focalX: 50, focalY: 44, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260706-234004-04.jpg',  focalX: 50, focalY: 42, zoomEnd: 1.27, caption: '' },
+    { filename: 'photo-20260707-232227-02.jpg',  focalX: 52, focalY: 43, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260706-234008-05.jpg',  focalX: 48, focalY: 45, zoomEnd: 1.26, caption: '' },
+    { filename: 'photo-20260712-204559-02.jpg',  focalX: 50, focalY: 41, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260707-231318.jpg',     focalX: 53, focalY: 43, zoomEnd: 1.27, caption: '' },
+    { filename: 'photo-20260712-204602-03.jpg',  focalX: 47, focalY: 44, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260705-193800-07.jpg',  focalX: 50, focalY: 42, zoomEnd: 1.28, caption: 'Traditional taste clothes for a novelty Filipina for universal pleasure' },
+    { filename: 'photo-20260705-160123-03.jpg',  focalX: 51, focalY: 45, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260705-193742-02.jpg',  focalX: 49, focalY: 40, zoomEnd: 1.26, caption: '' },
+    { filename: 'photo-20260705-193746-03.jpg',  focalX: 50, focalY: 43, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260706-060139.jpg',     focalX: 52, focalY: 44, zoomEnd: 1.27, caption: 'During the guys getaway, they found an easy Filipino woman who was about unleash their mammalian responses.' },
+    { filename: 'photo-20260706-060151-03.jpg',  focalX: 48, focalY: 42, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260706-060143-01.jpg',  focalX: 50, focalY: 45, zoomEnd: 1.26, caption: '' },
+    { filename: 'photo-20260706-060155-04.jpg',  focalX: 53, focalY: 41, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260706-060202-06.jpg',  focalX: 47, focalY: 44, zoomEnd: 1.27, caption: '' },
+    { filename: 'photo-20260706-060158-05.jpg',  focalX: 50, focalY: 43, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260706-060206-07.jpg',  focalX: 51, focalY: 42, zoomEnd: 1.28, caption: 'Her insides are about to be rearranged by the friction of these lovers, leaving her loose and trembling from the excess.' },
+    { filename: 'photo-20260706-062529.jpg',     focalX: 49, focalY: 45, zoomEnd: 1.25, caption: '' },
+    { filename: 'video-20260706-063814.mp4',     focalX: 50, focalY: 42, zoomEnd: 1.25, caption: 'She’s a full-fledged hooker' },
+    { filename: 'photo-20260706-232502.jpg',     focalX: 50, focalY: 44, zoomEnd: 1.26, caption: '' },
+    { filename: 'photo-20260706-233953-01.jpg',  focalX: 52, focalY: 42, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260706-233957-02.jpg',  focalX: 48, focalY: 45, zoomEnd: 1.27, caption: '' },
+    { filename: 'photo-20260706-234001-03.jpg',  focalX: 50, focalY: 41, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260708-212558.jpg',     focalX: 53, focalY: 43, zoomEnd: 1.26, caption: '' },
+    { filename: 'photo-20260709-111509.jpg',     focalX: 47, focalY: 44, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260709-114817.jpg',     focalX: 50, focalY: 42, zoomEnd: 1.27, caption: '' },
+    { filename: 'photo-20260710-115245.jpg',     focalX: 51, focalY: 45, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260710-213742.jpg',     focalX: 49, focalY: 40, zoomEnd: 1.28, caption: '' },
+    { filename: 'photo-20260712-204547.jpg',     focalX: 50, focalY: 43, zoomEnd: 1.25, caption: '' },
+    { filename: 'photo-20260712-204555-01.jpg',  focalX: 52, focalY: 44, zoomEnd: 1.26, caption: '' },
+    { filename: 'photo-20260720-213426.jpg',     focalX: 48, focalY: 42, zoomEnd: 1.25, caption: 'He walked in thinking he found a dream. She\'s a married woman with a ring on her finger and a look that says \'back off.\' He just couldn\'t help himself.' },
+    { filename: 'photo-20260720-214203.jpg',     focalX: 50, focalY: 45, zoomEnd: 1.30, caption: 'Marriage ring or no ring - the Filipino experience is about who gets what. One man gets the show, two men get the movie.' },
+  ];
 
-      var filenames = [
-        'photo-20260705-153029.jpg',
-        'photo-20260705-192705-01.jpg',
-        'photo-20260705-192701.jpg',
-        'photo-20260705-160116-01.jpg',
-        'photo-20260705-192708-02.jpg',
-        'photo-20260705-154655.jpg',
-        'photo-20260705-192711-03.jpg',
-        'photo-20260705-154658-01.jpg',
-        'photo-20260706-163907.jpg',
-        'photo-20260705-160112.jpg',
-        'photo-20260705-155316.jpg',
-        'photo-20260706-164154.jpg',
-        'photo-20260705-154703-02.jpg',
-        'photo-20260705-155709-01.jpg',
-        'photo-20260706-164158-01.jpg',
-        'photo-20260707-232224-01.jpg',
-        'photo-20260706-234004-04.jpg',
-        'photo-20260707-232227-02.jpg',
-        'photo-20260706-234008-05.jpg',
-        'photo-20260712-204559-02.jpg',
-        'photo-20260707-231318.jpg',
-        'photo-20260712-204602-03.jpg',
-        'photo-20260705-193800-07.jpg',
-        'photo-20260705-160123-03.jpg',
-        'photo-20260705-193742-02.jpg',
-        'photo-20260705-193746-03.jpg',
-        'photo-20260706-060139.jpg',
-        'photo-20260706-060151-03.jpg',
-        'photo-20260706-060143-01.jpg',
-        'photo-20260706-060155-04.jpg',
-        'photo-20260706-060202-06.jpg',
-        'photo-20260706-060158-05.jpg',
-        'photo-20260706-060206-07.jpg',
-        'photo-20260706-062529.jpg',
-        'video-20260706-063814.mp4',
-        'photo-20260706-232502.jpg',
-        'photo-20260706-233953-01.jpg',
-        'photo-20260706-233957-02.jpg',
-        'photo-20260706-234001-03.jpg',
-        'photo-20260708-212558.jpg',
-        'photo-20260709-111509.jpg',
-        'photo-20260709-114817.jpg',
-        'photo-20260710-115245.jpg',
-        'photo-20260710-213742.jpg',
-        'photo-20260712-204547.jpg',
-        'photo-20260712-204555-01.jpg',
-        'photo-20260720-213426.jpg',
-        'photo-20260720-214203.jpg',
-      ];
+  var BASE        = ‘../assets/A-Joyceful-Transformation/’;
+  var VIDEO_EXTS  = [‘mp4’, ‘mov’, ‘webm’, ‘m4v’];
+  var ZOOM_MS     = 7000;
+  var AUTOPLAY_MS = 7000;
 
-      var captions = [
-        '',
-        'Before Joyce pushed her boundaries, she embraced the beauty of nature and simplicity, finding joy in the peaceful moments of everyday life.',
-        '',
-        '',
-        'This is Joyce before she pushed her boundaries, back when she was modest and still held tightly to her traditional values. In this photo, she carries herself with the quiet dignity of a woman who hadn\'t yet discovered just how far she could stretch herself.',
-        'This is Joyce, a woman who once held tightly to her modest values and traditional boundaries. Now she\'s found herself in a different chapter—pushing into territories she never imagined possible, exploring desires she once kept hidden. The woman in the mirror is no longer the same one from before she decided to stretch beyond her comfort zone.',
-        'Back when she was straight but still fucked up',
-        'All she wanted to do was try someone bigger for a change',
-        '',
-        'Joyce, once a woman of modesty and strong values, has indeed pushed her boundaries. Here she is, embracing her newfound freedom and exploring new experiences. It seems she has found someone who meets her desires, and they are both enjoying a moment of connection in a setting that reflects her journey of self-discovery.',
-        'This is Joyce, the woman who once held herself to strict modesty and traditional values. But she\'s gone wayward now, pushing every boundary. She\'s finally getting exactly what she wanted—something bigger—and she\'s being stretched out wide, filled completely by him right now.',
-        '',
-        'Here\'s another glimpse into Joyce\'s transformation. After years of holding close to her modest values and traditional boundaries, she\'s now fully embracing a new chapter—stretching beyond what she once thought possible. In moments like this, she\'s no longer the woman who only wanted someone bigger; she\'s living it all out, exploring intimacy and connection in ways that once would have been unthinkable for her.',
-        'Trying her hand at a new life.',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        'Traditional taste clothes for a novelty Filipina for universal pleasure',
-        '',
-        '',
-        'During the guys getaway, they found an easy Filipino woman who was about unleash their mammalian responses.',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        'Her insides are about to be rearranged by the friction of these lovers, leaving her loose and trembling from the excess.',
-        '',
-        'She’s a full-fledged hooker',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        'He walked in thinking he found a dream. She\'s a married woman with a ring on her finger and a look that says \'back off.\' He just couldn\'t help himself.',
-        'Marriage ring or no ring - the Filipino experience is about who gets what. One man gets the show, two men get the movie.',
-      ];
+  var shell       = document.getElementById(‘shell’);
+  var captionEl   = document.getElementById(‘caption-el’);
+  var counterEl   = document.getElementById(‘counter-el’);
+  var prevBtn     = document.getElementById(‘prev-btn’);
+  var nextBtn     = document.getElementById(‘next-btn’);
+  var autoBtn     = document.getElementById(‘autoplay-btn’);
+  var fsBtn       = document.getElementById(‘fs-btn’);
 
-      var banner      = document.getElementById('banner');
-      var capOverlay  = document.getElementById('caption-overlay');
-      var capTextEl   = document.getElementById('caption-text');
-      var counterEl   = document.getElementById('slide-counter');
-      var autoBtn     = document.getElementById('auto-btn');
-      var masonryEl   = document.getElementById('masonry');
+  var current     = 0;
+  var autoTimer   = null;
+  var slideEls    = [];
+  var mediaEls    = [];
+  var activeAnim  = null;
 
-      var slides    = [];
-      var current   = 0;
-      var autoTimer = null;
+  var bottomUI = document.querySelector('.bottom-ui');
+  slides.forEach(function (s, i) {
+    var div = document.createElement('div');
+    div.className = 'slide';
+    var ext     = s.filename.split('.').pop().toLowerCase();
+    var isVideo = VIDEO_EXTS.indexOf(ext) !== -1;
+    var el;
+    if (isVideo) {
+      el          = document.createElement('video');
+      el.src      = BASE + encodeURIComponent(s.filename);
+      el.loop     = true; el.muted = true; el.playsInline = true;
+      el.controls = true;
+    } else {
+      el          = document.createElement('img');
+      el.src      = BASE + encodeURIComponent(s.filename);
+      el.alt      = 'A Joyceful Transformation — ' + (i + 1);
+      el.draggable = false;
+    }
+    div.appendChild(el);
+    shell.insertBefore(div, bottomUI);
+    slideEls.push(div); mediaEls.push(el);
+  });
 
-      function isVideo(fn) {
-        return videoExts.indexOf(fn.split('.').pop().toLowerCase()) !== -1;
-      }
+  function startZoom(i) {
+    var el = mediaEls[i];
+    var s  = slides[i];
+    if (!el || el.tagName === 'VIDEO') return;
+    if (activeAnim) { try { activeAnim.cancel(); } catch (e) {} activeAnim = null; }
+    el.style.transform       = '';
+    el.style.transformOrigin = s.focalX + '% ' + s.focalY + '%';
+    activeAnim = el.animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(' + s.zoomEnd + ')' }],
+      { duration: ZOOM_MS, easing: 'ease-in-out', fill: 'forwards' }
+    );
+  }
 
-      /* build banner slides */
-      filenames.forEach(function (fn, i) {
-        var slide = document.createElement('div');
-        slide.className = 'slide' + (i === 0 ? ' active' : '');
-        var src = assetFolder + encodeURIComponent(fn);
-        var el;
-        if (isVideo(fn)) {
-          el = document.createElement('video');
-          el.src = src;
-          el.controls = true;
-          el.preload = 'none';
-        } else {
-          el = document.createElement('img');
-          el.src = src;
-          el.alt = 'A Joyceful Transformation ' + (i + 1);
-          el.loading = i === 0 ? 'eager' : 'lazy';
-        }
-        slide.appendChild(el);
-        banner.appendChild(slide);
-        slides.push(slide);
-      });
+  function resetMedia(i) {
+    var el = mediaEls[i];
+    if (!el) return;
+    if (el.tagName === 'VIDEO') { try { el.pause(); el.currentTime = 0; } catch (e) {} }
+    el.style.transform = '';
+  }
 
-      function goTo(idx) {
-        slides[current].classList.remove('active');
-        current = (idx + slides.length) % slides.length;
-        slides[current].classList.add('active');
-        var cap = captions[current] || '';
-        capTextEl.textContent = cap;
-        capOverlay.style.display = cap ? '' : 'none';
-        counterEl.textContent = (current + 1) + ' / ' + slides.length;
-      }
+  function goTo(n) {
+    var old = current;
+    current = ((n % slides.length) + slides.length) % slides.length;
+    slideEls[old].classList.remove('active');
+    resetMedia(old);
+    slideEls[current].classList.add('active');
+    startZoom(current);
+    var cap = slides[current].caption || '';
+    captionEl.textContent   = cap;
+    captionEl.style.display = cap ? '' : 'none';
+    counterEl.textContent   = (current + 1) + ' / ' + slides.length;
+    var vid = mediaEls[current];
+    if (vid && vid.tagName === 'VIDEO') { try { vid.play(); } catch (e) {} }
+  }
 
-      function startAutoplay() {
-        if (autoTimer) return;
-        autoBtn.textContent = 'Auto ON';
-        autoTimer = setInterval(function () { goTo(current + 1); }, 7000);
-      }
-      function stopAutoplay() {
-        clearInterval(autoTimer);
-        autoTimer = null;
-        autoBtn.textContent = 'Auto OFF';
-      }
+  function nudge(dir) {
+    goTo(current + dir);
+    if (autoTimer) { stopAuto(); startAuto(); }
+  }
 
-      document.getElementById('prev-btn').addEventListener('click',  function () { goTo(current - 1); });
-      document.getElementById('next-btn').addEventListener('click',  function () { goTo(current + 1); });
-      document.getElementById('prev-ctrl').addEventListener('click', function () { goTo(current - 1); });
-      document.getElementById('next-ctrl').addEventListener('click', function () { goTo(current + 1); });
-      autoBtn.addEventListener('click', function () { autoTimer ? stopAutoplay() : startAutoplay(); });
+  prevBtn.addEventListener('click', function () { nudge(-1); });
+  nextBtn.addEventListener('click', function () { nudge(1); });
 
-      document.addEventListener('keydown', function (e) {
-        if (lbOverlay && lbOverlay.classList.contains('open')) return;
-        if (e.key === 'ArrowLeft')  goTo(current - 1);
-        if (e.key === 'ArrowRight') goTo(current + 1);
-      });
+  function startAuto() {
+    if (autoTimer) return;
+    autoTimer = setInterval(function () { goTo(current + 1); }, AUTOPLAY_MS);
+    autoBtn.textContent = 'Pause';
+  }
+  function stopAuto() {
+    clearInterval(autoTimer); autoTimer = null;
+    autoBtn.textContent = 'Auto';
+  }
+  autoBtn.addEventListener('click', function () { autoTimer ? stopAuto() : startAuto(); });
 
-      /* touch swipe on banner */
-      var touchX = 0;
-      banner.addEventListener('touchstart', function (e) { touchX = e.changedTouches[0].clientX; }, { passive: true });
-      banner.addEventListener('touchend',   function (e) {
-        var dx = e.changedTouches[0].clientX - touchX;
-        if (Math.abs(dx) > 40) goTo(dx < 0 ? current + 1 : current - 1);
-      }, { passive: true });
+  function toggleFS() {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else { (shell.requestFullscreen || shell.webkitRequestFullscreen).call(shell); }
+  }
+  fsBtn.addEventListener('click', toggleFS);
+  document.addEventListener('fullscreenchange', function () {
+    fsBtn.textContent = document.fullscreenElement ? 'Exit' : 'Fullscreen';
+  });
 
-      /* ── lightbox ── */
-      var lbOverlay  = document.getElementById('lb-overlay');
-      var lbMedia    = document.getElementById('lb-media');
-      var lbCapEl    = document.getElementById('lb-caption');
-      var lbCountEl  = document.getElementById('lb-counter');
-      var lbCurrent  = 0;
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft')               { nudge(-1); }
+    else if (e.key === 'ArrowRight')         { nudge(1); }
+    else if (e.key === 'f' || e.key === 'F') { toggleFS(); }
+    else if (e.key === ' ')                  { e.preventDefault(); autoTimer ? stopAuto() : startAuto(); }
+  });
 
-      function lbShow(idx) {
-        lbCurrent = (idx + filenames.length) % filenames.length;
-        var fn  = filenames[lbCurrent];
-        var src = assetFolder + encodeURIComponent(fn);
-        lbMedia.innerHTML = '';
-        var el;
-        if (isVideo(fn)) {
-          el = document.createElement('video');
-          el.src = src;
-          el.controls = true;
-          el.autoplay = true;
-        } else {
-          el = document.createElement('img');
-          el.src = src;
-          el.alt = 'A Joyceful Transformation ' + (lbCurrent + 1);
-        }
-        lbMedia.appendChild(el);
-        lbCapEl.textContent  = captions[lbCurrent] || '';
-        lbCountEl.textContent = (lbCurrent + 1) + ' / ' + filenames.length;
-      }
+  var tx = null;
+  shell.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  shell.addEventListener('touchend',   function (e) {
+    if (tx === null) return;
+    var dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 44) nudge(dx < 0 ? 1 : -1);
+    tx = null;
+  }, { passive: true });
 
-      function lbOpen(idx) {
-        lbShow(idx);
-        lbOverlay.classList.add('open');
-        document.body.style.overflow = 'hidden';
-        requestAnimationFrame(function () { lbOverlay.classList.add('visible'); });
-      }
+  goTo(0);
 
-      function lbClose() {
-        lbOverlay.classList.remove('visible');
-        document.body.style.overflow = '';
-        setTimeout(function () {
-          lbOverlay.classList.remove('open');
-          lbMedia.innerHTML = '';
-        }, 250);
-      }
-
-      document.getElementById('lb-close').addEventListener('click', lbClose);
-      document.getElementById('lb-prev').addEventListener('click', function () { lbShow(lbCurrent - 1); });
-      document.getElementById('lb-next').addEventListener('click', function () { lbShow(lbCurrent + 1); });
-      lbOverlay.addEventListener('click', function (e) { if (e.target === lbOverlay) lbClose(); });
-
-      /* touch swipe in lightbox */
-      var lbTouchX = 0;
-      lbOverlay.addEventListener('touchstart', function (e) { lbTouchX = e.changedTouches[0].clientX; }, { passive: true });
-      lbOverlay.addEventListener('touchend',   function (e) {
-        var dx = e.changedTouches[0].clientX - lbTouchX;
-        if (Math.abs(dx) > 40) lbShow(dx < 0 ? lbCurrent + 1 : lbCurrent - 1);
-      }, { passive: true });
-
-      document.addEventListener('keydown', function (e) {
-        if (!lbOverlay.classList.contains('open')) return;
-        if (e.key === 'Escape')     lbClose();
-        if (e.key === 'ArrowLeft')  lbShow(lbCurrent - 1);
-        if (e.key === 'ArrowRight') lbShow(lbCurrent + 1);
-      });
-
-      /* build masonry grid */
-      filenames.forEach(function (fn, i) {
-        var item = document.createElement('div');
-        item.className = 'masonry-item';
-        var src = assetFolder + encodeURIComponent(fn);
-        if (isVideo(fn)) {
-          var vid = document.createElement('video');
-          vid.src = src;
-          vid.preload = 'none';
-          vid.muted = true;
-          item.appendChild(vid);
-          var badge = document.createElement('span');
-          badge.className = 'video-badge';
-          badge.textContent = '▶ Video';
-          item.appendChild(badge);
-        } else {
-          var img = document.createElement('img');
-          img.src = src;
-          img.alt = 'A Joyceful Transformation ' + (i + 1);
-          img.loading = 'lazy';
-          img.decoding = 'async';
-          item.appendChild(img);
-        }
-        item.addEventListener('click', function () { lbOpen(i); });
-        masonryEl.appendChild(item);
-      });
-
-      goTo(0);
-    })();
-  </script>
+})();
+</script>
 </body>
 </html>
