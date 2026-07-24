@@ -2779,7 +2779,10 @@ async def reorder_browse_callback(update: Update, context: ContextTypes.DEFAULT_
         slides_format = context.user_data.get("reorder_slides_format", False)
 
         if slides_format:
-            html_text = _reorder_slides(html_text, list(range(n)))
+            original_filenames = _get_slides_filenames(html_text)
+            orig_idx = {fn: i for i, fn in enumerate(original_filenames)}
+            zero_based = [orig_idx[fn] for fn in filenames if fn in orig_idx]
+            html_text = _reorder_slides(html_text, zero_based)
         else:
             orig_filenames = _get_js_array_entries(html_text, "filenames")
             captions = _get_js_array_entries(html_text, "captions")
