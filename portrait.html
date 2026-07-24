@@ -657,31 +657,65 @@
     function startTranscription(file) {
       var btn = document.getElementById('transcribe-submit-btn');
       btn.disabled = true;
-      btn.textContent = 'Uploading…';
+      btn.textContent = 'Connecting…';
       document.getElementById('transcribe-result-wrap').style.display = 'none';
-      setTranscribeStatus('Uploading file…', false);
+      setTranscribeStatus('Waking up server…', false);
 
-      var form = new FormData();
-      form.append('file', file);
+      // Pre-warm the server (Render free tier sleeps after inactivity).
+      // Wait up to 90 s for the health-check before uploading.
+      var wakeDeadline = Date.now() + 90000;
 
-      fetch(API_BASE + '/transcribe/start', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + TRANSCRIBE_TOKEN },
-        body: form,
-      })
-      .then(function(res) {
-        if (!res.ok) return res.json().then(function(b) { throw new Error(b.detail || 'Upload failed'); });
-        return res.json();
-      })
-      .then(function(data) {
-        btn.textContent = 'Transcribe';
-        pollTranscription(data.job_id);
-      })
-      .catch(function(err) {
-        btn.disabled = false;
-        btn.textContent = 'Transcribe';
-        setTranscribeStatus(err.message, true);
-      });
+      function doWake() {
+        fetch(API_BASE + '/health', { signal: AbortSignal.timeout(15000) })
+          .then(function(r) {
+            if (r.ok) { doUpload(); return; }
+            throw new Error('health ' + r.status);
+          })
+          .catch(function() {
+            if (Date.now() < wakeDeadline) {
+              setTranscribeStatus('Server starting up — please wait…', false);
+              setTimeout(doWake, 5000);
+            } else {
+              btn.disabled = false;
+              btn.textContent = 'Transcribe';
+              setTranscribeStatus('Server did not respond. Check your connection and try again.', true);
+            }
+          });
+      }
+
+      function doUpload() {
+        btn.textContent = 'Uploading…';
+        setTranscribeStatus('Uploading file…', false);
+
+        var form = new FormData();
+        form.append('file', file);
+
+        fetch(API_BASE + '/transcribe/start', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + TRANSCRIBE_TOKEN },
+          body: form,
+        })
+        .then(function(res) {
+          if (!res.ok) return res.json().then(function(b) { throw new Error(b.detail || 'Upload failed'); });
+          return res.json();
+        })
+        .then(function(data) {
+          btn.textContent = 'Transcribe';
+          pollTranscription(data.job_id);
+        })
+        .catch(function(err) {
+          btn.disabled = false;
+          btn.textContent = 'Transcribe';
+          var msg = err.message || '';
+          if (msg === 'Load failed' || msg === 'Failed to fetch' || msg.indexOf('NetworkError') !== -1) {
+            setTranscribeStatus('Upload failed — server may still be starting up. Tap Transcribe to try again.', true);
+          } else {
+            setTranscribeStatus(msg || 'Upload failed. Please try again.', true);
+          }
+        });
+      }
+
+      doWake();
     }
 
     function pollTranscription(jobId) {
