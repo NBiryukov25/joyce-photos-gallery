@@ -31,18 +31,25 @@ SUPPORTED_EXTENSIONS = {".mp3", ".mov", ".mp4"}
 
 def check_ffmpeg():
     if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
-        sys.exit(
-            "ffmpeg/ffprobe not found.\n"
-            "Install it first, e.g.:\n"
-            "    brew install ffmpeg        (macOS)\n"
-            "    sudo apt install ffmpeg    (Linux)"
+        if __name__ == "__main__":
+            sys.exit(
+                "ffmpeg/ffprobe not found.\n"
+                "Install it first, e.g.:\n"
+                "    brew install ffmpeg        (macOS)\n"
+                "    sudo apt install ffmpeg    (Linux)"
+            )
+        raise RuntimeError(
+            "ffmpeg/ffprobe not found on this server. "
+            "Contact the site admin."
         )
 
 
 def run_ffmpeg(args: list[str]):
     result = subprocess.run(["ffmpeg", "-y", *args], capture_output=True, text=True)
     if result.returncode != 0:
-        sys.exit(f"ffmpeg failed:\n{result.stderr[-2000:]}")
+        if __name__ == "__main__":
+            sys.exit(f"ffmpeg failed:\n{result.stderr[-2000:]}")
+        raise RuntimeError(f"ffmpeg failed:\n{result.stderr[-2000:]}")
 
 
 def parse_bitrate(bitrate: str) -> int:
@@ -66,7 +73,9 @@ def get_duration_seconds(path: Path) -> float:
         capture_output=True, text=True,
     )
     if result.returncode != 0 or not result.stdout.strip():
-        sys.exit(f"ffprobe failed to read duration:\n{result.stderr[-2000:]}")
+        if __name__ == "__main__":
+            sys.exit(f"ffprobe failed to read duration:\n{result.stderr[-2000:]}")
+        raise RuntimeError(f"ffprobe failed to read duration:\n{result.stderr[-2000:]}")
     return float(result.stdout.strip())
 
 

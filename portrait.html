@@ -317,8 +317,8 @@
 
     <div class="char-form" style="max-width:720px">
       <div class="field-group">
-        <label class="field-label" for="transcribe-file-input">Audio or video file <span class="field-hint">.mp3, .mov, or .mp4, any length</span></label>
-        <input type="file" id="transcribe-file-input" accept=".mp3,.mov,.mp4,audio/mpeg,video/quicktime,video/mp4" class="field-input" style="padding:0.6rem 0.7rem;">
+        <label class="field-label" for="transcribe-file-input">Audio or video file <span class="field-hint">.mp3 · .mov · .mp4 — any length. If the picker shows "Load failed", ignore it and tap Transcribe.</span></label>
+        <input type="file" id="transcribe-file-input" accept="audio/*,video/*,audio/mpeg,video/quicktime,video/mp4" class="field-input" style="padding:0.6rem 0.7rem;">
       </div>
 
       <div class="form-actions">
@@ -639,9 +639,21 @@
 
     document.getElementById('transcribe-file-input').addEventListener('change', function(e) {
       _transcribeFile = e.target.files[0] || null;
-      document.getElementById('transcribe-submit-btn').disabled = !_transcribeFile;
       document.getElementById('transcribe-result-wrap').style.display = 'none';
-      setTranscribeStatus('', false);
+      if (_transcribeFile && _transcribeFile.size === 0) {
+        // iOS sometimes returns a 0-byte file when it can't read the source.
+        _transcribeFile = null;
+        document.getElementById('transcribe-submit-btn').disabled = true;
+        setTranscribeStatus('That file could not be read by your browser. Try saving it locally first, then select it again.', true);
+        return;
+      }
+      document.getElementById('transcribe-submit-btn').disabled = !_transcribeFile;
+      if (_transcribeFile) {
+        var mb = (_transcribeFile.size / 1e6).toFixed(1);
+        setTranscribeStatus(_transcribeFile.name + ' — ' + mb + ' MB — tap Transcribe to begin.', false);
+      } else {
+        setTranscribeStatus('', false);
+      }
     });
 
     document.getElementById('transcribe-submit-btn').addEventListener('click', function() {
