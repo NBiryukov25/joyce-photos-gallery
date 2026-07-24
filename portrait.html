@@ -654,6 +654,16 @@
       startTranscription(_transcribeFile);
     });
 
+    function _abortSignal(ms) {
+      // AbortSignal.timeout() not available on iOS < 16; fall back to AbortController.
+      if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+        return AbortSignal.timeout(ms);
+      }
+      var ctrl = new AbortController();
+      setTimeout(function() { ctrl.abort(); }, ms);
+      return ctrl.signal;
+    }
+
     function startTranscription(file) {
       var btn = document.getElementById('transcribe-submit-btn');
       btn.disabled = true;
@@ -666,7 +676,9 @@
       var wakeDeadline = Date.now() + 90000;
 
       function doWake() {
-        fetch(API_BASE + '/health', { signal: AbortSignal.timeout(15000) })
+        var sig;
+        try { sig = _abortSignal(15000); } catch (e) { sig = undefined; }
+        fetch(API_BASE + '/health', sig ? { signal: sig } : {})
           .then(function(r) {
             if (r.ok) { doUpload(); return; }
             throw new Error('health ' + r.status);
@@ -690,11 +702,10 @@
         var form = new FormData();
         form.append('file', file);
 
-        fetch(API_BASE + '/transcribe/start', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + TRANSCRIBE_TOKEN },
-          body: form,
-        })
+        // Token in query param — avoids CORS pre-flight on iOS for multipart uploads.
+        var uploadUrl = API_BASE + '/transcribe/start?token=' + encodeURIComponent(TRANSCRIBE_TOKEN);
+
+        fetch(uploadUrl, { method: 'POST', body: form })
         .then(function(res) {
           if (!res.ok) return res.json().then(function(b) { throw new Error(b.detail || 'Upload failed'); });
           return res.json();
@@ -715,16 +726,19 @@
         });
       }
 
-      doWake();
+      try { doWake(); } catch (e) {
+        btn.disabled = false;
+        btn.textContent = 'Transcribe';
+        setTranscribeStatus('Unexpected error starting upload. Please try again.', true);
+      }
     }
 
     function pollTranscription(jobId) {
       setTranscribeStatus('Processing…', false);
       var failCount = 0;
       var poll = function() {
-        fetch(API_BASE + '/transcribe/status/' + jobId, {
-          headers: { 'Authorization': 'Bearer ' + TRANSCRIBE_TOKEN },
-        })
+        var pollUrl = API_BASE + '/transcribe/status/' + jobId + '?token=' + encodeURIComponent(TRANSCRIBE_TOKEN);
+        fetch(pollUrl)
         .then(function(res) {
           if (res.status === 404) throw new Error('Job lost — the server may have restarted. Please try again.');
           if (!res.ok) throw new Error('Server error (' + res.status + '). Please try again.');

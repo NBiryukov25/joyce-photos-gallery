@@ -32,7 +32,7 @@ from pathlib import Path
 
 import httpx
 import uvicorn
-from fastapi import FastAPI, File, Header, HTTPException, UploadFile
+from fastapi import FastAPI, File, Header, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import anthropic as _anthropic_sdk
@@ -779,11 +779,11 @@ _TRANSCRIBE_JOBS: dict[str, dict] = {}
 _TRANSCRIBE_TMP_ROOT = Path(tempfile.gettempdir()) / "joyce_transcribe_jobs"
 
 
-def _check_transcribe_auth(authorization: str) -> None:
+def _check_transcribe_auth(authorization: str = "", token_param: str = "") -> None:
     if not TRANSCRIBE_API_TOKEN:
         raise HTTPException(status_code=503, detail="Transcription service not configured (TRANSCRIBE_API_TOKEN missing).")
-    token = authorization.removeprefix("Bearer ").strip()
-    if token != TRANSCRIBE_API_TOKEN:
+    effective = token_param.strip() or authorization.removeprefix("Bearer ").strip()
+    if effective != TRANSCRIBE_API_TOKEN:
         raise HTTPException(status_code=401, detail="Invalid or missing token.")
 
 
@@ -843,8 +843,12 @@ async def _process_transcription_job(job_id: str, media_path: Path) -> None:
 
 
 @portrait_api.post("/transcribe/start")
-async def _start_transcription(authorization: str = Header(default=""), file: UploadFile = File(...)):
-    _check_transcribe_auth(authorization)
+async def _start_transcription(
+    file: UploadFile = File(...),
+    token: str = Query(default=""),
+    authorization: str = Header(default=""),
+):
+    _check_transcribe_auth(authorization, token)
 
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in _chunk_audio.SUPPORTED_EXTENSIONS:
@@ -868,8 +872,12 @@ async def _start_transcription(authorization: str = Header(default=""), file: Up
 
 
 @portrait_api.get("/transcribe/status/{job_id}")
-async def _transcription_status(job_id: str, authorization: str = Header(default="")):
-    _check_transcribe_auth(authorization)
+async def _transcription_status(
+    job_id: str,
+    token: str = Query(default=""),
+    authorization: str = Header(default=""),
+):
+    _check_transcribe_auth(authorization, token)
     job = _TRANSCRIBE_JOBS.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Unknown job_id.")
