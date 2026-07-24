@@ -317,8 +317,8 @@
 
     <div class="char-form" style="max-width:720px">
       <div class="field-group">
-        <label class="field-label" for="transcribe-file-input">Audio or video file <span class="field-hint">.mp3 · .mov · .mp4 — any length. If the picker shows "Load failed", ignore it and tap Transcribe.</span></label>
-        <input type="file" id="transcribe-file-input" accept="audio/*,video/*,audio/mpeg,video/quicktime,video/mp4" class="field-input" style="padding:0.6rem 0.7rem;">
+        <label class="field-label" for="transcribe-file-input">Audio or video file <span class="field-hint">.mp3 · .mov · .mp4 — any length</span></label>
+        <input type="file" id="transcribe-file-input" accept="audio/*,video/*" class="field-input" style="padding:0.6rem 0.7rem;">
       </div>
 
       <div class="form-actions">
@@ -638,22 +638,44 @@
     }
 
     document.getElementById('transcribe-file-input').addEventListener('change', function(e) {
-      _transcribeFile = e.target.files[0] || null;
+      var rawFile = e.target.files[0] || null;
+      _transcribeFile = null;
+      document.getElementById('transcribe-submit-btn').disabled = true;
       document.getElementById('transcribe-result-wrap').style.display = 'none';
-      if (_transcribeFile && _transcribeFile.size === 0) {
-        // iOS sometimes returns a 0-byte file when it can't read the source.
-        _transcribeFile = null;
-        document.getElementById('transcribe-submit-btn').disabled = true;
-        setTranscribeStatus('That file could not be read by your browser. Try saving it locally first, then select it again.', true);
-        return;
-      }
-      document.getElementById('transcribe-submit-btn').disabled = !_transcribeFile;
-      if (_transcribeFile) {
-        var mb = (_transcribeFile.size / 1e6).toFixed(1);
-        setTranscribeStatus(_transcribeFile.name + ' — ' + mb + ' MB — tap Transcribe to begin.', false);
-      } else {
-        setTranscribeStatus('', false);
-      }
+
+      if (!rawFile) { setTranscribeStatus('', false); return; }
+
+      var mb = (rawFile.size / 1e6).toFixed(1);
+      setTranscribeStatus('Checking file…', false);
+
+      // Read 1 byte to confirm the file is actually accessible locally.
+      // On iOS, iCloud/Telegram videos may have correct .size metadata but
+      // the bytes are not cached — FileReader catches that before upload.
+      var reader = new FileReader();
+      var _tId = setTimeout(function() {
+        reader.abort();
+        setTranscribeStatus(
+          'File not accessible. On iOS: open Telegram or Files, long-press the video, tap Share → Save to Files, then select it here.',
+          true
+        );
+      }, 15000);
+
+      reader.onload = function() {
+        clearTimeout(_tId);
+        _transcribeFile = rawFile;
+        document.getElementById('transcribe-submit-btn').disabled = false;
+        setTranscribeStatus(rawFile.name + ' — ' + mb + ' MB — tap Transcribe.', false);
+      };
+      reader.onerror = function() {
+        clearTimeout(_tId);
+        setTranscribeStatus(
+          '"Load failed" means your device can\'t read this file directly. '
+          + 'Fix: in Telegram or Files, long-press the video → Share → Save to Files. '
+          + 'Then select it here from the Files app.',
+          true
+        );
+      };
+      reader.readAsArrayBuffer(rawFile.slice(0, 1));
     });
 
     document.getElementById('transcribe-submit-btn').addEventListener('click', function() {
