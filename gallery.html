@@ -351,6 +351,53 @@
         padding: 0.38em 0.8em;
       }
     }
+
+    /* ── Desktop: portrait images mounted on a cinematic architectural stage ──
+       On mobile, full-bleed cover remains. On desktop (≥769px), each portrait
+       is centered at its natural ratio inside a dark stage with generous negative
+       space. The full-bleed wrapper and gradient veil are suppressed. */
+    @media (min-width: 769px) {
+      .threshold-frame--img {
+        display: grid;
+        place-items: center;
+        padding: clamp(3rem, 6vw, 6rem);
+        background:
+          radial-gradient(ellipse at 50% 46%, rgba(255, 248, 240, 0.045) 0%, transparent 58%),
+          #17191c;
+      }
+
+      /* Override the absolute-fill wrapper — become a normal-flow flex container */
+      .threshold-frame--img .threshold-img-wrap {
+        position: static;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: visible;
+        inset: auto;
+      }
+
+      /* Portrait image: naturally sized, contained, intentionally mounted */
+      .threshold-frame--img .threshold-img {
+        width: auto;
+        height: auto;
+        max-width: min(72vw, 760px);
+        max-height: 86vh;
+        object-fit: contain;
+        object-position: center;
+        box-shadow:
+          0 2px 6px rgba(0, 0, 0, 0.28),
+          0 24px 70px rgba(0, 0, 0, 0.42);
+      }
+
+      /* Full-bleed gradient veil is meaningless on a contained image */
+      .threshold-frame--img .threshold-img-veil { display: none; }
+
+      /* "Waiting" text stays below the frame centre rather than over the image */
+      .threshold-frame--with-aside .threshold-aside {
+        bottom: 4%;
+        font-size: clamp(0.95rem, 1.5vw, 1.22rem);
+      }
+    }
   </style>
 </head>
 <body>
