@@ -116,6 +116,242 @@
       .promo-letter { order: -1; }
     }
   </style>
+  <style>
+    /* ══════════════════════════════════════════════════════════════
+       CHAPTER 00 — THE THRESHOLD  ·  Cinematic entryway sequence
+       All classes prefixed threshold- to avoid conflicts
+       ══════════════════════════════════════════════════════════════ */
+
+    /* Full-bleed escape from the constrained body container.
+       Formula: margin-left = (half body-width) - (half viewport) - (body padding-left)
+       Works at all viewport sizes. */
+    .threshold-entryway {
+      margin-left: calc(50% - 50vw - 2.4em);
+      width: 100vw;
+      overflow-x: hidden;
+      background: #0c0a09;
+      position: relative;
+    }
+
+    /* Skip introduction — fixed pill, visible only while entryway is on screen */
+    .threshold-skip {
+      position: fixed;
+      top: 1.3rem;
+      right: 1.5rem;
+      z-index: 200;
+      font-family: 'Jost', sans-serif;
+      font-size: 0.6rem;
+      font-weight: 300;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.82);
+      text-decoration: none;
+      padding: 0.42em 0.95em;
+      background: rgba(10, 8, 7, 0.58);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease, color 0.25s, background 0.25s;
+    }
+    .threshold-skip.threshold-skip--visible { opacity: 1; pointer-events: auto; }
+    .threshold-skip:hover { color: #fff; background: rgba(10, 8, 7, 0.82); }
+    .threshold-skip:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.6);
+      outline-offset: 3px;
+    }
+
+    /* Base frame — each section is ~one viewport tall */
+    .threshold-frame {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    @supports (min-height: 100svh) {
+      .threshold-frame { min-height: 100svh; }
+    }
+
+    /* ── Opening text frame ── */
+    .threshold-frame--opening {
+      background: #0c0a09;
+      padding: 5rem 2rem;
+    }
+    .threshold-text-center {
+      text-align: center;
+      max-width: 460px;
+      padding: 0 1rem;
+    }
+    .threshold-overline {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.64rem;
+      font-weight: 300;
+      letter-spacing: 0.52em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.36);
+      margin: 0 0 1.5em;
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 1.2s ease, transform 1.2s ease;
+    }
+    .threshold-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: clamp(2.6rem, 9vw, 5.2rem);
+      line-height: 1.02;
+      color: #f4ede6;
+      margin: 0 0 1rem;
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 1.4s ease 0.18s, transform 1.4s ease 0.18s;
+    }
+    .threshold-body-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-weight: 300;
+      font-size: clamp(0.97rem, 2.4vw, 1.18rem);
+      line-height: 1.8;
+      color: rgba(244, 237, 230, 0.62);
+      margin: 0;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 1.4s ease 0.38s, transform 1.4s ease 0.38s;
+    }
+
+    /* ── Image frames ── */
+    .threshold-frame--img { background: #0c0a09; }
+    .threshold-img-wrap { position: absolute; inset: 0; overflow: hidden; }
+    .threshold-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0;
+      transform: scale(1.04);
+      transition: opacity 1.8s ease, transform 10s ease;
+    }
+    .threshold-img-veil {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      background: linear-gradient(
+        to bottom,
+        rgba(10, 8, 7, 0.38) 0%,
+        rgba(10, 8, 7, 0.04) 28%,
+        rgba(10, 8, 7, 0.02) 58%,
+        rgba(10, 8, 7, 0.60) 100%
+      );
+    }
+    /* Reveal frame: lighter veil so both faces read clearly */
+    .threshold-frame--reveal .threshold-img-veil {
+      background: linear-gradient(
+        to bottom,
+        rgba(10, 8, 7, 0.20) 0%,
+        rgba(10, 8, 7, 0.0) 36%,
+        rgba(10, 8, 7, 0.0) 58%,
+        rgba(10, 8, 7, 0.48) 100%
+      );
+    }
+
+    /* "At the end of the corridor, someone was waiting." */
+    .threshold-aside {
+      position: absolute;
+      bottom: 11%;
+      left: 0;
+      right: 0;
+      z-index: 2;
+      text-align: center;
+      padding: 0 2rem;
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-weight: 300;
+      font-size: clamp(1rem, 2.8vw, 1.38rem);
+      color: rgba(244, 237, 230, 0.9);
+      text-shadow: 0 2px 18px rgba(0, 0, 0, 0.68);
+      margin: 0;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 1.4s ease 0.65s, transform 1.4s ease 0.65s;
+    }
+
+    /* ── "Enter the collection" cue frame ── */
+    .threshold-frame--cue {
+      min-height: 26vh;
+      background: #0c0a09;
+    }
+    .threshold-enter {
+      display: inline-block;
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-weight: 300;
+      font-size: clamp(1.1rem, 3vw, 1.48rem);
+      letter-spacing: 0.1em;
+      color: rgba(244, 237, 230, 0.62);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(244, 237, 230, 0.26);
+      padding-bottom: 3px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 1.2s ease, transform 1.2s ease, color 0.3s, border-color 0.3s;
+    }
+    .threshold-enter:hover { color: #f4ede6; border-bottom-color: rgba(244, 237, 230, 0.68); }
+    .threshold-enter:focus-visible {
+      outline: 2px solid rgba(244, 237, 230, 0.5);
+      outline-offset: 6px;
+    }
+
+    /* ── Active states (set by IntersectionObserver) ── */
+    .threshold-frame.is-active .threshold-overline,
+    .threshold-frame.is-active .threshold-title,
+    .threshold-frame.is-active .threshold-body-text {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .threshold-frame.is-active .threshold-img {
+      opacity: 1;
+      transform: scale(1.0);
+    }
+    .threshold-frame.is-active .threshold-aside,
+    .threshold-frame.is-active .threshold-enter {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Reduced motion: remove all parallax, scaling, long fades ── */
+    @media (prefers-reduced-motion: reduce) {
+      .threshold-overline,
+      .threshold-title,
+      .threshold-body-text,
+      .threshold-img,
+      .threshold-aside,
+      .threshold-enter {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+      }
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 700px) {
+      .threshold-frame--opening { padding: 3.5rem 1.5rem; }
+      .threshold-aside {
+        bottom: 7%;
+        padding: 0 1.2rem;
+      }
+      .threshold-skip {
+        top: 1rem;
+        right: 1rem;
+        font-size: 0.56rem;
+        letter-spacing: 0.22em;
+        padding: 0.38em 0.8em;
+      }
+    }
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -124,7 +360,142 @@
       <a href="vip.html" class="nav-link" style="letter-spacing:0.22em; font-size:0.78rem;">VIP</a>
     </div>
   </header>
-  <section class="hero">
+
+  <!-- ════════════════════════════════════════════════════════════
+       CHAPTER 00 — THE THRESHOLD  ·  assets/Entryway/
+       Cinematic entryway narrative sequence.
+       Inserted after site header, before main portfolio hero.
+       ════════════════════════════════════════════════════════════ -->
+  <section class="threshold-entryway" id="threshold-entryway" aria-label="Chapter 00 — The Threshold — photographic introduction">
+
+    <!-- Skip control: keyboard-accessible, readable over dark images -->
+    <a href="#main-portfolio" class="threshold-skip" aria-label="Skip introduction and go to main portfolio">
+      Skip introduction
+    </a>
+
+    <!-- ─── Opening text frame ─── -->
+    <div class="threshold-frame threshold-frame--opening">
+      <div class="threshold-text-center">
+        <p class="threshold-overline">CHAPTER 00</p>
+        <h2 class="threshold-title">The Threshold</h2>
+        <p class="threshold-body-text">Some galleries begin with a photograph.<br>This one begins with an arrival.</p>
+      </div>
+    </div>
+
+    <!-- ─── Frame 1: Quiet opening portrait ─── -->
+    <!-- Younger woman in mint off-shoulder top — close, still, direct gaze -->
+    <div class="threshold-frame threshold-frame--img" data-frame="1">
+      <div class="threshold-img-wrap">
+        <img
+          src="assets/Entryway/Entryway__%2017.png"
+          alt="A still portrait near the elevator — she meets the viewer's gaze, mint off-shoulder top, architecture behind her"
+          class="threshold-img"
+          style="object-position: center top;"
+          loading="eager"
+        >
+      </div>
+      <div class="threshold-img-veil"></div>
+    </div>
+
+    <!-- ─── Frame 2: Back to viewer, colonnade corridor ─── -->
+    <!-- Her back turned, looking into the architectural hallway — mystery, depth -->
+    <div class="threshold-frame threshold-frame--img" data-frame="2">
+      <div class="threshold-img-wrap">
+        <img
+          src="assets/Entryway/Entryway__%204.png"
+          alt="Seen from behind in a sun-lit colonnade corridor, she looks into the architectural space ahead"
+          class="threshold-img"
+          style="object-position: center center;"
+          loading="lazy"
+        >
+      </div>
+      <div class="threshold-img-veil"></div>
+    </div>
+
+    <!-- ─── Frame 3: Movement — walking past elevator, hair mid-motion ─── -->
+    <div class="threshold-frame threshold-frame--img" data-frame="3">
+      <div class="threshold-img-wrap">
+        <img
+          src="assets/Entryway/Entryway__%209.png"
+          alt="She walks past the elevator, hair caught in motion, glancing back over her shoulder"
+          class="threshold-img"
+          style="object-position: center 22%;"
+          loading="lazy"
+        >
+      </div>
+      <div class="threshold-img-veil"></div>
+    </div>
+
+    <!-- ─── Frame 4: Environmental — full stride along columns ─── -->
+    <!-- Wider framing: corridor, columns, architectural depth -->
+    <div class="threshold-frame threshold-frame--img" data-frame="4">
+      <div class="threshold-img-wrap">
+        <img
+          src="assets/Entryway/Entryway__%2012.png"
+          alt="Full stride along architectural columns — the corridor stretches behind her, elevator receding"
+          class="threshold-img"
+          style="object-position: center top;"
+          loading="lazy"
+        >
+      </div>
+      <div class="threshold-img-veil"></div>
+    </div>
+
+    <!-- ─── Frame 5: Approaching glass doors — pivot text ─── -->
+    <!-- "At the end of the corridor, someone was waiting." -->
+    <div class="threshold-frame threshold-frame--img threshold-frame--with-aside" data-frame="5">
+      <div class="threshold-img-wrap">
+        <img
+          src="assets/Entryway/Entryway__%2015.png"
+          alt="She approaches the glass entrance doors, walking forward — the building opens to receive her"
+          class="threshold-img"
+          style="object-position: center top;"
+          loading="lazy"
+        >
+      </div>
+      <div class="threshold-img-veil"></div>
+      <p class="threshold-aside">At the end of the corridor, someone was waiting.</p>
+    </div>
+
+    <!-- ─── Frame 6: Second woman — quiet, near elevator ─── -->
+    <!-- The other presence revealed: still, waiting -->
+    <div class="threshold-frame threshold-frame--img" data-frame="6">
+      <div class="threshold-img-wrap">
+        <img
+          src="assets/Entryway/Entryway__%2018.jpeg"
+          alt="A second woman stands near the elevator — composed, still, waiting"
+          class="threshold-img"
+          style="object-position: center top;"
+          loading="lazy"
+        >
+      </div>
+      <div class="threshold-img-veil"></div>
+    </div>
+
+    <!-- ─── Frame 7: THE REVEAL — both women, hands clasped ─── -->
+    <!-- Emotional climax: face-to-face in the corridor, holding hands -->
+    <div class="threshold-frame threshold-frame--img threshold-frame--reveal" data-frame="7">
+      <div class="threshold-img-wrap">
+        <img
+          src="assets/Entryway/Entryway__%201.png"
+          alt="Two women stand face-to-face in the corridor — hands clasped, the moment of meeting at the threshold"
+          class="threshold-img"
+          style="object-position: center 30%;"
+          loading="lazy"
+        >
+      </div>
+      <div class="threshold-img-veil"></div>
+    </div>
+
+    <!-- ─── Transition cue into main portfolio ─── -->
+    <div class="threshold-frame threshold-frame--cue">
+      <a href="#main-portfolio" class="threshold-enter">Enter the collection</a>
+    </div>
+
+  </section>
+  <!-- ════ end Chapter 00 ══════════════════════════════════════ -->
+
+  <section class="hero" id="main-portfolio">
     <p class="hero-overline">Portfolio</p>
     <h1 class="hero-name">Sheryl Joyce</h1>
     <p class="hero-tagline">Your Girlfriend Awaits&nbsp;·&nbsp; Vol. 1</p>
@@ -385,6 +756,51 @@
         a.appendChild(top);
         a.appendChild(lines);
         grid.appendChild(a);
+      });
+    })();
+  </script>
+
+  <!-- ─── Chapter 00: The Threshold — scroll-activation JS ─── -->
+  <script>
+    (function () {
+      var frames   = document.querySelectorAll('.threshold-frame');
+      var skipBtn  = document.querySelector('.threshold-skip');
+      var section  = document.getElementById('threshold-entryway');
+      if (!frames.length) return;
+
+      /* Activate each frame as it enters the viewport */
+      var frameObs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) e.target.classList.add('is-active');
+        });
+      }, { threshold: 0.12 });
+      frames.forEach(function (f) { frameObs.observe(f); });
+
+      /* Show/hide skip button while any part of the entryway is visible */
+      if (skipBtn && section) {
+        var sectionObs = new IntersectionObserver(function (entries) {
+          if (entries[0].isIntersecting) {
+            skipBtn.classList.add('threshold-skip--visible');
+          } else {
+            skipBtn.classList.remove('threshold-skip--visible');
+          }
+        }, { threshold: 0.01 });
+        sectionObs.observe(section);
+      }
+
+      /* Smooth-scroll for skip / enter links; respects prefers-reduced-motion */
+      var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var thresholdLinks = document.querySelectorAll('.threshold-skip, .threshold-enter');
+      thresholdLinks.forEach(function (link) {
+        link.addEventListener('click', function (e) {
+          var target = document.getElementById('main-portfolio');
+          if (!target) return;
+          e.preventDefault();
+          target.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
+          /* Move focus to the target for keyboard users */
+          if (!target.getAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+          target.focus({ preventScroll: true });
+        });
       });
     })();
   </script>
