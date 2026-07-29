@@ -20,7 +20,6 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 1.3rem;
     }
-    /* magazine cover */
     .promo-cover {
       position: relative; display: block; aspect-ratio: 3 / 4;
       border-radius: 4px; overflow: hidden; text-decoration: none;
@@ -41,7 +40,6 @@
         rgba(8,5,3,0.55) 0%, rgba(8,5,3,0.10) 26%,
         rgba(8,5,3,0) 46%, rgba(8,5,3,0.86) 100%);
     }
-    /* masthead */
     .promo-cover-top {
       position: absolute; top: 0; left: 0; right: 0; z-index: 2;
       padding: 0.95rem 1rem; display: flex;
@@ -57,7 +55,6 @@
       letter-spacing: 0.28em; text-transform: uppercase;
       color: rgba(255,255,255,0.78); white-space: nowrap;
     }
-    /* cover lines */
     .promo-cover-lines {
       position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
       padding: 1.2rem 1.1rem 1.25rem;
@@ -88,7 +85,6 @@
       .promo-grid { grid-template-columns: 1fr; gap: 1.1rem; }
       .promo-cover { aspect-ratio: 4 / 5; }
     }
-    /* ── Promo spread: letter + covers ── */
     .promo-spread {
       display: grid;
       grid-template-columns: 2fr 3fr;
@@ -116,452 +112,36 @@
       .promo-letter { order: -1; }
     }
   </style>
-  <style>
-    /* ══════════════════════════════════════════════════════════════
-       CHAPTER 00 — THE THRESHOLD  ·  Cinematic entryway sequence
-       All classes prefixed threshold- to avoid conflicts
-       ══════════════════════════════════════════════════════════════ */
-
-    /* Full-bleed escape from the constrained body container.
-       Formula: margin-left = (half body-width) - (half viewport) - (body padding-left)
-       Works at all viewport sizes. */
-    .threshold-entryway {
-      margin-left: calc(50% - 50vw - 2.4em);
-      width: 100vw;
-      overflow-x: hidden;
-      background: #0c0a09;
-      position: relative;
-    }
-
-    /* Skip introduction — fixed pill, visible only while entryway is on screen */
-    .threshold-skip {
-      position: fixed;
-      top: 1.3rem;
-      right: 1.5rem;
-      z-index: 200;
-      font-family: 'Jost', sans-serif;
-      font-size: 0.6rem;
-      font-weight: 300;
-      letter-spacing: 0.28em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.82);
-      text-decoration: none;
-      padding: 0.42em 0.95em;
-      background: rgba(10, 8, 7, 0.58);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 2px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.4s ease, color 0.25s, background 0.25s;
-    }
-    .threshold-skip.threshold-skip--visible { opacity: 1; pointer-events: auto; }
-    .threshold-skip:hover { color: #fff; background: rgba(10, 8, 7, 0.82); }
-    .threshold-skip:focus-visible {
-      outline: 2px solid rgba(255, 255, 255, 0.6);
-      outline-offset: 3px;
-    }
-
-    /* Base frame — each section is ~one viewport tall */
-    .threshold-frame {
-      position: relative;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-    @supports (min-height: 100svh) {
-      .threshold-frame { min-height: 100svh; }
-    }
-
-    /* ── Opening text frame ── */
-    .threshold-frame--opening {
-      background: #0c0a09;
-      padding: 5rem 2rem;
-    }
-    .threshold-text-center {
-      text-align: center;
-      max-width: 460px;
-      padding: 0 1rem;
-    }
-    .threshold-overline {
-      font-family: 'Jost', sans-serif;
-      font-size: 0.64rem;
-      font-weight: 300;
-      letter-spacing: 0.52em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.36);
-      margin: 0 0 1.5em;
-      opacity: 0;
-      transform: translateY(14px);
-      transition: opacity 1.2s ease, transform 1.2s ease;
-    }
-    .threshold-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 300;
-      font-size: clamp(2.6rem, 9vw, 5.2rem);
-      line-height: 1.02;
-      color: #f4ede6;
-      margin: 0 0 1rem;
-      opacity: 0;
-      transform: translateY(18px);
-      transition: opacity 1.4s ease 0.18s, transform 1.4s ease 0.18s;
-    }
-    .threshold-body-text {
-      font-family: 'Cormorant Garamond', serif;
-      font-style: italic;
-      font-weight: 300;
-      font-size: clamp(0.97rem, 2.4vw, 1.18rem);
-      line-height: 1.8;
-      color: rgba(244, 237, 230, 0.62);
-      margin: 0;
-      opacity: 0;
-      transform: translateY(12px);
-      transition: opacity 1.4s ease 0.38s, transform 1.4s ease 0.38s;
-    }
-
-    /* ── Image frames ── */
-    .threshold-frame--img { background: #0c0a09; }
-    .threshold-img-wrap { position: absolute; inset: 0; overflow: hidden; }
-    .threshold-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      opacity: 0;
-      transform: scale(1.04);
-      transition: opacity 1.8s ease, transform 10s ease;
-    }
-    .threshold-img-veil {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 1;
-      background: linear-gradient(
-        to bottom,
-        rgba(10, 8, 7, 0.38) 0%,
-        rgba(10, 8, 7, 0.04) 28%,
-        rgba(10, 8, 7, 0.02) 58%,
-        rgba(10, 8, 7, 0.60) 100%
-      );
-    }
-    /* Reveal frame: lighter veil so both faces read clearly */
-    .threshold-frame--reveal .threshold-img-veil {
-      background: linear-gradient(
-        to bottom,
-        rgba(10, 8, 7, 0.20) 0%,
-        rgba(10, 8, 7, 0.0) 36%,
-        rgba(10, 8, 7, 0.0) 58%,
-        rgba(10, 8, 7, 0.48) 100%
-      );
-    }
-
-    /* "At the end of the corridor, someone was waiting." */
-    .threshold-aside {
-      position: absolute;
-      bottom: 11%;
-      left: 0;
-      right: 0;
-      z-index: 2;
-      text-align: center;
-      padding: 0 2rem;
-      font-family: 'Cormorant Garamond', serif;
-      font-style: italic;
-      font-weight: 300;
-      font-size: clamp(1rem, 2.8vw, 1.38rem);
-      color: rgba(244, 237, 230, 0.9);
-      text-shadow: 0 2px 18px rgba(0, 0, 0, 0.68);
-      margin: 0;
-      opacity: 0;
-      transform: translateY(12px);
-      transition: opacity 1.4s ease 0.65s, transform 1.4s ease 0.65s;
-    }
-
-    /* ── "Enter the collection" cue frame ── */
-    .threshold-frame--cue {
-      min-height: 26vh;
-      background: #0c0a09;
-    }
-    .threshold-enter {
-      display: inline-block;
-      font-family: 'Cormorant Garamond', serif;
-      font-style: italic;
-      font-weight: 300;
-      font-size: clamp(1.1rem, 3vw, 1.48rem);
-      letter-spacing: 0.1em;
-      color: rgba(244, 237, 230, 0.62);
-      text-decoration: none;
-      border-bottom: 1px solid rgba(244, 237, 230, 0.26);
-      padding-bottom: 3px;
-      opacity: 0;
-      transform: translateY(10px);
-      transition: opacity 1.2s ease, transform 1.2s ease, color 0.3s, border-color 0.3s;
-    }
-    .threshold-enter:hover { color: #f4ede6; border-bottom-color: rgba(244, 237, 230, 0.68); }
-    .threshold-enter:focus-visible {
-      outline: 2px solid rgba(244, 237, 230, 0.5);
-      outline-offset: 6px;
-    }
-
-    /* ── Active states (set by IntersectionObserver) ── */
-    .threshold-frame.is-active .threshold-overline,
-    .threshold-frame.is-active .threshold-title,
-    .threshold-frame.is-active .threshold-body-text {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .threshold-frame.is-active .threshold-img {
-      opacity: 1;
-      transform: scale(1.0);
-    }
-    .threshold-frame.is-active .threshold-aside,
-    .threshold-frame.is-active .threshold-enter {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    /* ── Reduced motion: remove all parallax, scaling, long fades ── */
-    @media (prefers-reduced-motion: reduce) {
-      .threshold-overline,
-      .threshold-title,
-      .threshold-body-text,
-      .threshold-img,
-      .threshold-aside,
-      .threshold-enter {
-        opacity: 1 !important;
-        transform: none !important;
-        transition: none !important;
-      }
-    }
-
-    /* ── Mobile ── */
-    @media (max-width: 700px) {
-      .threshold-frame--opening { padding: 3.5rem 1.5rem; }
-      .threshold-aside {
-        bottom: 7%;
-        padding: 0 1.2rem;
-      }
-      .threshold-skip {
-        top: 1rem;
-        right: 1rem;
-        font-size: 0.56rem;
-        letter-spacing: 0.22em;
-        padding: 0.38em 0.8em;
-      }
-    }
-
-    /* ── Desktop: portrait images mounted on a cinematic architectural stage ──
-       On mobile, full-bleed cover remains. On desktop (≥769px), each portrait
-       is centered at its natural ratio inside a dark stage with generous negative
-       space. The full-bleed wrapper and gradient veil are suppressed. */
-    @media (min-width: 769px) {
-      .threshold-frame--img {
-        display: grid;
-        place-items: center;
-        padding: clamp(3rem, 6vw, 6rem);
-        background:
-          radial-gradient(ellipse at 50% 46%, rgba(255, 248, 240, 0.045) 0%, transparent 58%),
-          #17191c;
-      }
-
-      /* Override the absolute-fill wrapper — become a normal-flow flex container */
-      .threshold-frame--img .threshold-img-wrap {
-        position: static;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: visible;
-        inset: auto;
-      }
-
-      /* Portrait image: naturally sized, contained, intentionally mounted */
-      .threshold-frame--img .threshold-img {
-        width: auto;
-        height: auto;
-        max-width: min(72vw, 760px);
-        max-height: 86vh;
-        object-fit: contain;
-        object-position: center;
-        box-shadow:
-          0 2px 6px rgba(0, 0, 0, 0.28),
-          0 24px 70px rgba(0, 0, 0, 0.42);
-      }
-
-      /* Full-bleed gradient veil is meaningless on a contained image */
-      .threshold-frame--img .threshold-img-veil { display: none; }
-
-      /* "Waiting" text stays below the frame centre rather than over the image */
-      .threshold-frame--with-aside .threshold-aside {
-        bottom: 4%;
-        font-size: clamp(0.95rem, 1.5vw, 1.22rem);
-      }
-    }
-  </style>
 </head>
 <body>
   <header class="site-header">
     <div class="site-nav">
-      <a href="gallery.html" class="nav-brand">Sheryl Joyce</a>
+      <a href="index.html" class="nav-brand">Sheryl Joyce</a>
       <a href="vip.html" class="nav-link" style="letter-spacing:0.22em; font-size:0.78rem;">VIP</a>
     </div>
   </header>
 
-  <!-- ════════════════════════════════════════════════════════════
-       CHAPTER 00 — THE THRESHOLD  ·  assets/Entryway/
-       Cinematic entryway narrative sequence.
-       Inserted after site header, before main portfolio hero.
-       ════════════════════════════════════════════════════════════ -->
-  <section class="threshold-entryway" id="threshold-entryway" aria-label="Chapter 00 — The Threshold — photographic introduction">
-
-    <!-- Skip control: keyboard-accessible, readable over dark images -->
-    <a href="#main-portfolio" class="threshold-skip" aria-label="Skip introduction and go to main portfolio">
-      Skip introduction
-    </a>
-
-    <!-- ─── Opening text frame ─── -->
-    <div class="threshold-frame threshold-frame--opening">
-      <div class="threshold-text-center">
-        <p class="threshold-overline">CHAPTER 00</p>
-        <h2 class="threshold-title">The Threshold</h2>
-        <p class="threshold-body-text">Some galleries begin with a photograph.<br>This one begins with an arrival.</p>
-      </div>
-    </div>
-
-    <!-- ─── Frame 1: Quiet opening portrait ─── -->
-    <!-- Younger woman in mint off-shoulder top — close, still, direct gaze -->
-    <div class="threshold-frame threshold-frame--img" data-frame="1">
-      <div class="threshold-img-wrap">
-        <img
-          src="assets/Entryway/Entryway__%2017.png"
-          alt="A still portrait near the elevator — she meets the viewer's gaze, mint off-shoulder top, architecture behind her"
-          class="threshold-img"
-          style="object-position: center top;"
-          loading="eager"
-        >
-      </div>
-      <div class="threshold-img-veil"></div>
-    </div>
-
-    <!-- ─── Frame 2: Back to viewer, colonnade corridor ─── -->
-    <!-- Her back turned, looking into the architectural hallway — mystery, depth -->
-    <div class="threshold-frame threshold-frame--img" data-frame="2">
-      <div class="threshold-img-wrap">
-        <img
-          src="assets/Entryway/Entryway__%204.png"
-          alt="Seen from behind in a sun-lit colonnade corridor, she looks into the architectural space ahead"
-          class="threshold-img"
-          style="object-position: center center;"
-          loading="lazy"
-        >
-      </div>
-      <div class="threshold-img-veil"></div>
-    </div>
-
-    <!-- ─── Frame 3: Movement — walking past elevator, hair mid-motion ─── -->
-    <div class="threshold-frame threshold-frame--img" data-frame="3">
-      <div class="threshold-img-wrap">
-        <img
-          src="assets/Entryway/Entryway__%209.png"
-          alt="She walks past the elevator, hair caught in motion, glancing back over her shoulder"
-          class="threshold-img"
-          style="object-position: center 22%;"
-          loading="lazy"
-        >
-      </div>
-      <div class="threshold-img-veil"></div>
-    </div>
-
-    <!-- ─── Frame 4: Environmental — full stride along columns ─── -->
-    <!-- Wider framing: corridor, columns, architectural depth -->
-    <div class="threshold-frame threshold-frame--img" data-frame="4">
-      <div class="threshold-img-wrap">
-        <img
-          src="assets/Entryway/Entryway__%2012.png"
-          alt="Full stride along architectural columns — the corridor stretches behind her, elevator receding"
-          class="threshold-img"
-          style="object-position: center top;"
-          loading="lazy"
-        >
-      </div>
-      <div class="threshold-img-veil"></div>
-    </div>
-
-    <!-- ─── Frame 5: Approaching glass doors — pivot text ─── -->
-    <!-- "At the end of the corridor, someone was waiting." -->
-    <div class="threshold-frame threshold-frame--img threshold-frame--with-aside" data-frame="5">
-      <div class="threshold-img-wrap">
-        <img
-          src="assets/Entryway/Entryway__%2015.png"
-          alt="She approaches the glass entrance doors, walking forward — the building opens to receive her"
-          class="threshold-img"
-          style="object-position: center top;"
-          loading="lazy"
-        >
-      </div>
-      <div class="threshold-img-veil"></div>
-      <p class="threshold-aside">At the end of the corridor, someone was waiting.</p>
-    </div>
-
-    <!-- ─── Frame 6: Second woman — quiet, near elevator ─── -->
-    <!-- The other presence revealed: still, waiting -->
-    <div class="threshold-frame threshold-frame--img" data-frame="6">
-      <div class="threshold-img-wrap">
-        <img
-          src="assets/Entryway/Entryway__%2018.jpeg"
-          alt="A second woman stands near the elevator — composed, still, waiting"
-          class="threshold-img"
-          style="object-position: center top;"
-          loading="lazy"
-        >
-      </div>
-      <div class="threshold-img-veil"></div>
-    </div>
-
-    <!-- ─── Frame 7: THE REVEAL — both women, hands clasped ─── -->
-    <!-- Emotional climax: face-to-face in the corridor, holding hands -->
-    <div class="threshold-frame threshold-frame--img threshold-frame--reveal" data-frame="7">
-      <div class="threshold-img-wrap">
-        <img
-          src="assets/Entryway/Entryway__%201.png"
-          alt="Two women stand face-to-face in the corridor — hands clasped, the moment of meeting at the threshold"
-          class="threshold-img"
-          style="object-position: center 30%;"
-          loading="lazy"
-        >
-      </div>
-      <div class="threshold-img-veil"></div>
-    </div>
-
-    <!-- ─── Transition cue into main portfolio ─── -->
-    <div class="threshold-frame threshold-frame--cue">
-      <a href="#main-portfolio" class="threshold-enter">Enter the collection</a>
-    </div>
-
-  </section>
-  <!-- ════ end Chapter 00 ══════════════════════════════════════ -->
-
-  <section class="hero" id="main-portfolio">
+  <section class="hero">
     <p class="hero-overline">Portfolio</p>
     <h1 class="hero-name">Sheryl Joyce</h1>
-    <p class="hero-tagline">Your Girlfriend Awaits&nbsp;·&nbsp; Vol. 1</p>
+    <p class="hero-tagline">Your Girlfriend Awaits&nbsp;&middot;&nbsp; Vol. 1</p>
     <div class="comp-strip">
       <span class="comp-item"><span class="comp-label">Height</span><span class="comp-value">152 cm</span></span>
-      <span class="comp-sep">·</span>
+      <span class="comp-sep">&middot;</span>
       <span class="comp-item"><span class="comp-label">Weight</span><span class="comp-value">53 kg</span></span>
-      <span class="comp-sep">·</span>
+      <span class="comp-sep">&middot;</span>
       <span class="comp-item"><span class="comp-label">Waist</span><span class="comp-value">27 cm</span></span>
-      <span class="comp-sep">·</span>
+      <span class="comp-sep">&middot;</span>
       <span class="comp-item"><span class="comp-label">Hair</span><span class="comp-value">Black</span></span>
-      <span class="comp-sep">·</span>
+      <span class="comp-sep">&middot;</span>
       <span class="comp-item"><span class="comp-label">Eyes</span><span class="comp-value">Brown</span></span>
     </div>
   </section>
   <section class="intro-section">
-    <p class="intro-headline">Discover the Radiance of Sheryl Joyce – Alluring Filipino Beauty Captured in Timeless Light</p>
-    <p class="intro-body">Step inside and you’ll quickly realize this isn’t just a collection of images—it’s an open invitation. Sheryl Joyce has always carried herself with a quiet, almost untouchable grace, but that chapter is closed. The once pristine beauty you might have imagined is no longer out of reach. Every sunlit curve, every unguarded glance, every shadow-draped moment was captured with one truth in mind: she’s ready, and she’s yours to claim. The landscapes are lush, but the real heat is waiting just beneath the surface. Take a closer look. She’s not hiding anymore.</p>
+    <p class="intro-headline">Discover the Radiance of Sheryl Joyce &ndash; Alluring Filipino Beauty Captured in Timeless Light</p>
+    <p class="intro-body">Step inside and you'll quickly realize this isn't just a collection of images&mdash;it's an open invitation. Sheryl Joyce has always carried herself with a quiet, almost untouchable grace, but that chapter is closed. The once pristine beauty you might have imagined is no longer out of reach. Every sunlit curve, every unguarded glance, every shadow-draped moment was captured with one truth in mind: she's ready, and she's yours to claim. The landscapes are lush, but the real heat is waiting just beneath the surface. Take a closer look. She's not hiding anymore.</p>
   </section>
+
   <!-- ── Promotional Feature ── -->
   <section class="promo-feature">
     <p class="promo-overline">On the Cover</p>
@@ -570,14 +150,14 @@
         <p class="promo-letter-byline">From Joyce</p>
         <div class="promo-letter-body">
           <p>I'm 38. Not old. Not young. Just here.</p>
-          <p>You know me as the helper. The one who keeps everything running — the house, the kids, the schedule, the mess nobody else wants to deal with. The one who's always fine. Always available. Always behind the scenes making sure everyone else is okay.</p>
+          <p>You know me as the helper. The one who keeps everything running &mdash; the house, the kids, the schedule, the mess nobody else wants to deal with. The one who's always fine. Always available. Always behind the scenes making sure everyone else is okay.</p>
           <p>But I'm tired of being behind the scenes.</p>
-          <p>I didn't leave everything behind — my country, my family, my own life — to disappear into someone else's kitchen. I came here because I had to. But that's not all I am.</p>
+          <p>I didn't leave everything behind &mdash; my country, my family, my own life &mdash; to disappear into someone else's kitchen. I came here because I had to. But that's not all I am.</p>
           <p>I want to be seen differently. Not as the woman who serves. Not as the woman who sacrifices. Not as the woman who's strong enough to carry everything so nobody else has to.</p>
           <p>I'm 38 and I've spent most of my adult life making other people comfortable. And nobody has ever asked me what makes me comfortable. Nobody has ever looked at me and wondered what I need.</p>
           <p>So here I am. Showing more. Saying more. Not because I want attention. Because I want to exist. In my own life. Not as a background character in everyone else's.</p>
           <p>I posted <em>ang halaga mo</em> because I meant it. What am I worth? Not as a helper. Not as a sacrifice. As a woman. As a person. As someone who still has a life ahead of her that doesn't belong to anyone else.</p>
-          <p class="promo-letter-closing">I'm not here to take care of you — or am I?</p>
+          <p class="promo-letter-closing">I'm not here to take care of you &mdash; or am I?</p>
         </div>
       </div>
       <div class="promo-grid" id="promo-grid"></div>
@@ -586,71 +166,72 @@
 
   <hr class="gallery-divider">
 
-  <h2 class="gallery-section-label">Series I — Regular Up Close</h2>
+  <h2 class="gallery-section-label">Series I &mdash; Regular Up Close</h2>
   <div class="gallery-row">
-    <div class="gallery-item"><a href="galleries/number-19.html"><img loading="lazy" decoding="async" src="assets/covers/number-19.jpg" alt="Number 19"></a><div class="gallery-caption"><p class="gallery-caption-title">Number 19</p><p class="gallery-caption-meta">Digital, 50–85mm · f/2.8–4 · 1/160 sec · ISO 200 · Natural doorway shade / available light</p>
+    <div class="gallery-item"><a href="galleries/number-19.html"><img loading="lazy" decoding="async" src="assets/covers/number-19.jpg" alt="Number 19"></a><div class="gallery-caption"><p class="gallery-caption-title">Number 19</p><p class="gallery-caption-meta">Digital, 50&ndash;85mm &middot; f/2.8&ndash;4 &middot; 1/160 sec &middot; ISO 200 &middot; Natural doorway shade / available light</p>
         <p class="gallery-caption-text">A study in doorway light and natural shade.</p>
-        <a class="gallery-view-link" href="galleries/number-19.html">View full series →</a></div></div>
-    <div class="gallery-item"><a href="galleries/the-green-hour.html"><img loading="lazy" decoding="async" src="assets/covers/the-green-hour.png" alt="The Green Hour"></a><div class="gallery-caption"><p class="gallery-caption-title">The Green Hour</p><p class="gallery-caption-meta">Digital, 50–85mm · f/2.8–4 · 1/160 sec · ISO 200 · Natural doorway shade / available light</p>
+        <a class="gallery-view-link" href="galleries/number-19.html">View full series &rarr;</a></div></div>
+    <div class="gallery-item"><a href="galleries/the-green-hour.html"><img loading="lazy" decoding="async" src="assets/covers/the-green-hour.png" alt="The Green Hour"></a><div class="gallery-caption"><p class="gallery-caption-title">The Green Hour</p><p class="gallery-caption-meta">Digital, 50&ndash;85mm &middot; f/2.8&ndash;4 &middot; 1/160 sec &middot; ISO 200 &middot; Natural doorway shade / available light</p>
         <p class="gallery-caption-text">Golden tones and soft afternoon light.</p>
-        <a class="gallery-view-link" href="galleries/the-green-hour.html">View full series →</a></div></div>
-    <div class="gallery-item"><a href="galleries/bohemian-adventures.html"><img loading="lazy" decoding="async" src="assets/from-drive/1-olZ3nKmwRHzjBOA59nDy3STVTcy6Mcq.png" alt="Bohemian Adventures"></a><div class="gallery-caption"><p class="gallery-caption-title">Bohemian Adventures</p><p class="gallery-caption-meta">Digital, 2024 · Natural Light</p>
+        <a class="gallery-view-link" href="galleries/the-green-hour.html">View full series &rarr;</a></div></div>
+    <div class="gallery-item"><a href="galleries/bohemian-adventures.html"><img loading="lazy" decoding="async" src="assets/from-drive/1-olZ3nKmwRHzjBOA59nDy3STVTcy6Mcq.png" alt="Bohemian Adventures"></a><div class="gallery-caption"><p class="gallery-caption-title">Bohemian Adventures</p><p class="gallery-caption-meta">Digital, 2024 &middot; Natural Light</p>
         <p class="gallery-caption-text">Free-spirited moments in natural light.</p>
-        <a class="gallery-view-link" href="galleries/bohemian-adventures.html">View full series →</a></div></div>
-    <div class="gallery-item"><a href="galleries/morning-softness.html"><img loading="lazy" decoding="async" src="assets/covers/morning-softness.png" alt="Morning Softness"></a><div class="gallery-caption"><p class="gallery-caption-title">Morning Softness</p><p class="gallery-caption-meta">Digital, 2024 · Soft Light</p>
+        <a class="gallery-view-link" href="galleries/bohemian-adventures.html">View full series &rarr;</a></div></div>
+    <div class="gallery-item"><a href="galleries/morning-softness.html"><img loading="lazy" decoding="async" src="assets/covers/morning-softness.png" alt="Morning Softness"></a><div class="gallery-caption"><p class="gallery-caption-title">Morning Softness</p><p class="gallery-caption-meta">Digital, 2024 &middot; Soft Light</p>
         <p class="gallery-caption-text">Quiet mornings and diffused soft light.</p>
-        <a class="gallery-view-link" href="galleries/morning-softness.html">View full series →</a></div></div>
-    <div class="gallery-item"><a href="galleries/warehouse-vibes.html"><img loading="lazy" decoding="async" src="assets/Warehouse-Vibes/photo-20260630-044823.jpg" alt="Warehouse Vibes"></a><div class="gallery-caption"><p class="gallery-caption-title">Warehouse Vibes</p><p class="gallery-caption-meta">Digital, 2024 · Available Light</p>
+        <a class="gallery-view-link" href="galleries/morning-softness.html">View full series &rarr;</a></div></div>
+    <div class="gallery-item"><a href="galleries/warehouse-vibes.html"><img loading="lazy" decoding="async" src="assets/Warehouse-Vibes/photo-20260630-044823.jpg" alt="Warehouse Vibes"></a><div class="gallery-caption"><p class="gallery-caption-title">Warehouse Vibes</p><p class="gallery-caption-meta">Digital, 2024 &middot; Available Light</p>
         <p class="gallery-caption-text">Raw industrial spaces and unfiltered light.</p>
-        <a class="gallery-view-link" href="galleries/warehouse-vibes.html">View full series →</a></div></div>
+        <a class="gallery-view-link" href="galleries/warehouse-vibes.html">View full series &rarr;</a></div></div>
   </div>
 
-  <h2 class="gallery-section-label">Series II — Up Close/Girlfriend Experience</h2>
+  <h2 class="gallery-section-label">Series II &mdash; Up Close/Girlfriend Experience</h2>
   <div class="gallery-row">
     <div class="gallery-item"><a href="galleries/shadowed-affections-a-nights-embrace.html"><img loading="lazy" decoding="async" src="assets/from-drive/1ARdBtq69QCSMzmj2A1JvKzX4cpHB_Io7.png" alt="Shadowed Affections: A Night's Embrace"></a><div class="gallery-caption"><p class="gallery-caption-title">Shadowed Affections: A Night's Embrace</p><p class="gallery-caption-meta"></p>
-        <p class="gallery-caption-text">The city speaks in hushed tones as the sun sets, and she listens, her presence a silent narrative woven into the fabric of the urban night. The city's whispers follow her back to the hotel, where the echoes of the night's adventures linger, a collection of intimate moments captured in the shadows and the echoes of the streets.
-</p>
-        <a class="gallery-view-link" href="galleries/shadowed-affections-a-nights-embrace.html">View full series →</a></div></div>
-    <div class="gallery-item"><a href="galleries/domestic-helper.html" target="_self"><img loading="lazy" decoding="async" src="assets/domestic-helper/domestic-helper-01.png" alt="Domestic Helper"></a><div class="gallery-caption"><p class="gallery-caption-title">Domestic Helper</p><p class="gallery-caption-meta">Digital, 2024 · Available Light</p>
+        <p class="gallery-caption-text">The city speaks in hushed tones as the sun sets, and she listens, her presence a silent narrative woven into the fabric of the urban night.</p>
+        <a class="gallery-view-link" href="galleries/shadowed-affections-a-nights-embrace.html">View full series &rarr;</a></div></div>
+    <div class="gallery-item"><a href="galleries/domestic-helper.html" target="_self"><img loading="lazy" decoding="async" src="assets/domestic-helper/domestic-helper-01.png" alt="Domestic Helper"></a><div class="gallery-caption"><p class="gallery-caption-title">Domestic Helper</p><p class="gallery-caption-meta">Digital, 2024 &middot; Available Light</p>
         <p class="gallery-caption-text">An intimate portrait series exploring quiet domesticity and everyday grace.</p>
-        <a class="gallery-view-link" href="galleries/domestic-helper.html" target="_self">View full series →</a></div></div>
-  <div class="gallery-item">
-    <a href="galleries/wine-cellar-blues-tan.html">
-      <img loading="lazy" decoding="async" src="assets/Wine-cellar-blues-tan/photo-20260620-022921.jpg" alt="Wine Cellar Blues Tan">
-    </a>
-    <div class="gallery-caption">
-      <p class="gallery-caption-title">Wine Cellar Blues Tan</p>
-      <p class="gallery-caption-meta">Digital, 2026 · Available Light</p>
-      <a class="gallery-view-link" href="galleries/wine-cellar-blues-tan.html">View full series →</a>
+        <a class="gallery-view-link" href="galleries/domestic-helper.html" target="_self">View full series &rarr;</a></div></div>
+    <div class="gallery-item">
+      <a href="galleries/wine-cellar-blues-tan.html">
+        <img loading="lazy" decoding="async" src="assets/Wine-cellar-blues-tan/photo-20260620-022921.jpg" alt="Wine Cellar Blues Tan">
+      </a>
+      <div class="gallery-caption">
+        <p class="gallery-caption-title">Wine Cellar Blues Tan</p>
+        <p class="gallery-caption-meta">Digital, 2026 &middot; Available Light</p>
+        <a class="gallery-view-link" href="galleries/wine-cellar-blues-tan.html">View full series &rarr;</a>
+      </div>
     </div>
-  </div>
+    <div class="gallery-item"><a href="galleries/the-bedroom-suite.html"><img loading="lazy" decoding="async" src="assets/from-drive/1kom-InAWdf5YAoAILb9hvxC4NXeqQjCW.jpg" alt="The Bedroom Suite"></a><div class="gallery-caption"><p class="gallery-caption-title">The Bedroom Suite</p><p class="gallery-caption-meta"></p>
+        <p class="gallery-caption-text">Caught in the heat of the moment.</p>
+        <a class="gallery-view-link" href="galleries/the-bedroom-suite.html">View full series &rarr;</a></div></div>
+    <div class="gallery-item"><a href="https://drive.google.com/drive/folders/1TsqMo_V53rMHgSnkQqBobh46_N4B0YI-" target="_blank" rel="noopener"><img loading="lazy" decoding="async" src="https://drive.google.com/thumbnail?id=1LNZgm1H4vmyeAWo1nF1bFV3HGO9zAyD9&sz=w2000" alt="Mile High Helper"></a><div class="gallery-caption"><p class="gallery-caption-title">Mile High Helper</p><p class="gallery-caption-meta"></p>
+        <p class="gallery-caption-text">Whimsical flights contrast her reserved routine. Sheryl's duality: Soft skies meet steadfast heart.</p>
+        <a class="gallery-view-link" href="https://drive.google.com/drive/folders/1TsqMo_V53rMHgSnkQqBobh46_N4B0YI-" target="_blank" rel="noopener">View full series &rarr;</a></div></div>
   </div>
 
   <p class="gallery-section-note" style="text-align:center; font-family:'Cormorant Garamond',serif; font-style:italic; color:var(--text-soft); margin:1.5em 0 0.5em;">
-    The on-location girlfriend experiences — Thailand, Boston, Capri &amp; Tokyo — have moved to
-    <a href="come-away-with-me.html" style="color:var(--rose); text-decoration:none;">Come Away with Me →</a>
+    The on-location girlfriend experiences &mdash; Thailand, Boston, Capri &amp; Tokyo &mdash; have moved to
+    <a href="come-away-with-me.html" style="color:var(--rose); text-decoration:none;">Come Away with Me &rarr;</a>
   </p>
 
-<h2 class="gallery-section-label">Series IV — Spreading Her Wings</h2>
+<h2 class="gallery-section-label">Series IV &mdash; Spreading Her Wings</h2>
 <div class="gallery-row">
-
 
   <div class="gallery-item">
     <a href="galleries/softness-in-surrender.html">
       <img loading="lazy" decoding="async" src="assets/Softness-in-Surrender/Surrender%20(1).JPG" alt="Softness in Surrender">
     </a>
-
     <div class="gallery-caption">
       <p class="gallery-caption-title">Softness in Surrender</p>
-      <p class="gallery-caption-meta">Digital, 2024 · Available Light</p>
-
+      <p class="gallery-caption-meta">Digital, 2024 &middot; Available Light</p>
       <p class="gallery-caption-text">
         An intimate roadside series that leans into softness, quiet motion, and
         the lingering feeling of surrender beneath late afternoon light.
       </p>
-
       <a class="gallery-view-link" href="galleries/softness-in-surrender.html">
-        View full series →
+        View full series &rarr;
       </a>
     </div>
   </div>
@@ -659,18 +240,15 @@
     <a href="galleries/sheryl-joyce-sweetheart.html">
       <img loading="lazy" decoding="async" src="assets/Sheryl-Joyce-Sweetheart/Sweetheart%20(1).PNG" alt="Sheryl Joyce Sweetheart">
     </a>
-
     <div class="gallery-caption">
       <p class="gallery-caption-title">Sheryl Joyce Sweetheart</p>
-      <p class="gallery-caption-meta">Digital, 2024 · Full Screen Slideshow</p>
-
+      <p class="gallery-caption-meta">Digital, 2024 &middot; Full Screen Slideshow</p>
       <p class="gallery-caption-text">
         A dedicated full-screen slideshow gallery that celebrates her sweetness
         and private presence in vivid, immersive frames.
       </p>
-
       <a class="gallery-view-link" href="galleries/sheryl-joyce-sweetheart.html">
-        View full series →
+        View full series &rarr;
       </a>
     </div>
   </div>
@@ -681,9 +259,9 @@
     </a>
     <div class="gallery-caption">
       <p class="gallery-caption-title">After the Bell</p>
-      <p class="gallery-caption-meta">Digital, 2024 · Available Light</p>
-      <p class="gallery-caption-text">You came over after work… and she’s already waiting for you.</p>
-      <a class="gallery-view-link" href="galleries/after-the-bell.html">View full series →</a>
+      <p class="gallery-caption-meta">Digital, 2024 &middot; Available Light</p>
+      <p class="gallery-caption-text">You came over after work&hellip; and she's already waiting for you.</p>
+      <a class="gallery-view-link" href="galleries/after-the-bell.html">View full series &rarr;</a>
     </div>
   </div>
 
@@ -693,9 +271,9 @@
     </a>
     <div class="gallery-caption">
       <p class="gallery-caption-title">Joyce Rocky Adventure</p>
-      <p class="gallery-caption-meta">Digital, 2026 · Available Light</p>
-      <p class="gallery-caption-text">Joyce at the water’s edge — sun-lit skin, cool streams, and the quiet energy of a woman rediscovering herself in the open air.</p>
-      <a class="gallery-view-link" href="galleries/joyce-rocky-adventure.html">View full series →</a>
+      <p class="gallery-caption-meta">Digital, 2026 &middot; Available Light</p>
+      <p class="gallery-caption-text">Joyce at the water's edge &mdash; sun-lit skin, cool streams, and the quiet energy of a woman rediscovering herself in the open air.</p>
+      <a class="gallery-view-link" href="galleries/joyce-rocky-adventure.html">View full series &rarr;</a>
     </div>
   </div>
 
@@ -705,20 +283,19 @@
     </a>
     <div class="gallery-caption">
       <p class="gallery-caption-title">Joyce Summertime Outdoor</p>
-      <p class="gallery-caption-meta">Digital, 2026 · Available Light</p>
-      <a class="gallery-view-link" href="galleries/joyce-summertime-outdoor.html">View full series →</a>
+      <p class="gallery-caption-meta">Digital, 2026 &middot; Available Light</p>
+      <a class="gallery-view-link" href="galleries/joyce-summertime-outdoor.html">View full series &rarr;</a>
     </div>
   </div>
-
 
 </div>
 
 <h2 class="gallery-section-label" id="new-galleries-label">New Galleries</h2>
 <div class="gallery-row">
-  <div class="gallery-item"><a href="galleries/the-gentle-art-of-comfort.html"><img loading="lazy" decoding="async" src="assets/The-Gentle-Art-of-Comfort/photo-20260704-044305.jpg" alt="The Gentle Art Of Comfort"></a><div class="gallery-caption"><p class="gallery-caption-title">The Gentle Art Of Comfort</p><a class="gallery-view-link" href="galleries/the-gentle-art-of-comfort.html">View full series →</a></div></div>
-<div class="gallery-item"><a href="galleries/northern-summer-fun.html"><img src="assets/Northern-Summer-Fun/photo-20260707-185737.jpg" alt="Northern Summer Fun"></a><div class="gallery-caption"><p class="gallery-caption-title">Northern Summer Fun</p><a class="gallery-view-link" href="galleries/northern-summer-fun.html">View full series →</a></div></div>
-<div class="gallery-item"><a href="galleries/engaged-couple.html"><img src="assets/Engaged-Couple/photo-20260707-224909.jpg" alt="Romance &amp; Betrayal"></a><div class="gallery-caption"><p class="gallery-caption-title">Romance &amp; Betrayal</p><a class="gallery-view-link" href="galleries/engaged-couple.html">View full series →</a></div></div>
-<div class="gallery-item"><a href="galleries/golden-hour-at-home.html"><img src="assets/Golden-Hour-at-Home/photo-20260708-042145-01.jpg" alt="Golden Hour At Home"></a><div class="gallery-caption"><p class="gallery-caption-title">Golden Hour At Home</p><a class="gallery-view-link" href="galleries/golden-hour-at-home.html">View full series →</a></div></div>
+  <div class="gallery-item"><a href="galleries/the-gentle-art-of-comfort.html"><img loading="lazy" decoding="async" src="assets/The-Gentle-Art-of-Comfort/photo-20260704-044305.jpg" alt="The Gentle Art Of Comfort"></a><div class="gallery-caption"><p class="gallery-caption-title">The Gentle Art Of Comfort</p><a class="gallery-view-link" href="galleries/the-gentle-art-of-comfort.html">View full series &rarr;</a></div></div>
+<div class="gallery-item"><a href="galleries/northern-summer-fun.html"><img src="assets/Northern-Summer-Fun/photo-20260707-185737.jpg" alt="Northern Summer Fun"></a><div class="gallery-caption"><p class="gallery-caption-title">Northern Summer Fun</p><a class="gallery-view-link" href="galleries/northern-summer-fun.html">View full series &rarr;</a></div></div>
+<div class="gallery-item"><a href="galleries/engaged-couple.html"><img src="assets/Engaged-Couple/photo-20260707-224909.jpg" alt="Romance &amp; Betrayal"></a><div class="gallery-caption"><p class="gallery-caption-title">Romance &amp; Betrayal</p><a class="gallery-view-link" href="galleries/engaged-couple.html">View full series &rarr;</a></div></div>
+<div class="gallery-item"><a href="galleries/golden-hour-at-home.html"><img src="assets/Golden-Hour-at-Home/photo-20260708-042145-01.jpg" alt="Golden Hour At Home"></a><div class="gallery-caption"><p class="gallery-caption-title">Golden Hour At Home</p><a class="gallery-view-link" href="galleries/golden-hour-at-home.html">View full series &rarr;</a></div></div>
 <!-- new-gallery-insert -->
 </div>
 
@@ -733,9 +310,8 @@
 
   <script src="lightbox.js"></script>
   <script>
-    /* ── Featured magazine covers: random photos (from the first 4) of random galleries ── */
+    /* ── Featured magazine covers: random selection from gallery pool ── */
     (function () {
-      // Each gallery: link + folder + its first-four photos + an enchanting cover line.
       var POOL = [
         { title: 'The Bedroom Suite', link: 'galleries/the-bedroom-suite.html', folder: 'assets/from-drive/', kicker: 'Behind Closed Doors', line: 'A room that holds its breath — and a woman who finally lets herself exhale.', photos: ['1kom-InAWdf5YAoAILb9hvxC4NXeqQjCW.jpg'] },
         { title: 'Eyes First, Hands Later', link: 'galleries/Stashed-companion.html', folder: 'assets/Stashed-companion/', kicker: 'The Reveal', line: 'She has been waiting for someone who looks before they touch — and now here you are.', photos: ['Stashed_companion 3.PNG','Stashed_companion 2.PNG','Stashed_companion 4.PNG','Stashed_companion 10.PNG'] },
@@ -743,10 +319,8 @@
         { title: 'The Transfer — After Hours', link: 'galleries/the-transfer--after-hours.html', folder: 'assets/The-Transfer--After-Hours/', kicker: 'After Hours', line: 'When the lights go down and the doors lock, the real work begins.', photos: ['photo-20260705-032359.jpg','photo-20260705-032403-01.jpg','photo-20260705-032406-02.jpg','photo-20260705-032409-03.jpg'] },
         { title: 'Interior Rooms', link: 'galleries/interior-rooms.html', folder: 'assets/Interior-Rooms/', kicker: 'Private Hours', line: 'The rooms she lets you into are never the ones you expected — and leaving is no longer a thought.', photos: ['photo-20260713-002700.jpg','photo-20260713-002704-01.jpg','photo-20260713-002708-02.jpg','photo-20260713-002711-03.jpg','photo-20260713-003323.jpg'] }
       ];
-
-      var COUNT = 3;           // covers to feature
+      var COUNT = 3;
       var ISSUE = 'No. 01';
-
       function shuffle(a) {
         for (var i = a.length - 1; i > 0; i--) {
           var j = Math.floor(Math.random() * (i + 1));
@@ -754,31 +328,24 @@
         }
         return a;
       }
-
       var grid = document.getElementById('promo-grid');
       if (!grid) { return; }
-
       var picks = shuffle(POOL.slice()).slice(0, COUNT);
-
       picks.forEach(function (g) {
         var photo = g.photos[Math.floor(Math.random() * g.photos.length)];
         var src = g.folder + encodeURIComponent(photo);
-
         var a = document.createElement('a');
         a.className = 'promo-cover';
         a.href = g.link;
-
         var img = document.createElement('img');
         img.src = src;
         img.alt = g.title;
         img.loading = 'lazy';
         img.decoding = 'async';
-
         var top = document.createElement('div');
         top.className = 'promo-cover-top';
         top.innerHTML = '<span class="promo-masthead">Sheryl Joyce</span>' +
                         '<span class="promo-issue">' + ISSUE + '</span>';
-
         var lines = document.createElement('div');
         lines.className = 'promo-cover-lines';
         var kicker = document.createElement('p'); kicker.className = 'promo-kicker'; kicker.textContent = g.kicker;
@@ -786,56 +353,10 @@
         var line   = document.createElement('p'); line.className = 'promo-line';    line.textContent = g.line;
         var cta    = document.createElement('span'); cta.className = 'promo-cta';   cta.textContent = 'View gallery →';
         lines.appendChild(kicker); lines.appendChild(title); lines.appendChild(line); lines.appendChild(cta);
-
         a.appendChild(img);
         a.appendChild(top);
         a.appendChild(lines);
         grid.appendChild(a);
-      });
-    })();
-  </script>
-
-  <!-- ─── Chapter 00: The Threshold — scroll-activation JS ─── -->
-  <script>
-    (function () {
-      var frames   = document.querySelectorAll('.threshold-frame');
-      var skipBtn  = document.querySelector('.threshold-skip');
-      var section  = document.getElementById('threshold-entryway');
-      if (!frames.length) return;
-
-      /* Activate each frame as it enters the viewport */
-      var frameObs = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) e.target.classList.add('is-active');
-        });
-      }, { threshold: 0.12 });
-      frames.forEach(function (f) { frameObs.observe(f); });
-
-      /* Show/hide skip button while any part of the entryway is visible */
-      if (skipBtn && section) {
-        var sectionObs = new IntersectionObserver(function (entries) {
-          if (entries[0].isIntersecting) {
-            skipBtn.classList.add('threshold-skip--visible');
-          } else {
-            skipBtn.classList.remove('threshold-skip--visible');
-          }
-        }, { threshold: 0.01 });
-        sectionObs.observe(section);
-      }
-
-      /* Smooth-scroll for skip / enter links; respects prefers-reduced-motion */
-      var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      var thresholdLinks = document.querySelectorAll('.threshold-skip, .threshold-enter');
-      thresholdLinks.forEach(function (link) {
-        link.addEventListener('click', function (e) {
-          var target = document.getElementById('main-portfolio');
-          if (!target) return;
-          e.preventDefault();
-          target.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
-          /* Move focus to the target for keyboard users */
-          if (!target.getAttribute('tabindex')) target.setAttribute('tabindex', '-1');
-          target.focus({ preventScroll: true });
-        });
       });
     })();
   </script>
