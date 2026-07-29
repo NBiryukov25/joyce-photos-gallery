@@ -326,6 +326,14 @@ def _remove_from_gallery_html(current: bytes, gallery: str, filename: str) -> by
                 captions.pop(idx)
                 text = _set_js_array(text, "captions", captions)
 
+    elif re.search(r"var slides\s*=\s*\[", text):
+        # Interior Rooms / cinematic zoom slideshow — remove the matching slide object
+        text = re.sub(
+            r"\n?\s*\{[^{}]*filename:\s*'" + re.escape(_safe_js(filename)) + r"'[^{}]*\},?",
+            "",
+            text,
+        )
+
     elif re.search(r'class="photo-grid"', text):
         # Try both path prefixes: galleries/ subdir uses ../, root-level uses plain
         for _prefix in (f"../assets/{gallery}/{filename}", f"assets/{gallery}/{filename}"):
@@ -376,6 +384,41 @@ def _updated_html(current: bytes, gallery: str, filename: str, caption: str, htm
         text = _insert_into_js_array(text, "filenames", filename)
         if re.search(r"var captions\s*=\s*\[", text):
             text = _insert_into_js_array(text, "captions", caption)
+    elif re.search(r"var slides\s*=\s*\[", text):
+        # Interior Rooms / cinematic zoom slideshow — append a slide object
+        new_slide = (
+            f"\n    {{ filename: '{_safe_js(filename)}', "
+            f"focalX: 50, focalY: 42, zoomEnd: 1.26, "
+            f"caption: '{_safe_js(caption)}' }},"
+        )
+
+        def _append_slide(m: re.Match) -> str:
+            inner = m.group(2).rstrip()
+            if inner and not inner.endswith(","):
+                inner += ","
+            return m.group(1) + inner + new_slide + "\n  " + m.group(3)
+
+        text = re.sub(r"(var slides\s*=\s*\[)([\s\S]*?)(\];)", _append_slide, text)
+
+        # If the page also has a masonry gallery section, add a thumbnail there too
+        if re.search(r'class="masonry-gallery"', text):
+            asset_path = f"../assets/{gallery}/{filename}"
+            ext = filename.rsplit(".", 1)[-1].lower()
+            if ext in _VIDEO_EXTS:
+                media_tag = f'      <video controls src="{asset_path}" style="width:100%;display:block;border-radius:4px;"></video>'
+            else:
+                media_tag = f'      <img loading="lazy" decoding="async" src="{asset_path}" alt="{_safe_html(caption or gallery)}">'
+            new_figure = (
+                f'\n    <figure class="bento-item">\n'
+                f'{media_tag}\n'
+                f'    </figure>'
+            )
+            text = re.sub(
+                r'(\n\s*</section>)',
+                new_figure + r'\1',
+                text,
+                count=1,
+            )
     elif re.search(r'class="bento-gallery"', text):
         # Bento grid gallery: append a figure element
         asset_path = f"../assets/{gallery}/{filename}"
@@ -943,6 +986,50 @@ def _remove_gallery_card(content: str, gallery_html: str) -> str | None:
     return "".join(new_parts) if removed else None
 
 
+def _remove_collection_entry(content: str, slug: str) -> str:
+    """Remove the "slug":{...} entry from friends.html's `var collections = {…}`
+    object. Returns content unchanged if the entry is not present. Uses brace +
+    string-aware matching so it never corrupts the surrounding JSON."""
+    key = f'"{slug}":'
+    start = content.find(key)
+    if start == -1:
+        return content
+    brace = content.find("{", start)
+    if brace == -1:
+        return content
+    depth = 0
+    in_str = False
+    esc = False
+    i = brace
+    while i < len(content):
+        c = content[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+        elif c == '"':
+            in_str = True
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                break
+        i += 1
+    if depth != 0:
+        return content  # malformed — bail without touching the file
+    end = i + 1
+    # absorb a trailing comma, or a leading comma if this was the last entry
+    if end < len(content) and content[end] == ",":
+        end += 1
+    elif start > 0 and content[start - 1] == ",":
+        start -= 1
+    return content[:start] + content[end:]
+
+
 async def _archive_gallery_on_github(gallery: str) -> list[str]:
     errors: list[str] = []
     timeout = httpx.Timeout(connect=10.0, read=60.0, write=30.0, pool=5.0)
@@ -995,8 +1082,9 @@ async def _archive_gallery_on_github(gallery: str) -> list[str]:
             if not ok:
                 errors.append("Failed to archive gallery page")
 
-    # 3. Remove card from index pages
+    # 3. Remove card (and, on friends.html, the leftover JS collections entry)
     gallery_html = html_path.split("/")[-1]
+    slug = gallery_html[:-5] if gallery_html.endswith(".html") else gallery.lower()
     for index_path in ("gallery.html", "friends.html", "senza-veli.html"):
         idx_url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/{index_path}"
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -1006,7 +1094,12 @@ async def _archive_gallery_on_github(gallery: str) -> list[str]:
             data = r.json()
             old_content = base64.b64decode(data["content"]).decode("utf-8")
             new_content = _remove_gallery_card(old_content, gallery_html)
-            if new_content is None:
+            # friends.html also carries a `var collections = {…}` entry that the
+            # card removal alone leaves behind — strip it too (this is the trail).
+            if index_path == "friends.html":
+                base = new_content if new_content is not None else old_content
+                new_content = _remove_collection_entry(base, slug)
+            if new_content is None or new_content == old_content:
                 continue
             pr = await client.put(idx_url, headers=_GH_HEADERS, json={
                 "message": f"Remove gallery card: {gallery}",
@@ -1016,6 +1109,19 @@ async def _archive_gallery_on_github(gallery: str) -> list[str]:
             })
             if pr.status_code not in (200, 201):
                 errors.append(f"Failed to update {index_path}")
+
+    # 4. Archive the share page → s/archive/{slug}.html (if one exists)
+    share_url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/s/{slug}.html"
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        r = await client.get(share_url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
+        if r.status_code == 200:
+            data = r.json()
+            ok = await _copy_then_delete(
+                client, data["download_url"], f"s/archive/{slug}.html",
+                share_url, data["sha"], f"Archive share page: {slug}",
+            )
+            if not ok:
+                errors.append("Failed to archive share page")
 
     return errors
 

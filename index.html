@@ -4,77 +4,398 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Joyce Photos · Collection I</title>
+  <meta name="description" content="Chapter 00 — The Threshold · Sheryl Joyce">
+  <title>Chapter 00 — The Threshold · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
   <style>
-:root { --text-normal:#1a1a1a; --text-muted:#6b6b6b; --background-modifier-border:#d4d4d4; --background-body:#faf9f7; }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{background-color:var(--background-body);background-image:url('assets/backgrounds/site-portrait.png');background-size:cover;background-position:center top;background-attachment:fixed;background-repeat:no-repeat;}
-html::before{content:'';position:fixed;inset:0;background:rgba(250,249,247,0.70);z-index:0;pointer-events:none;}
-body{position:relative;z-index:1;background:transparent;color:var(--text-normal);font-family:Georgia,"Times New Roman",serif;padding:3em 2em 5em;max-width:1100px;margin:0 auto;}
-.gallery-page-title{font-size:2.2em;font-weight:400;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.2em;margin-top:0.5em;}
-.gallery-page-subtitle{font-size:0.95em;font-weight:300;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2em;}
-.gallery-divider{border:none;border-top:1px solid var(--background-modifier-border);margin:1.5em 0 2em 0;}
-.gallery-section-label{font-size:0.78em;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.75em;margin-top:2em;padding-bottom:0.4em;border-bottom:1px solid var(--background-modifier-border);}
-.gallery-row{display:flex;flex-direction:row;overflow-x:auto;gap:20px;padding:0 0 18px 0;margin-bottom:1.5em;scrollbar-width:thin;scrollbar-color:var(--background-modifier-border) transparent;-webkit-overflow-scrolling:touch;}
-.gallery-row::-webkit-scrollbar{height:5px;}.gallery-row::-webkit-scrollbar-track{background:transparent;}.gallery-row::-webkit-scrollbar-thumb{background-color:var(--background-modifier-border);border-radius:3px;}
-.gallery-item{flex:0 0 auto;width:240px;display:flex;flex-direction:column;align-items:flex-start;}
-@media(max-width:600px){.gallery-item{width:68vw;}}
-.gallery-item a{display:block;width:100%;text-decoration:none;border:none;box-shadow:none;}
-.gallery-item img{width:100%;height:180px;object-fit:cover;display:block;border-radius:2px;transition:opacity 0.25s ease;box-shadow:0 2px 12px rgba(0,0,0,0.12);}
-.gallery-item a:hover img{opacity:0.88;}
-.gallery-caption{margin-top:10px;padding:0 2px;width:100%;}
-.gallery-caption-title{font-size:0.82em;font-weight:400;letter-spacing:0.03em;margin:0 0 3px 0;line-height:1.3;}
-.gallery-caption-meta{font-size:0.72em;font-weight:300;font-style:italic;color:var(--text-muted);margin:0;letter-spacing:0.01em;line-height:1.4;}
-.gallery-caption-text{font-size:0.74em;color:var(--text-muted);margin-top:4px;line-height:1.45;font-style:italic;}
-.gallery-view-link{display:inline-block;margin-top:5px;font-size:0.68em;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;border-bottom:1px solid var(--background-modifier-border);padding-bottom:1px;transition:color 0.2s;}
-.gallery-view-link:hover{color:var(--text-normal);border-bottom-color:var(--text-muted);}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: #0c0a09;
+      overflow-x: hidden;
+    }
+    body { font-family: 'Jost', Georgia, sans-serif; }
 
-.gallery-intro-headline{font-size:1.15em;font-weight:400;letter-spacing:0.02em;line-height:1.5;margin:1.5em 0 0.75em 0;color:var(--text-normal);max-width:780px;}
-.gallery-intro-body{font-size:0.92em;font-weight:300;line-height:1.8;color:var(--text-muted);max-width:780px;margin-bottom:1.5em;font-style:italic;}
-.nav-link{position:fixed;top:1rem;right:1.2rem;font-family:Georgia,serif;font-size:0.72rem;letter-spacing:0.22em;text-transform:uppercase;color:rgba(0,0,0,0.38);text-decoration:none;z-index:100;}
-.nav-link:hover{color:rgba(0,0,0,0.65);}
-</style>
+    /* ── Fixed nav ── */
+    .thr-nav-vip {
+      position: fixed;
+      top: 1.3rem;
+      left: 1.5rem;
+      z-index: 300;
+      font-family: 'Jost', sans-serif;
+      font-size: 0.6rem;
+      font-weight: 300;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.5);
+      text-decoration: none;
+      padding: 0.42em 0.95em;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 2px;
+      transition: color 0.25s, border-color 0.25s;
+    }
+    .thr-nav-vip:hover { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.38); }
+    .thr-nav-vip:focus-visible { outline: 2px solid rgba(255,255,255,0.5); outline-offset: 3px; }
+
+    .thr-skip {
+      position: fixed;
+      top: 1.3rem;
+      right: 1.5rem;
+      z-index: 300;
+      font-family: 'Jost', sans-serif;
+      font-size: 0.6rem;
+      font-weight: 300;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.82);
+      text-decoration: none;
+      padding: 0.42em 0.95em;
+      background: rgba(10, 8, 7, 0.58);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: color 0.25s, background 0.25s;
+    }
+    .thr-skip:hover { color: #fff; background: rgba(10, 8, 7, 0.82); }
+    .thr-skip:focus-visible { outline: 2px solid rgba(255,255,255,0.6); outline-offset: 3px; }
+
+    /* ── Frames ── */
+    .thr-frame {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    @supports (min-height: 100svh) { .thr-frame { min-height: 100svh; } }
+
+    /* Opening text */
+    .thr-frame--text {
+      background: #0c0a09;
+      padding: 5rem 2rem;
+    }
+    .thr-text-center {
+      text-align: center;
+      max-width: 460px;
+      padding: 0 1rem;
+    }
+    .thr-overline {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.64rem;
+      font-weight: 300;
+      letter-spacing: 0.52em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.36);
+      margin: 0 0 1.5em;
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 1.2s ease, transform 1.2s ease;
+    }
+    .thr-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: clamp(2.6rem, 9vw, 5.2rem);
+      line-height: 1.02;
+      color: #f4ede6;
+      margin: 0 0 1rem;
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 1.4s ease 0.18s, transform 1.4s ease 0.18s;
+    }
+    .thr-body-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-weight: 300;
+      font-size: clamp(0.97rem, 2.4vw, 1.18rem);
+      line-height: 1.8;
+      color: rgba(244, 237, 230, 0.62);
+      margin: 0;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 1.4s ease 0.38s, transform 1.4s ease 0.38s;
+    }
+
+    /* Image frames */
+    .thr-frame--img { background: #0c0a09; }
+    .thr-img-wrap { position: absolute; inset: 0; overflow: hidden; }
+    .thr-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0;
+      transform: scale(1.04);
+      transition: opacity 1.8s ease, transform 10s ease;
+    }
+    .thr-veil {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      background: linear-gradient(
+        to bottom,
+        rgba(10, 8, 7, 0.38) 0%,
+        rgba(10, 8, 7, 0.04) 28%,
+        rgba(10, 8, 7, 0.02) 58%,
+        rgba(10, 8, 7, 0.60) 100%
+      );
+    }
+    .thr-frame--reveal .thr-veil {
+      background: linear-gradient(
+        to bottom,
+        rgba(10, 8, 7, 0.20) 0%,
+        rgba(10, 8, 7, 0.0) 36%,
+        rgba(10, 8, 7, 0.0) 58%,
+        rgba(10, 8, 7, 0.48) 100%
+      );
+    }
+
+    /* Aside text overlay */
+    .thr-aside {
+      position: absolute;
+      bottom: 11%;
+      left: 0; right: 0;
+      z-index: 2;
+      text-align: center;
+      padding: 0 2rem;
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-weight: 300;
+      font-size: clamp(1rem, 2.8vw, 1.38rem);
+      color: rgba(244, 237, 230, 0.9);
+      text-shadow: 0 2px 18px rgba(0, 0, 0, 0.68);
+      margin: 0;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 1.4s ease 0.65s, transform 1.4s ease 0.65s;
+    }
+
+    /* Cue / enter frame */
+    .thr-frame--cue {
+      min-height: 26vh;
+      background: #0c0a09;
+    }
+    .thr-enter {
+      display: inline-block;
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-weight: 300;
+      font-size: clamp(1.1rem, 3vw, 1.48rem);
+      letter-spacing: 0.1em;
+      color: rgba(244, 237, 230, 0.62);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(244, 237, 230, 0.26);
+      padding-bottom: 3px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 1.2s ease, transform 1.2s ease, color 0.3s, border-color 0.3s;
+    }
+    .thr-enter:hover { color: #f4ede6; border-bottom-color: rgba(244, 237, 230, 0.68); }
+    .thr-enter:focus-visible { outline: 2px solid rgba(244, 237, 230, 0.5); outline-offset: 6px; }
+
+    /* Active states */
+    .thr-frame.is-active .thr-overline,
+    .thr-frame.is-active .thr-title,
+    .thr-frame.is-active .thr-body-text { opacity: 1; transform: translateY(0); }
+    .thr-frame.is-active .thr-img { opacity: 1; transform: scale(1.0); }
+    .thr-frame.is-active .thr-aside,
+    .thr-frame.is-active .thr-enter { opacity: 1; transform: translateY(0); }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .thr-overline, .thr-title, .thr-body-text,
+      .thr-img, .thr-aside, .thr-enter {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+      }
+    }
+
+    /* Mobile */
+    @media (max-width: 700px) {
+      .thr-frame--text { padding: 3.5rem 1.5rem; }
+      .thr-aside { bottom: 7%; padding: 0 1.2rem; }
+      .thr-nav-vip { top: 1rem; left: 1rem; font-size: 0.56rem; letter-spacing: 0.22em; padding: 0.38em 0.8em; }
+      .thr-skip { top: 1rem; right: 1rem; font-size: 0.56rem; letter-spacing: 0.22em; padding: 0.38em 0.8em; }
+    }
+
+    /* Desktop: portrait images on cinematic dark stage */
+    @media (min-width: 769px) {
+      .thr-frame--img {
+        display: grid;
+        place-items: center;
+        padding: clamp(3rem, 6vw, 6rem);
+        background:
+          radial-gradient(ellipse at 50% 46%, rgba(255, 248, 240, 0.045) 0%, transparent 58%),
+          #17191c;
+      }
+      .thr-frame--img .thr-img-wrap {
+        position: static;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: visible;
+        inset: auto;
+      }
+      .thr-frame--img .thr-img {
+        width: auto;
+        height: auto;
+        max-width: min(72vw, 760px);
+        max-height: 86vh;
+        object-fit: contain;
+        object-position: center;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.28), 0 24px 70px rgba(0,0,0,0.42);
+      }
+      .thr-frame--img .thr-veil { display: none; }
+      .thr-frame--with-aside .thr-aside {
+        bottom: 4%;
+        font-size: clamp(0.95rem, 1.5vw, 1.22rem);
+      }
+    }
+  </style>
+  <noscript><style>
+    .thr-overline, .thr-title, .thr-body-text,
+    .thr-img, .thr-aside, .thr-enter {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+  </style></noscript>
 </head>
 <body>
-  <a href="gallery.html" class="nav-link">VIP</a>
-  <div class="gallery-page-title">Collection I</div>
-  <div class="gallery-page-subtitle">An ongoing archive &nbsp;·&nbsp; Vol. 1</div>
-  <p class="gallery-intro-headline">Discover the Radiance of Sheryl Joyce – Alluring Filipino Beauty Captured in Timeless Light</p>
-  <p class="gallery-intro-body">This exquisite collection unveils Sheryl Joyce – a vision of tropical elegance and enigmatic grace. Her warm, sun-kissed Filipina features glow against lush landscapes, hinting at private moments of raw, unfiltered desire that lie beneath the surface. From the soft caress of golden hour on her curves to the playful dance of morning light on her silhouette, each image celebrates her magnetic allure and a complexity known only to the few.</p>
-  <hr class="gallery-divider">
 
-  <div class="gallery-section-label">Series I — Light &amp; Form</div>
-  <div class="gallery-row">
-    <div class="gallery-item"><a href="galleries/number-19.html"><img src="assets/covers/number-19.jpg" alt="Number 19"></a><div class="gallery-caption"><p class="gallery-caption-title">Number 19</p><p class="gallery-caption-meta">Digital, 50–85mm · f/2.8–4 · 1/160 sec · ISO 200 · Natural doorway shade / available light</p>
-        <p class="gallery-caption-text">A study in doorway light and natural shade.</p>
-        <a class="gallery-view-link" href="galleries/number-19.html">View full series →</a></div></div>
-    <div class="gallery-item"><a href="galleries/the-green-hour.html"><img src="assets/covers/the-green-hour.png" alt="The Green Hour"></a><div class="gallery-caption"><p class="gallery-caption-title">The Green Hour</p><p class="gallery-caption-meta">Digital, 50–85mm · f/2.8–4 · 1/160 sec · ISO 200 · Natural doorway shade / available light</p>
-        <p class="gallery-caption-text">Golden tones and soft afternoon light.</p>
-        <a class="gallery-view-link" href="galleries/the-green-hour.html">View full series →</a></div></div>
-    <div class="gallery-item"><a href="https://drive.google.com/drive/folders/1c0lLjLL5kDPUt_PO-tRMBp8SBZK0Syhx" target="_blank" rel="noopener"><img src="assets/covers/bohemian-adventures.png" alt="Bohemian Adventures"></a><div class="gallery-caption"><p class="gallery-caption-title">Bohemian Adventures</p><p class="gallery-caption-meta">Digital, 2024 · Natural Light</p>
-        <p class="gallery-caption-text">Free-spirited moments in natural light.</p>
-        <a class="gallery-view-link" href="https://drive.google.com/drive/folders/1c0lLjLL5kDPUt_PO-tRMBp8SBZK0Syhx" target="_blank" rel="noopener">View full series →</a></div></div>
-    <div class="gallery-item"><a href="galleries/morning-softness.html"><img src="assets/covers/morning-softness.png" alt="Morning Softness"></a><div class="gallery-caption"><p class="gallery-caption-title">Morning Softness</p><p class="gallery-caption-meta">Digital, 2024 · Soft Light</p>
-        <p class="gallery-caption-text">Quiet mornings and diffused soft light.</p>
-        <a class="gallery-view-link" href="galleries/morning-softness.html">View full series →</a></div></div>
+  <a href="vip.html" class="thr-nav-vip" aria-label="VIP members area">VIP</a>
+  <a href="gallery.html" class="thr-skip" aria-label="Skip introduction and go directly to the gallery">Skip to Gallery</a>
+
+  <!-- ─── Frame 0: Opening text ─── -->
+  <div class="thr-frame thr-frame--text">
+    <div class="thr-text-center">
+      <p class="thr-overline">CHAPTER 00</p>
+      <h1 class="thr-title">The Threshold</h1>
+      <p class="thr-body-text">Some galleries begin with a photograph.<br>This one begins with an arrival.</p>
+    </div>
   </div>
 
-  <div class="gallery-section-label">Series II — Landscapes</div>
-  <div class="gallery-row">
-    <div class="gallery-item"><a href="https://drive.google.com/drive/folders/1TsqMo_V53rMHgSnkQqBobh46_N4B0YI-" target="_blank" rel="noopener"><img src="https://drive.google.com/thumbnail?id=1LNZgm1H4vmyeAWo1nF1bFV3HGO9zAyD9&amp;sz=w2000" alt="Mile High Helper"></a><div class="gallery-caption"><p class="gallery-caption-title">Mile High Helper</p><p class="gallery-caption-meta"></p>
-        <p class="gallery-caption-text">Whimsical flights contrast her reserved routine. Sheryl's duality: Soft skies meet steadfast heart. 😊💖</p>
-        <a class="gallery-view-link" href="https://drive.google.com/drive/folders/1TsqMo_V53rMHgSnkQqBobh46_N4B0YI-" target="_blank" rel="noopener">View full series →</a></div></div>
-    <div class="gallery-item"><a href="galleries/the-bedroom-suite.html"><img src="https://drive.google.com/thumbnail?id=1kom-InAWdf5YAoAILb9hvxC4NXeqQjCW&amp;sz=w2000" alt="The Bedroom Suite"></a><div class="gallery-caption"><p class="gallery-caption-title">The Bedroom Suite</p><p class="gallery-caption-meta"></p>
-        <p class="gallery-caption-text">Caught in the heat of the moment. The scent of her hair is intoxicating, and the warmth of her skin is the only thing that matters right now.</p>
-        <a class="gallery-view-link" href="galleries/the-bedroom-suite.html">View full series →</a></div></div>
-    <div class="gallery-item"><a href="galleries/shadowed-affections-a-nights-embrace.html"><img src="https://drive.google.com/thumbnail?id=1ARdBtq69QCSMzmj2A1JvKzX4cpHB_Io7&amp;sz=w2000" alt="Shadowed Affections: A Night's Embrace"></a><div class="gallery-caption"><p class="gallery-caption-title">Shadowed Affections: A Night's Embrace</p><p class="gallery-caption-meta"></p>
-        <p class="gallery-caption-text">The city speaks in hushed tones as the sun sets, and she listens, her presence a silent narrative woven into the fabric of the urban night. The city's whispers follow her back to the hotel, where the echoes of the night's adventures linger, a collection of intimate moments captured in the shadows and the echoes of the streets.
-</p>
-        <a class="gallery-view-link" href="galleries/shadowed-affections-a-nights-embrace.html">View full series →</a></div></div>
-    <div class="gallery-item"><a href="galleries/domestic-helper.html" target="_self"><img src="assets/domestic-helper/domestic-helper-01.png" alt="Domestic Helper"></a><div class="gallery-caption"><p class="gallery-caption-title">Domestic Helper</p><p class="gallery-caption-meta">Digital, 2024 · Available Light</p>
-        <p class="gallery-caption-text">An intimate portrait series exploring quiet domesticity and everyday grace.</p>
-        <a class="gallery-view-link" href="galleries/domestic-helper.html" target="_self">View full series →</a></div></div>
+  <!-- ─── Frame 1: Quiet opening portrait ─── -->
+  <div class="thr-frame thr-frame--img" data-frame="1">
+    <div class="thr-img-wrap">
+      <img
+        src="assets/Entryway/Entryway__%2017.png"
+        alt="A still portrait near the corridor — she meets the viewer's gaze, mint off-shoulder top, architecture behind her"
+        class="thr-img"
+        style="object-position: center top;"
+        loading="eager"
+        fetchpriority="high"
+      >
+    </div>
+    <div class="thr-veil"></div>
   </div>
+
+  <!-- ─── Frame 2: Back to viewer, colonnade corridor ─── -->
+  <div class="thr-frame thr-frame--img" data-frame="2">
+    <div class="thr-img-wrap">
+      <img
+        src="assets/Entryway/Entryway__%204.png"
+        alt="Seen from behind in a sun-lit colonnade corridor, she looks into the architectural space ahead"
+        class="thr-img"
+        style="object-position: center center;"
+        loading="lazy"
+      >
+    </div>
+    <div class="thr-veil"></div>
+  </div>
+
+  <!-- ─── Frame 3: Walking, hair mid-motion ─── -->
+  <div class="thr-frame thr-frame--img" data-frame="3">
+    <div class="thr-img-wrap">
+      <img
+        src="assets/Entryway/Entryway__%209.png"
+        alt="She walks past the elevator, hair caught in motion, glancing back over her shoulder"
+        class="thr-img"
+        style="object-position: center 22%;"
+        loading="lazy"
+      >
+    </div>
+    <div class="thr-veil"></div>
+  </div>
+
+  <!-- ─── Frame 4: Full stride along columns ─── -->
+  <div class="thr-frame thr-frame--img" data-frame="4">
+    <div class="thr-img-wrap">
+      <img
+        src="assets/Entryway/Entryway__%2012.png"
+        alt="Full stride along architectural columns — the corridor stretches behind her, elevator receding"
+        class="thr-img"
+        style="object-position: center top;"
+        loading="lazy"
+      >
+    </div>
+    <div class="thr-veil"></div>
+  </div>
+
+  <!-- ─── Frame 5: Approaching glass doors + pivot text ─── -->
+  <div class="thr-frame thr-frame--img thr-frame--with-aside" data-frame="5">
+    <div class="thr-img-wrap">
+      <img
+        src="assets/Entryway/Entryway__%2015.png"
+        alt="She approaches the glass entrance doors, walking forward — the building opens to receive her"
+        class="thr-img"
+        style="object-position: center top;"
+        loading="lazy"
+      >
+    </div>
+    <div class="thr-veil"></div>
+    <p class="thr-aside">At the end of the corridor, someone was waiting.</p>
+  </div>
+
+  <!-- ─── Frame 6: Second woman revealed ─── -->
+  <div class="thr-frame thr-frame--img" data-frame="6">
+    <div class="thr-img-wrap">
+      <img
+        src="assets/Entryway/Entryway__%2018.jpeg"
+        alt="A second woman stands near the elevator — composed, still, waiting"
+        class="thr-img"
+        style="object-position: center top;"
+        loading="lazy"
+      >
+    </div>
+    <div class="thr-veil"></div>
+  </div>
+
+  <!-- ─── Frame 7: THE REVEAL — both women, hands clasped ─── -->
+  <div class="thr-frame thr-frame--img thr-frame--reveal" data-frame="7">
+    <div class="thr-img-wrap">
+      <img
+        src="assets/Entryway/Entryway__%201.png"
+        alt="Two women stand face-to-face in the corridor — hands clasped, the moment of meeting at the threshold"
+        class="thr-img"
+        style="object-position: center 30%;"
+        loading="lazy"
+      >
+    </div>
+    <div class="thr-veil"></div>
+  </div>
+
+  <!-- ─── Cue frame: Enter the Collection ─── -->
+  <div class="thr-frame thr-frame--cue">
+    <a href="gallery.html" class="thr-enter">Enter the Collection</a>
+  </div>
+
+  <script>
+    (function () {
+      var frames = document.querySelectorAll('.thr-frame');
+      if (!frames.length) return;
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) e.target.classList.add('is-active');
+        });
+      }, { threshold: 0.12 });
+      frames.forEach(function (f) { obs.observe(f); });
+    })();
+  </script>
 
 </body>
 </html>
