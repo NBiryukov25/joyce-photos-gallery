@@ -287,6 +287,42 @@ def _get_slides_filenames(text: str) -> list[str]:
     return re.findall(r"\bfilename:\s*'([^']+)'", m.group(1))
 
 
+def _get_slides_captions(text: str) -> list[str]:
+    """Extract caption values (JS-escaped) from var slides = [{caption: '...', ...}, ...]."""
+    m = re.search(r"var slides\s*=\s*\[([\s\S]*?)\];", text)
+    if not m:
+        return []
+    blocks = re.findall(r"\{[^{}]+\}", m.group(1))
+    result = []
+    for block in blocks:
+        cap_m = re.search(r"\bcaption:\s*'((?:[^'\\]|\\.)*)'", block)
+        result.append(cap_m.group(1) if cap_m else "")
+    return result
+
+
+def _set_slide_caption(text: str, idx: int, new_caption_js: str) -> str:
+    """Update the caption field of the idx-th slide object in var slides = [...]."""
+    m = re.search(r"(var slides\s*=\s*\[)([\s\S]*?)(\];)", text)
+    if not m:
+        return text
+    inner = m.group(2)
+    blocks = list(re.finditer(r"\{[^{}]+\}", inner))
+    if idx >= len(blocks):
+        return text
+    bm = blocks[idx]
+    old_block = bm.group(0)
+    if re.search(r"\bcaption:", old_block):
+        new_block = re.sub(
+            r"\bcaption:\s*'(?:[^'\\]|\\.)*'",
+            lambda _: f"caption: '{new_caption_js}'",
+            old_block,
+        )
+    else:
+        new_block = old_block.rstrip().rstrip("}").rstrip() + f", caption: '{new_caption_js}' }}"
+    inner_new = inner[: bm.start()] + new_block + inner[bm.end() :]
+    return text[: m.start(2)] + inner_new + text[m.end(2) :]
+
+
 def _reorder_slides(text: str, zero_based: list[int]) -> str:
     """Reorder slide objects inside var slides = [...] by zero-based index list."""
     m = re.search(r"(var slides\s*=\s*\[)([\s\S]*?)(\];)", text)
@@ -2403,6 +2439,16 @@ async def caption_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_T
     while len(captions) < len(filenames):
         captions.append("")
 
+    # Fallback: cinematic format uses var slides = [{filename, caption, ...}]
+    if not filenames and re.search(r"var slides\s*=\s*\[", text):
+        filenames = _get_slides_filenames(text)
+        captions = _get_slides_captions(text)
+        while len(captions) < len(filenames):
+            captions.append("")
+        context.user_data["cap_format"] = "slides"
+    else:
+        context.user_data["cap_format"] = "arrays"
+
     if not filenames:
         await query.edit_message_text(f"No photos found in {gallery}.")
         return ConversationHandler.END
@@ -2506,7 +2552,10 @@ async def _apply_caption_edit(update: Update, context: ContextTypes.DEFAULT_TYPE
         return CAPTION_FILE
 
     text = current_html.decode("utf-8")
-    text = _set_js_array(text, "captions", captions)
+    if context.user_data.get("cap_format") == "slides":
+        text = _set_slide_caption(text, idx, captions[idx])
+    else:
+        text = _set_js_array(text, "captions", captions)
     ok, err = await _gh_put_file(
         _html_rel_path(gallery), text.encode("utf-8"),
         f"Update caption for {filenames[idx]} in {gallery}",
