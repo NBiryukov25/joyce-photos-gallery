@@ -140,6 +140,7 @@
 
   <div class="topbar-controls">
     <button class="ui-btn" id="autoplay-btn">Auto ★</button>
+    <button class="ui-btn" id="mute-btn">🔇</button>
     <button class="ui-btn" id="fs-btn">Fullscreen</button>
     <a    class="ui-btn" href="../joyce-ultra.html">← Ultra</a>
     <a    class="ui-btn" href="../stories/sobra-private.html" style="letter-spacing:0.1em;">G O  I N S I D E</a>
@@ -184,11 +185,13 @@
   var prevBtn     = document.getElementById('prev-btn');
   var nextBtn     = document.getElementById('next-btn');
   var autoBtn     = document.getElementById('autoplay-btn');
+  var muteBtn     = document.getElementById('mute-btn');
   var fsBtn       = document.getElementById('fs-btn');
   var bgAudio     = document.getElementById('bg-audio');
 
   var current     = 0;
   var autoTimer   = null;
+  var videoMuted  = true;
   var slideEls    = [];
   var mediaEls    = [];
   var activeAnim  = null;
@@ -247,7 +250,10 @@
     captionEl.style.display = cap ? '' : 'none';
     counterEl.textContent   = (current + 1) + ' / ' + slides.length;
     var vid = mediaEls[current];
-    if (vid && vid.tagName === 'VIDEO') { try { vid.play(); } catch (e) {} }
+    if (vid && vid.tagName === 'VIDEO') {
+      vid.muted = videoMuted;
+      try { vid.play(); } catch (e) {}
+    }
   }
 
   function nudge(dir) {
@@ -270,6 +276,13 @@
     try { bgAudio.pause(); bgAudio.currentTime = 0; } catch (e) {}
   }
   autoBtn.addEventListener('click', function () { autoTimer ? stopAuto() : startAuto(); });
+
+  muteBtn.addEventListener('click', function () {
+    videoMuted = !videoMuted;
+    muteBtn.textContent = videoMuted ? '🔇' : '🔊';
+    var vid = mediaEls[current];
+    if (vid && vid.tagName === 'VIDEO') { vid.muted = videoMuted; }
+  });
 
   function toggleFS() {
     if (document.fullscreenElement) { document.exitFullscreen(); }
