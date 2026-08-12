@@ -53,36 +53,65 @@
 <script>
 (function () {
   var slides = [
+
     { filename: 'Sweetheart (00a).jpg', focalX: 52, focalY: 44, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (1).jpeg',  focalX: 50, focalY: 42, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (1a).JPG',  focalX: 48, focalY: 41, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (1b).PNG',  focalX: 51, focalY: 43, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (4).PNG',   focalX: 52, focalY: 44, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (20).PNG',  focalX: 49, focalY: 42, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (21).PNG',  focalX: 50, focalY: 44, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (22).PNG',  focalX: 52, focalY: 42, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (23).PNG',  focalX: 48, focalY: 43, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (25).PNG',  focalX: 51, focalY: 42, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (26).PNG',  focalX: 49, focalY: 44, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (27).PNG',  focalX: 50, focalY: 42, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (28).PNG',  focalX: 52, focalY: 41, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (29).PNG',  focalX: 48, focalY: 43, zoomEnd: 1.28, caption: '' },
+
     { filename: 'Sweetheart (30).PNG',  focalX: 50, focalY: 42, zoomEnd: 1.28, caption: '' },
-    { filename: 'photo-20260809-160922-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+
     { filename: 'photo-20260809-234803.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+
     { filename: 'photo-20260809-234805-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-    { filename: 'photo-20260809-234807-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-    { filename: 'photo-20260809-235142.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-    { filename: 'photo-20260809-235144-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-    { filename: 'photo-20260809-235445-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-    { filename: 'photo-20260809-235447-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-    { filename: 'photo-20260810-002927.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-    { filename: 'photo-20260810-002930-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-    { filename: 'photo-20260810-002932-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-    { filename: 'photo-20260810-002934-03.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-    { filename: 'photo-20260810-002937-04.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+
     { filename: 'photo-20260811-043935.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-  ];
+
+    { filename: 'photo-20260809-234807-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+
+    { filename: 'photo-20260809-235142.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+
+    { filename: 'photo-20260809-160922-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+
+    { filename: 'photo-20260809-235144-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+
+    { filename: 'photo-20260809-235445-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+
+    { filename: 'photo-20260809-235447-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+
+    { filename: 'photo-20260810-002927.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+
+    { filename: 'photo-20260810-002930-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+
+    { filename: 'photo-20260810-002932-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+
+    { filename: 'photo-20260810-002934-03.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+
+    { filename: 'photo-20260810-002937-04.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+    ];
   var BASE = '../assets/Sheryl-Joyce-Sweetheart/';
   var VIDEO_EXTS = ['mp4', 'mov', 'webm', 'm4v'];
   var ZOOM_MS = 8000, AUTOPLAY_MS = 8000;
