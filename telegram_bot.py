@@ -144,6 +144,20 @@ async def _gh_put_file(rel_path: str, content: bytes, message: str, sha: str | N
         return False, f"Network error: {e}"
 
 
+async def _gh_put_with_retry(rel_path: str, content: bytes, message: str, sha: str | None = None) -> tuple[bool, str]:
+    """_gh_put_file with up to 2 retries on failure (2 s, 4 s backoff)."""
+    delays = [0, 2, 4]
+    err = "unknown"
+    for attempt, delay in enumerate(delays):
+        if delay:
+            await asyncio.sleep(delay)
+        ok, err = await _gh_put_file(rel_path, content, message, sha=sha)
+        if ok:
+            return True, ""
+        logger.warning("GitHub PUT attempt %d/%d failed for %s: %s", attempt + 1, len(delays), rel_path, err)
+    return False, err
+
+
 async def _gh_delete_file(rel_path: str, sha: str, message: str) -> tuple[bool, str]:
     if not GITHUB_TOKEN:
         return False, "GITHUB_TOKEN not set"
@@ -1607,7 +1621,7 @@ async def _upload_and_register(
     filename = _make_filename(use_orig, orig_name, is_video=is_video, index=index)
     photo_rel = f"assets/{gallery}/{filename}"
 
-    ok, err = await _gh_put_file(photo_rel, upload_bytes, f"Add {filename} to {gallery}")
+    ok, err = await _gh_put_with_retry(photo_rel, upload_bytes, f"Add {filename} to {gallery}")
     if not ok:
         raise RuntimeError(f"Upload failed for {filename}: {err}")
 
@@ -1619,7 +1633,7 @@ async def _upload_and_register(
             raise RuntimeError("Could not find gallery template.")
         new_html = _new_gallery_html(template, gallery, filename, caption, target_page=target_page)
 
-    ok, err = await _gh_put_file(html_rel, new_html, f"Update {gallery} — add {filename}", sha=html_sha)
+    ok, err = await _gh_put_with_retry(html_rel, new_html, f"Update {gallery} — add {filename}", sha=html_sha)
     if not ok:
         raise RuntimeError(f"Page update failed for {filename}: {err}")
 
