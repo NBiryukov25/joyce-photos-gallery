@@ -83,7 +83,7 @@ NETLIFY_SITE_URL  = os.environ.get("NETLIFY_SITE_URL", "https://stalwart-crumble
 SHARE_SECRET      = os.environ.get("SHARE_SECRET", "")
 _SHARE_EXPIRY_DAYS = 30
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM, REORDER_BROWSE = range(28)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM, REORDER_BROWSE, DISPLAY_GALLERY, DISPLAY_SETTINGS = range(30)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -959,6 +959,7 @@ async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "/remove        — delete a photo or video\n"
         "/caption       — edit photo captions\n"
         "/reorder       — rearrange photo order\n"
+        "/display       — adjust gallery display settings\n"
         "/deletegallery — archive an entire gallery\n"
         "/share         — generate a shareable link\n"
         "/revoke        — info about share link expiry\n"
@@ -3209,6 +3210,220 @@ async def _conv_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 # ---------------------------------------------------------------------------
+# /display — gallery display settings
+# ---------------------------------------------------------------------------
+
+_ZOOM_END_CYCLE = [1.0, 1.15, 1.28, 1.40]
+_ZOOM_END_LABELS = {1.0: "Off (1.0)", 1.15: "Subtle (1.15)", 1.28: "Normal (1.28)", 1.40: "Strong (1.40)"}
+_MS_CYCLE = [5000, 8000, 12000]
+_MS_LABELS = {5000: "Fast 5s", 8000: "Normal 8s", 12000: "Slow 12s"}
+
+_TOUCH_RE = re.compile(
+    r"var tx = null;.*?shell\.addEventListener\('touchend'.*?\}, \{ passive: true \}\);",
+    re.DOTALL,
+)
+_KEYBOARD_RE = re.compile(
+    r"window\.addEventListener\('keydown'.*?\}\);",
+    re.DOTALL,
+)
+
+
+def _read_display_settings(text: str) -> dict:
+    s = {"zoom_end": 1.28, "zoom_ms": 8000, "auto_ms": 8000,
+         "arrows": True, "sound": True, "touch": True, "keyboard": True}
+    m = re.search(r"var ZOOM_MS\s*=\s*(\d+)", text)
+    if m:
+        s["zoom_ms"] = int(m.group(1))
+    m = re.search(r"var AUTOPLAY_MS\s*=\s*(\d+)", text)
+    if m:
+        s["auto_ms"] = int(m.group(1))
+    m = re.search(r"zoomEnd:\s*([\d.]+)", text)
+    if m:
+        s["zoom_end"] = round(float(m.group(1)), 2)
+    if "/* display-arrows:off */" in text:
+        s["arrows"] = False
+    if 'id="mute-btn" style="display:none"' in text:
+        s["sound"] = False
+    if "/* touch-swipe:off" in text:
+        s["touch"] = False
+    if "/* keyboard-nav:off" in text:
+        s["keyboard"] = False
+    return s
+
+
+def _apply_display_settings(text: str, settings: dict) -> str:
+    text = re.sub(r"var ZOOM_MS\s*=\s*\d+", f"var ZOOM_MS = {settings['zoom_ms']}", text)
+    text = re.sub(r"var AUTOPLAY_MS\s*=\s*\d+", f"var AUTOPLAY_MS = {settings['auto_ms']}", text)
+    ze = settings["zoom_end"]
+    text = re.sub(r"zoomEnd:\s*[\d.]+", f"zoomEnd: {ze:.2f}", text)
+
+    arrows_marker = "/* display-arrows:off */"
+    arrows_style = f'<style>{arrows_marker}.edge-control{{display:none!important}}</style>'
+    if settings["arrows"]:
+        text = re.sub(
+            r'<style>/\* display-arrows:off \*/\.edge-control\{display:none!important\}</style>\n?',
+            "", text,
+        )
+    else:
+        if arrows_marker not in text:
+            text = text.replace("</head>", f"{arrows_style}\n</head>")
+
+    if settings["sound"]:
+        text = re.sub(r'(<button[^>]*id="mute-btn") style="display:none"', r"\1", text)
+    else:
+        if 'id="mute-btn" style="display:none"' not in text:
+            text = re.sub(r'(<button[^>]*id="mute-btn")(?! style="display:none")', r'\1 style="display:none"', text)
+
+    if settings["touch"]:
+        text = re.sub(r"/\* touch-swipe:off\n(.*?)\n\*/", r"\1", text, flags=re.DOTALL)
+    else:
+        if "/* touch-swipe:off" not in text:
+            m = _TOUCH_RE.search(text)
+            if m:
+                orig = m.group(0)
+                text = text.replace(orig, f"/* touch-swipe:off\n{orig}\n*/")
+
+    if settings["keyboard"]:
+        text = re.sub(r"/\* keyboard-nav:off\n(.*?)\n\*/", r"\1", text, flags=re.DOTALL)
+    else:
+        if "/* keyboard-nav:off" not in text:
+            m = _KEYBOARD_RE.search(text)
+            if m:
+                orig = m.group(0)
+                text = text.replace(orig, f"/* keyboard-nav:off\n{orig}\n*/")
+
+    return text
+
+
+def _cycle_display_setting(settings: dict, key: str) -> dict:
+    s = dict(settings)
+    if key == "zoom_end":
+        cycle = _ZOOM_END_CYCLE
+        cur = min(cycle, key=lambda v: abs(v - s[key]))
+        s[key] = cycle[(cycle.index(cur) + 1) % len(cycle)]
+    elif key in ("zoom_ms", "auto_ms"):
+        cycle = _MS_CYCLE
+        cur = min(cycle, key=lambda v: abs(v - s[key]))
+        s[key] = cycle[(cycle.index(cur) + 1) % len(cycle)]
+    elif key in ("arrows", "sound", "touch", "keyboard"):
+        s[key] = not s[key]
+    return s
+
+
+def _display_menu_text(gallery: str, settings: dict) -> str:
+    return (
+        f"Display settings — {gallery}\n\n"
+        f"Tap a row to cycle through options, then tap Save."
+    )
+
+
+def _display_menu_kb(settings: dict) -> InlineKeyboardMarkup:
+    def onoff(v: bool) -> str:
+        return "On ✓" if v else "Off ✗"
+
+    ze_label = _ZOOM_END_LABELS.get(settings["zoom_end"], f"{settings['zoom_end']:.2f}")
+    zm_label = _MS_LABELS.get(settings["zoom_ms"], f"{settings['zoom_ms']}ms")
+    am_label = _MS_LABELS.get(settings["auto_ms"], f"{settings['auto_ms']}ms")
+
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(f"🔍 Zoom level: {ze_label}", callback_data="ds:zoom_end")],
+        [InlineKeyboardButton(f"⏱ Zoom speed: {zm_label}", callback_data="ds:zoom_ms")],
+        [InlineKeyboardButton(f"▶ Autoplay: {am_label}", callback_data="ds:auto_ms")],
+        [
+            InlineKeyboardButton(f"◀▶ Arrows: {onoff(settings['arrows'])}", callback_data="ds:arrows"),
+            InlineKeyboardButton(f"🔇 Sound btn: {onoff(settings['sound'])}", callback_data="ds:sound"),
+        ],
+        [
+            InlineKeyboardButton(f"👆 Touch: {onoff(settings['touch'])}", callback_data="ds:touch"),
+            InlineKeyboardButton(f"⌨ Keyboard: {onoff(settings['keyboard'])}", callback_data="ds:keyboard"),
+        ],
+        [InlineKeyboardButton("✓ Save Changes", callback_data="ds:done")],
+    ])
+
+
+async def cmd_display(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        await update.message.reply_text("Not authorized.")
+        return ConversationHandler.END
+    galleries = await _existing_galleries()
+    if not galleries:
+        await update.message.reply_text("No galleries found.")
+        return ConversationHandler.END
+    context.user_data["display_galleries"] = galleries
+    keyboard = [[InlineKeyboardButton(g, callback_data=f"dp:{i}")] for i, g in enumerate(galleries)]
+    await update.message.reply_text(
+        "Which gallery's display settings do you want to adjust?",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return DISPLAY_GALLERY
+
+
+async def display_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    idx = int(query.data[3:])
+    gallery = context.user_data["display_galleries"][idx]
+    context.user_data["display_gallery"] = gallery
+
+    html_bytes, _ = await _gh_get_file(_html_rel_path(gallery))
+    if not html_bytes:
+        await query.edit_message_text(f"Could not load {gallery} HTML.")
+        return ConversationHandler.END
+
+    text = html_bytes.decode("utf-8")
+    if "var slides" not in text and "var ZOOM_MS" not in text:
+        await query.edit_message_text(
+            f"{gallery} uses an older gallery format — display settings are only supported for cinematic galleries."
+        )
+        return ConversationHandler.END
+
+    settings = _read_display_settings(text)
+    context.user_data["display_settings"] = settings
+
+    await query.edit_message_text(
+        _display_menu_text(gallery, settings),
+        reply_markup=_display_menu_kb(settings),
+    )
+    return DISPLAY_SETTINGS
+
+
+async def display_setting_changed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+
+    key = query.data[3:]  # strip "ds:"
+    gallery = context.user_data["display_gallery"]
+    settings = context.user_data["display_settings"]
+
+    if key == "done":
+        await query.edit_message_text(f"Saving display settings for {gallery}…")
+        html_bytes, sha = await _gh_get_file(_html_rel_path(gallery))
+        if not html_bytes:
+            await query.edit_message_text("Could not load HTML to save.")
+            return ConversationHandler.END
+        new_html = _apply_display_settings(html_bytes.decode("utf-8"), settings)
+        ok, err = await _gh_put_with_retry(
+            _html_rel_path(gallery),
+            new_html.encode("utf-8"),
+            f"Display settings: {gallery}",
+            sha=sha,
+        )
+        if ok:
+            await query.edit_message_text(f"✓ Display settings saved for {gallery}.")
+        else:
+            await query.edit_message_text(f"Failed to save: {err}")
+        return ConversationHandler.END
+
+    settings = _cycle_display_setting(settings, key)
+    context.user_data["display_settings"] = settings
+    await query.edit_message_text(
+        _display_menu_text(gallery, settings),
+        reply_markup=_display_menu_kb(settings),
+    )
+    return DISPLAY_SETTINGS
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -3231,6 +3446,7 @@ def main() -> None:
             CommandHandler("share", cmd_share),
             CommandHandler("revoke", cmd_revoke),
             CommandHandler("deletegallery", cmd_deletegallery),
+            CommandHandler("display", cmd_display),
         ],
         states={
             CHOOSING_GALLERY:        [
@@ -3284,6 +3500,8 @@ def main() -> None:
             ],
             DELETING_GALLERY:         [CallbackQueryHandler(delete_gallery_chosen, pattern=r"^dg:")],
             DELETING_GALLERY_CONFIRM: [CallbackQueryHandler(delete_gallery_confirm, pattern=r"^dgconf:")],
+            DISPLAY_GALLERY:  [CallbackQueryHandler(display_gallery_chosen, pattern=r"^dp:")],
+            DISPLAY_SETTINGS: [CallbackQueryHandler(display_setting_changed, pattern=r"^ds:")],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel), CommandHandler("start", _conv_start)],
         name="main_conv",
@@ -3328,6 +3546,7 @@ def main() -> None:
                         BotCommand("share",     "Generate a shareable gallery link"),
                         BotCommand("revoke",    "Info about private share link expiry"),
                         BotCommand("deletegallery", "Archive an entire gallery (moves to archive, not deleted)"),
+                        BotCommand("display",   "Adjust gallery display settings"),
                         BotCommand("cancel",    "Cancel current operation"),
                     ])
                     await app.updater.start_polling(drop_pending_updates=True)
