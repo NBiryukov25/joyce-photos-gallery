@@ -3210,135 +3210,611 @@ async def _conv_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 # ---------------------------------------------------------------------------
-# /display — gallery display settings
+# /display — gallery style presets
 # ---------------------------------------------------------------------------
 
-_ZOOM_END_CYCLE = [1.0, 1.15, 1.28, 1.40]
-_ZOOM_END_LABELS = {1.0: "Off (1.0)", 1.15: "Subtle (1.15)", 1.28: "Normal (1.28)", 1.40: "Strong (1.40)"}
-_MS_CYCLE = [5000, 8000, 12000]
-_MS_LABELS = {5000: "Fast 5s", 8000: "Normal 8s", 12000: "Slow 12s"}
-
-_TOUCH_RE = re.compile(
-    r"var tx = null;.*?shell\.addEventListener\('touchend'.*?\}, \{ passive: true \}\);",
-    re.DOTALL,
-)
-_KEYBOARD_RE = re.compile(
-    r"window\.addEventListener\('keydown'.*?\}\);",
-    re.DOTALL,
-)
+def _escape_js_str(s: str) -> str:
+    return s.replace("\\", "\\\\").replace("'", "\\'")
 
 
-def _read_display_settings(text: str) -> dict:
-    s = {"zoom_end": 1.28, "zoom_ms": 8000, "auto_ms": 8000,
-         "arrows": True, "sound": True, "touch": True, "keyboard": True}
-    m = re.search(r"var ZOOM_MS\s*=\s*(\d+)", text)
-    if m:
-        s["zoom_ms"] = int(m.group(1))
-    m = re.search(r"var AUTOPLAY_MS\s*=\s*(\d+)", text)
-    if m:
-        s["auto_ms"] = int(m.group(1))
-    m = re.search(r"zoomEnd:\s*([\d.]+)", text)
-    if m:
-        s["zoom_end"] = round(float(m.group(1)), 2)
-    if "/* display-arrows:off */" in text:
-        s["arrows"] = False
-    if 'id="mute-btn" style="display:none"' in text:
-        s["sound"] = False
-    if "/* touch-swipe:off" in text:
-        s["touch"] = False
-    if "/* keyboard-nav:off" in text:
-        s["keyboard"] = False
-    return s
+def _extract_slides(html: str) -> list[dict] | None:
+    """Parse var slides = [...] from cinematic gallery HTML."""
+    m = re.search(r"var slides\s*=\s*\[", html)
+    if not m:
+        return None
+    start = m.end()
+    depth, i = 1, start
+    while i < len(html) and depth > 0:
+        if html[i] == "[":
+            depth += 1
+        elif html[i] == "]":
+            depth -= 1
+        i += 1
+    block = html[start : i - 1]
+    results = []
+    for obj in re.finditer(r"\{([^{}]+)\}", block):
+        t = obj.group(1)
+        fn = re.search(r"filename:\s*'([^']+)'", t)
+        if not fn:
+            continue
+        fx = re.search(r"focalX:\s*(\d+)", t)
+        fy = re.search(r"focalY:\s*(\d+)", t)
+        ze = re.search(r"zoomEnd:\s*([\d.]+)", t)
+        cap = re.search(r"caption:\s*'((?:[^'\\]|\\.)*)'", t)
+        results.append({
+            "filename": fn.group(1),
+            "focalX": int(fx.group(1)) if fx else 50,
+            "focalY": int(fy.group(1)) if fy else 42,
+            "zoomEnd": float(ze.group(1)) if ze else 1.28,
+            "caption": (cap.group(1).replace("\\'", "'") if cap else ""),
+        })
+    return results or None
 
 
-def _apply_display_settings(text: str, settings: dict) -> str:
-    text = re.sub(r"var ZOOM_MS\s*=\s*\d+", f"var ZOOM_MS = {settings['zoom_ms']}", text)
-    text = re.sub(r"var AUTOPLAY_MS\s*=\s*\d+", f"var AUTOPLAY_MS = {settings['auto_ms']}", text)
-    ze = settings["zoom_end"]
-    text = re.sub(r"zoomEnd:\s*[\d.]+", f"zoomEnd: {ze:.2f}", text)
+def _extract_gallery_meta(html: str) -> tuple[str, str, str]:
+    """Return (gallery_title, base_asset_url, back_href)."""
+    title_m = re.search(r'<div class="gallery-title">([^<]+)</div>', html)
+    title = title_m.group(1) if title_m else "Gallery"
+    base_m = re.search(r"var BASE\s*=\s*'([^']+)'", html)
+    base = base_m.group(1) if base_m else "../assets/Gallery/"
+    back_m = re.search(r'href="(\.\./[^"]+\.html)"', html)
+    back = back_m.group(1) if back_m else "../gallery.html"
+    return title, base, back
 
-    arrows_marker = "/* display-arrows:off */"
-    arrows_style = f'<style>{arrows_marker}.edge-control{{display:none!important}}</style>'
-    if settings["arrows"]:
-        text = re.sub(
-            r'<style>/\* display-arrows:off \*/\.edge-control\{display:none!important\}</style>\n?',
-            "", text,
+
+def _slides_js(slides: list[dict], default_zoom: float = 1.28) -> str:
+    parts = []
+    for s in slides:
+        cap = _escape_js_str(s.get("caption", ""))
+        ze = s.get("zoomEnd", default_zoom)
+        parts.append(
+            "    { filename: '" + _escape_js_str(s["filename"]) + "'"
+            + ", focalX: " + str(s.get("focalX", 50))
+            + ", focalY: " + str(s.get("focalY", 42))
+            + f", zoomEnd: {ze:.2f}"
+            + ", caption: '" + cap + "' }"
         )
-    else:
-        if arrows_marker not in text:
-            text = text.replace("</head>", f"{arrows_style}\n</head>")
-
-    if settings["sound"]:
-        text = re.sub(r'(<button[^>]*id="mute-btn") style="display:none"', r"\1", text)
-    else:
-        if 'id="mute-btn" style="display:none"' not in text:
-            text = re.sub(r'(<button[^>]*id="mute-btn")(?! style="display:none")', r'\1 style="display:none"', text)
-
-    if settings["touch"]:
-        text = re.sub(r"/\* touch-swipe:off\n(.*?)\n\*/", r"\1", text, flags=re.DOTALL)
-    else:
-        if "/* touch-swipe:off" not in text:
-            m = _TOUCH_RE.search(text)
-            if m:
-                orig = m.group(0)
-                text = text.replace(orig, f"/* touch-swipe:off\n{orig}\n*/")
-
-    if settings["keyboard"]:
-        text = re.sub(r"/\* keyboard-nav:off\n(.*?)\n\*/", r"\1", text, flags=re.DOTALL)
-    else:
-        if "/* keyboard-nav:off" not in text:
-            m = _KEYBOARD_RE.search(text)
-            if m:
-                orig = m.group(0)
-                text = text.replace(orig, f"/* keyboard-nav:off\n{orig}\n*/")
-
-    return text
+    return "[\n" + ",\n".join(parts) + "\n  ]"
 
 
-def _cycle_display_setting(settings: dict, key: str) -> dict:
-    s = dict(settings)
-    if key == "zoom_end":
-        cycle = _ZOOM_END_CYCLE
-        cur = min(cycle, key=lambda v: abs(v - s[key]))
-        s[key] = cycle[(cycle.index(cur) + 1) % len(cycle)]
-    elif key in ("zoom_ms", "auto_ms"):
-        cycle = _MS_CYCLE
-        cur = min(cycle, key=lambda v: abs(v - s[key]))
-        s[key] = cycle[(cycle.index(cur) + 1) % len(cycle)]
-    elif key in ("arrows", "sound", "touch", "keyboard"):
-        s[key] = not s[key]
-    return s
+def _build_html_classic(title: str, slides: list[dict], base: str, back_href: str) -> str:
+    """Classic Cinematic — Ken Burns forward zoom, 8 s, full controls always visible."""
+    sjs = _slides_js(slides)
+    L = [
+        '<!DOCTYPE html>', '<html lang="en">', '<head>',
+        '  <meta charset="UTF-8">',
+        '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+        f'  <title>{title} · Sheryl Joyce</title>',
+        '  <link rel="preconnect" href="https://fonts.googleapis.com">',
+        '  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300&display=swap" rel="stylesheet">',
+        '  <style>',
+        '    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }',
+        '    html, body { width: 100%; height: 100%; background: #060404; overflow: hidden; }',
+        '    .shell { position: relative; width: 100vw; height: 100vh; height: 100dvh; background: #060404; overflow: hidden; }',
+        '    .slide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.6s ease; }',
+        '    .slide.active { opacity: 1; }',
+        '    .slide img { max-width: 100%; max-height: 100%; display: block; user-select: none; -webkit-user-drag: none; pointer-events: none; }',
+        '    .slide video { max-width: 100%; max-height: 100%; display: block; }',
+        '    .top-ui { position: absolute; top: 0; left: 0; right: 0; z-index: 10; padding: 1.6rem 2.5rem 4rem; background: linear-gradient(to bottom, rgba(6,4,4,0.72) 0%, transparent 100%); pointer-events: none; }',
+        '    .gallery-title { font-family: \'Cormorant Garamond\', serif; font-size: 0.78rem; font-weight: 300; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(247,241,238,0.48); }',
+        '    .bottom-ui { position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; padding: 4rem 3rem 1.4rem; background: linear-gradient(to top, rgba(6,4,4,0.78) 0%, transparent 100%); display: flex; flex-direction: column; align-items: center; gap: 0.6rem; pointer-events: none; }',
+        '    .caption-el { font-family: \'Cormorant Garamond\', serif; font-size: 1.05rem; font-weight: 300; font-style: italic; color: rgba(247,241,238,0.92); letter-spacing: 0.04em; text-align: center; max-width: 520px; line-height: 1.55; }',
+        '    .counter-el { font-family: \'Jost\', sans-serif; font-size: 0.6rem; font-weight: 200; letter-spacing: 0.26em; color: rgba(247,241,238,0.26); }',
+        '    .edge-control { position: absolute; top: 50%; z-index: 20; width: 30px; height: 96px; padding: 0; border: 0; background: transparent; transform: translateY(-50%); cursor: pointer; }',
+        '    .edge-control-left { left: 0; } .edge-control-right { right: 0; }',
+        '    .edge-control svg { width: 14px; height: 48px; fill: none; stroke: rgba(255,255,255,0.38); stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s ease; }',
+        '    .edge-control:hover svg { stroke: rgba(255,255,255,0.92); }',
+        '    .topbar-controls { position: absolute; top: 1.3rem; right: 1.3rem; z-index: 20; display: flex; align-items: center; gap: 0.4rem; }',
+        '    .ui-btn { appearance: none; border: 1px solid rgba(255,255,255,0.16); border-radius: 999px; background: rgba(6,4,4,0.45); color: rgba(247,241,238,0.48); padding: 0.26rem 0.62rem; font-family: \'Jost\', sans-serif; font-size: 0.6rem; font-weight: 300; letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-block; transition: color 0.2s, border-color 0.2s; white-space: nowrap; }',
+        '    .ui-btn:hover { color: rgba(247,241,238,0.9); border-color: rgba(255,255,255,0.4); }',
+        '    @media (max-width: 600px) { .gallery-title { font-size: 0.7rem; } .caption-el { font-size: 0.95rem; } .topbar-controls { top: 0.9rem; right: 0.9rem; } .ui-btn { font-size: 0.56rem; padding: 0.22rem 0.5rem; } }',
+        '  </style>', '</head>', '<body>',
+        '<div class="shell" id="shell">',
+        '  <div class="top-ui"><div class="gallery-title">' + title + '</div></div>',
+        '  <div class="bottom-ui">',
+        '    <div class="caption-el" id="caption-el"></div>',
+        '    <div class="counter-el" id="counter-el"></div>',
+        '  </div>',
+        '  <button class="edge-control edge-control-left" id="prev-btn" aria-label="Previous photograph">',
+        '    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M18 3 L5 24 L18 45"/></svg>',
+        '  </button>',
+        '  <button class="edge-control edge-control-right" id="next-btn" aria-label="Next photograph">',
+        '    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M6 3 L19 24 L6 45"/></svg>',
+        '  </button>',
+        '  <div class="topbar-controls">',
+        '    <button class="ui-btn" id="autoplay-btn">Auto ★</button>',
+        '    <button class="ui-btn" id="mute-btn">🔇</button>',
+        '    <button class="ui-btn" id="fs-btn">Fullscreen</button>',
+        '    <a class="ui-btn" href="' + back_href + '">← Galleries</a>',
+        '  </div>',
+        '</div>',
+        '<script>', '(function () {',
+        '  var slides = ' + sjs + ';',
+        "  var BASE = '" + base + "';",
+        '  var VIDEO_EXTS = [\'mp4\',\'mov\',\'webm\',\'m4v\'];',
+        '  var ZOOM_MS = 8000, AUTOPLAY_MS = 8000;',
+        '  var shell = document.getElementById(\'shell\');',
+        '  var captionEl = document.getElementById(\'caption-el\');',
+        '  var counterEl = document.getElementById(\'counter-el\');',
+        '  var prevBtn = document.getElementById(\'prev-btn\');',
+        '  var nextBtn = document.getElementById(\'next-btn\');',
+        '  var autoBtn = document.getElementById(\'autoplay-btn\');',
+        '  var muteBtn = document.getElementById(\'mute-btn\');',
+        '  var fsBtn = document.getElementById(\'fs-btn\');',
+        '  var current = 0, autoTimer = null, videoMuted = true;',
+        '  var slideEls = [], mediaEls = [], activeAnim = null;',
+        '  var bottomUI = document.querySelector(\'.bottom-ui\');',
+        '  slides.forEach(function (s, i) {',
+        '    var div = document.createElement(\'div\'); div.className = \'slide\';',
+        '    var ext = s.filename.split(\'.\').pop().toLowerCase(); var el;',
+        '    if (VIDEO_EXTS.indexOf(ext) !== -1) {',
+        '      el = document.createElement(\'video\'); el.src = BASE + encodeURIComponent(s.filename);',
+        '      el.loop = true; el.muted = true; el.playsInline = true;',
+        '    } else {',
+        '      el = document.createElement(\'img\'); el.src = BASE + encodeURIComponent(s.filename);',
+        "      el.alt = '" + _escape_js_str(title) + " — ' + (i + 1); el.draggable = false;",
+        '    }',
+        '    div.appendChild(el); shell.insertBefore(div, bottomUI);',
+        '    slideEls.push(div); mediaEls.push(el);',
+        '  });',
+        '  function startZoom(i) {',
+        '    var el = mediaEls[i], s = slides[i];',
+        '    if (!el || el.tagName === \'VIDEO\') return;',
+        '    if (activeAnim) { try { activeAnim.cancel(); } catch (e) {} activeAnim = null; }',
+        '    el.style.transform = \'\';',
+        '    el.style.transformOrigin = s.focalX + \'% \' + s.focalY + \'%\';',
+        '    activeAnim = el.animate([{ transform: \'scale(1)\' }, { transform: \'scale(\' + s.zoomEnd + \')\' }], { duration: ZOOM_MS, easing: \'ease-in-out\', fill: \'forwards\' });',
+        '  }',
+        '  function resetMedia(i) { var el = mediaEls[i]; if (!el) return; if (el.tagName === \'VIDEO\') { try { el.pause(); el.currentTime = 0; } catch (e) {} } el.style.transform = \'\'; }',
+        '  function goTo(n) {',
+        '    var old = current; current = ((n % slides.length) + slides.length) % slides.length;',
+        '    slideEls[old].classList.remove(\'active\'); resetMedia(old);',
+        '    slideEls[current].classList.add(\'active\'); startZoom(current);',
+        '    var cap = slides[current].caption || \'\'; captionEl.textContent = cap; captionEl.style.display = cap ? \'\' : \'none\';',
+        '    counterEl.textContent = (current + 1) + \' / \' + slides.length;',
+        '    var vid = mediaEls[current]; if (vid && vid.tagName === \'VIDEO\') { vid.muted = videoMuted; try { vid.play(); } catch (e) {} }',
+        '  }',
+        '  function nudge(dir) { goTo(current + dir); if (autoTimer) { stopAuto(); startAuto(); } }',
+        '  prevBtn.addEventListener(\'click\', function () { nudge(-1); });',
+        '  nextBtn.addEventListener(\'click\', function () { nudge(1); });',
+        '  function startAuto() { if (autoTimer) return; autoTimer = setInterval(function () { goTo(current + 1); }, AUTOPLAY_MS); autoBtn.textContent = \'Pause ★\'; }',
+        '  function stopAuto() { clearInterval(autoTimer); autoTimer = null; autoBtn.textContent = \'Auto ★\'; }',
+        '  autoBtn.addEventListener(\'click\', function () { autoTimer ? stopAuto() : startAuto(); });',
+        '  muteBtn.addEventListener(\'click\', function () { videoMuted = !videoMuted; muteBtn.textContent = videoMuted ? \'🔇\' : \'🔊\'; var vid = mediaEls[current]; if (vid && vid.tagName === \'VIDEO\') { vid.muted = videoMuted; } });',
+        '  function toggleFS() { if (document.fullscreenElement) { document.exitFullscreen(); } else { (shell.requestFullscreen || shell.webkitRequestFullscreen).call(shell); } }',
+        '  fsBtn.addEventListener(\'click\', toggleFS);',
+        '  document.addEventListener(\'fullscreenchange\', function () { fsBtn.textContent = document.fullscreenElement ? \'Exit\' : \'Fullscreen\'; });',
+        '  window.addEventListener(\'keydown\', function (e) { if (e.key === \'ArrowLeft\') { nudge(-1); } else if (e.key === \'ArrowRight\') { nudge(1); } else if (e.key === \'f\' || e.key === \'F\') { toggleFS(); } else if (e.key === \' \') { e.preventDefault(); autoTimer ? stopAuto() : startAuto(); } });',
+        '  var tx = null;',
+        '  shell.addEventListener(\'touchstart\', function (e) { tx = e.touches[0].clientX; }, { passive: true });',
+        '  shell.addEventListener(\'touchend\', function (e) { if (tx === null) return; var dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 44) nudge(dx < 0 ? 1 : -1); tx = null; }, { passive: true });',
+        '  goTo(0);',
+        '})();', '</script>', '</body>', '</html>',
+    ]
+    return '\n'.join(L)
 
 
-def _display_menu_text(gallery: str, settings: dict) -> str:
-    return (
-        f"Display settings — {gallery}\n\n"
-        f"Tap a row to cycle through options, then tap Save."
-    )
+def _build_html_intimate(title: str, slides: list[dict], base: str, back_href: str) -> str:
+    """Intimate Slow — breathing zoom, slow crossfades, controls fade away, 12 s timing."""
+    sjs = _slides_js(slides, default_zoom=1.06)
+    L = [
+        '<!DOCTYPE html>', '<html lang="en">', '<head>',
+        '  <meta charset="UTF-8">',
+        '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+        f'  <title>{title} · Sheryl Joyce</title>',
+        '  <link rel="preconnect" href="https://fonts.googleapis.com">',
+        '  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300&display=swap" rel="stylesheet">',
+        '  <style>',
+        '    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }',
+        '    html, body { width: 100%; height: 100%; background: #060404; overflow: hidden; }',
+        '    .shell { position: relative; width: 100vw; height: 100vh; height: 100dvh; background: #060404; overflow: hidden; }',
+        '    .slide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.9s ease; }',
+        '    .slide.active { opacity: 1; }',
+        '    .slide img { max-width: 100%; max-height: 100%; display: block; user-select: none; -webkit-user-drag: none; pointer-events: none; }',
+        '    .slide video { max-width: 100%; max-height: 100%; display: block; }',
+        '    .top-ui { position: absolute; top: 0; left: 0; right: 0; z-index: 10; padding: 1.6rem 2.5rem 4rem; background: linear-gradient(to bottom, rgba(6,4,4,0.55) 0%, transparent 100%); pointer-events: none; transition: opacity 0.6s ease; }',
+        '    .gallery-title { font-family: \'Cormorant Garamond\', serif; font-size: 0.78rem; font-weight: 300; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(247,241,238,0.38); }',
+        '    .bottom-ui { position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; padding: 4rem 3rem 1.4rem; background: linear-gradient(to top, rgba(6,4,4,0.65) 0%, transparent 100%); display: flex; flex-direction: column; align-items: center; gap: 0.6rem; pointer-events: none; transition: opacity 0.6s ease; }',
+        '    .caption-el { font-family: \'Cormorant Garamond\', serif; font-size: 1.1rem; font-weight: 300; font-style: italic; color: rgba(247,241,238,0.88); letter-spacing: 0.04em; text-align: center; max-width: 540px; line-height: 1.65; }',
+        '    .counter-el { font-family: \'Jost\', sans-serif; font-size: 0.6rem; font-weight: 200; letter-spacing: 0.26em; color: rgba(247,241,238,0.2); }',
+        '    .edge-control { position: absolute; top: 50%; z-index: 20; width: 30px; height: 96px; padding: 0; border: 0; background: transparent; transform: translateY(-50%); cursor: pointer; transition: opacity 0.6s ease; }',
+        '    .edge-control-left { left: 0; } .edge-control-right { right: 0; }',
+        '    .edge-control svg { width: 14px; height: 48px; fill: none; stroke: rgba(255,255,255,0.28); stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.3s ease; }',
+        '    .edge-control:hover svg { stroke: rgba(255,255,255,0.75); }',
+        '    .topbar-controls { position: absolute; top: 1.3rem; right: 1.3rem; z-index: 20; display: flex; align-items: center; gap: 0.4rem; transition: opacity 0.6s ease; }',
+        '    .ui-btn { appearance: none; border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; background: rgba(6,4,4,0.35); color: rgba(247,241,238,0.38); padding: 0.26rem 0.62rem; font-family: \'Jost\', sans-serif; font-size: 0.6rem; font-weight: 300; letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-block; transition: color 0.2s, border-color 0.2s; white-space: nowrap; }',
+        '    .ui-btn:hover { color: rgba(247,241,238,0.85); border-color: rgba(255,255,255,0.35); }',
+        '    .ui-hidden { opacity: 0; pointer-events: none; }',
+        '    @media (max-width: 600px) { .gallery-title { font-size: 0.7rem; } .caption-el { font-size: 0.98rem; } .topbar-controls { top: 0.9rem; right: 0.9rem; } .ui-btn { font-size: 0.56rem; padding: 0.22rem 0.5rem; } }',
+        '  </style>', '</head>', '<body>',
+        '<div class="shell" id="shell">',
+        '  <div class="top-ui" id="top-ui"><div class="gallery-title">' + title + '</div></div>',
+        '  <div class="bottom-ui" id="bottom-ui">',
+        '    <div class="caption-el" id="caption-el"></div>',
+        '    <div class="counter-el" id="counter-el"></div>',
+        '  </div>',
+        '  <button class="edge-control edge-control-left" id="prev-btn" aria-label="Previous photograph">',
+        '    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M18 3 L5 24 L18 45"/></svg>',
+        '  </button>',
+        '  <button class="edge-control edge-control-right" id="next-btn" aria-label="Next photograph">',
+        '    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M6 3 L19 24 L6 45"/></svg>',
+        '  </button>',
+        '  <div class="topbar-controls" id="topbar">',
+        '    <button class="ui-btn" id="autoplay-btn">Auto ★</button>',
+        '    <button class="ui-btn" id="mute-btn">🔇</button>',
+        '    <button class="ui-btn" id="fs-btn">Fullscreen</button>',
+        '    <a class="ui-btn" href="' + back_href + '">← Galleries</a>',
+        '  </div>',
+        '</div>',
+        '<script>', '(function () {',
+        '  var slides = ' + sjs + ';',
+        "  var BASE = '" + base + "';",
+        '  var VIDEO_EXTS = [\'mp4\',\'mov\',\'webm\',\'m4v\'];',
+        '  var ZOOM_MS = 12000, AUTOPLAY_MS = 12000;',
+        '  var shell = document.getElementById(\'shell\');',
+        '  var captionEl = document.getElementById(\'caption-el\');',
+        '  var counterEl = document.getElementById(\'counter-el\');',
+        '  var prevBtn = document.getElementById(\'prev-btn\');',
+        '  var nextBtn = document.getElementById(\'next-btn\');',
+        '  var autoBtn = document.getElementById(\'autoplay-btn\');',
+        '  var muteBtn = document.getElementById(\'mute-btn\');',
+        '  var fsBtn = document.getElementById(\'fs-btn\');',
+        '  var controlEls = [document.getElementById(\'top-ui\'), document.getElementById(\'bottom-ui\'), document.getElementById(\'topbar\'), prevBtn, nextBtn];',
+        '  var current = 0, autoTimer = null, videoMuted = true, hideTimer = null;',
+        '  var slideEls = [], mediaEls = [], activeAnim = null;',
+        '  var bottomUI = document.querySelector(\'.bottom-ui\');',
+        '  function showControls() {',
+        '    controlEls.forEach(function (el) { el.classList.remove(\'ui-hidden\'); });',
+        '    clearTimeout(hideTimer);',
+        '    hideTimer = setTimeout(function () { controlEls.forEach(function (el) { el.classList.add(\'ui-hidden\'); }); }, 3000);',
+        '  }',
+        '  shell.addEventListener(\'mousemove\', showControls);',
+        '  shell.addEventListener(\'touchstart\', showControls, { passive: true });',
+        '  showControls();',
+        '  slides.forEach(function (s, i) {',
+        '    var div = document.createElement(\'div\'); div.className = \'slide\';',
+        '    var ext = s.filename.split(\'.\').pop().toLowerCase(); var el;',
+        '    if (VIDEO_EXTS.indexOf(ext) !== -1) {',
+        '      el = document.createElement(\'video\'); el.src = BASE + encodeURIComponent(s.filename);',
+        '      el.loop = true; el.muted = true; el.playsInline = true;',
+        '    } else {',
+        '      el = document.createElement(\'img\'); el.src = BASE + encodeURIComponent(s.filename);',
+        "      el.alt = '" + _escape_js_str(title) + " — ' + (i + 1); el.draggable = false;",
+        '    }',
+        '    div.appendChild(el); shell.insertBefore(div, bottomUI);',
+        '    slideEls.push(div); mediaEls.push(el);',
+        '  });',
+        '  function startZoom(i) {',
+        '    var el = mediaEls[i], s = slides[i];',
+        '    if (!el || el.tagName === \'VIDEO\') return;',
+        '    if (activeAnim) { try { activeAnim.cancel(); } catch (e) {} activeAnim = null; }',
+        '    el.style.transform = \'\';',
+        '    el.style.transformOrigin = s.focalX + \'% \' + s.focalY + \'%\';',
+        '    activeAnim = el.animate(',
+        '      [{ transform: \'scale(1.0)\', offset: 0 }, { transform: \'scale(\' + s.zoomEnd + \')\', offset: 0.5 }, { transform: \'scale(1.01)\', offset: 1 }],',
+        '      { duration: ZOOM_MS, easing: \'ease-in-out\', fill: \'forwards\' }',
+        '    );',
+        '  }',
+        '  function resetMedia(i) { var el = mediaEls[i]; if (!el) return; if (el.tagName === \'VIDEO\') { try { el.pause(); el.currentTime = 0; } catch (e) {} } el.style.transform = \'\'; }',
+        '  function goTo(n) {',
+        '    var old = current; current = ((n % slides.length) + slides.length) % slides.length;',
+        '    slideEls[old].classList.remove(\'active\'); resetMedia(old);',
+        '    slideEls[current].classList.add(\'active\'); startZoom(current);',
+        '    var cap = slides[current].caption || \'\'; captionEl.textContent = cap; captionEl.style.display = cap ? \'\' : \'none\';',
+        '    counterEl.textContent = (current + 1) + \' / \' + slides.length;',
+        '    var vid = mediaEls[current]; if (vid && vid.tagName === \'VIDEO\') { vid.muted = videoMuted; try { vid.play(); } catch (e) {} }',
+        '  }',
+        '  function nudge(dir) { goTo(current + dir); if (autoTimer) { stopAuto(); startAuto(); } }',
+        '  prevBtn.addEventListener(\'click\', function () { nudge(-1); });',
+        '  nextBtn.addEventListener(\'click\', function () { nudge(1); });',
+        '  function startAuto() { if (autoTimer) return; autoTimer = setInterval(function () { goTo(current + 1); }, AUTOPLAY_MS); autoBtn.textContent = \'Pause ★\'; }',
+        '  function stopAuto() { clearInterval(autoTimer); autoTimer = null; autoBtn.textContent = \'Auto ★\'; }',
+        '  autoBtn.addEventListener(\'click\', function () { autoTimer ? stopAuto() : startAuto(); });',
+        '  muteBtn.addEventListener(\'click\', function () { videoMuted = !videoMuted; muteBtn.textContent = videoMuted ? \'🔇\' : \'🔊\'; var vid = mediaEls[current]; if (vid && vid.tagName === \'VIDEO\') { vid.muted = videoMuted; } });',
+        '  function toggleFS() { if (document.fullscreenElement) { document.exitFullscreen(); } else { (shell.requestFullscreen || shell.webkitRequestFullscreen).call(shell); } }',
+        '  fsBtn.addEventListener(\'click\', toggleFS);',
+        '  document.addEventListener(\'fullscreenchange\', function () { fsBtn.textContent = document.fullscreenElement ? \'Exit\' : \'Fullscreen\'; });',
+        '  window.addEventListener(\'keydown\', function (e) { if (e.key === \'ArrowLeft\') { nudge(-1); } else if (e.key === \'ArrowRight\') { nudge(1); } else if (e.key === \'f\' || e.key === \'F\') { toggleFS(); } else if (e.key === \' \') { e.preventDefault(); autoTimer ? stopAuto() : startAuto(); } });',
+        '  var tx = null;',
+        '  shell.addEventListener(\'touchstart\', function (e) { tx = e.touches[0].clientX; }, { passive: true });',
+        '  shell.addEventListener(\'touchend\', function (e) { if (tx === null) return; var dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 44) nudge(dx < 0 ? 1 : -1); tx = null; }, { passive: true });',
+        '  goTo(0);',
+        '})();', '</script>', '</body>', '</html>',
+    ]
+    return '\n'.join(L)
 
 
-def _display_menu_kb(settings: dict) -> InlineKeyboardMarkup:
-    def onoff(v: bool) -> str:
-        return "On ✓" if v else "Off ✗"
+def _build_html_immersive(title: str, slides: list[dict], base: str, back_href: str) -> str:
+    """Immersive Story — varied KB directions, autoplay ON, delayed captions, 10 s timing."""
+    sjs = _slides_js(slides, default_zoom=1.22)
+    L = [
+        '<!DOCTYPE html>', '<html lang="en">', '<head>',
+        '  <meta charset="UTF-8">',
+        '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+        f'  <title>{title} · Sheryl Joyce</title>',
+        '  <link rel="preconnect" href="https://fonts.googleapis.com">',
+        '  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300&display=swap" rel="stylesheet">',
+        '  <style>',
+        '    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }',
+        '    html, body { width: 100%; height: 100%; background: #060404; overflow: hidden; }',
+        '    .shell { position: relative; width: 100vw; height: 100vh; height: 100dvh; background: #060404; overflow: hidden; }',
+        '    .slide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.7s ease; }',
+        '    .slide.active { opacity: 1; }',
+        '    .slide img { max-width: 100%; max-height: 100%; display: block; user-select: none; -webkit-user-drag: none; pointer-events: none; }',
+        '    .slide video { max-width: 100%; max-height: 100%; display: block; }',
+        '    .top-ui { position: absolute; top: 0; left: 0; right: 0; z-index: 10; padding: 1.6rem 2.5rem 4rem; background: linear-gradient(to bottom, rgba(6,4,4,0.72) 0%, transparent 100%); pointer-events: none; }',
+        '    .gallery-title { font-family: \'Cormorant Garamond\', serif; font-size: 0.78rem; font-weight: 300; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(247,241,238,0.48); }',
+        '    .bottom-ui { position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; padding: 4rem 3rem 1.4rem; background: linear-gradient(to top, rgba(6,4,4,0.82) 0%, transparent 100%); display: flex; flex-direction: column; align-items: center; gap: 0.6rem; pointer-events: none; }',
+        '    .caption-el { font-family: \'Cormorant Garamond\', serif; font-size: 1.08rem; font-weight: 300; font-style: italic; color: rgba(247,241,238,0.0); letter-spacing: 0.04em; text-align: center; max-width: 520px; line-height: 1.58; transition: color 0.8s ease 1.5s; }',
+        '    .caption-el.visible { color: rgba(247,241,238,0.92); }',
+        '    .counter-el { font-family: \'Jost\', sans-serif; font-size: 0.6rem; font-weight: 200; letter-spacing: 0.26em; color: rgba(247,241,238,0.26); }',
+        '    .edge-control { position: absolute; top: 50%; z-index: 20; width: 30px; height: 96px; padding: 0; border: 0; background: transparent; transform: translateY(-50%); cursor: pointer; }',
+        '    .edge-control-left { left: 0; } .edge-control-right { right: 0; }',
+        '    .edge-control svg { width: 14px; height: 48px; fill: none; stroke: rgba(255,255,255,0.38); stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s ease; }',
+        '    .edge-control:hover svg { stroke: rgba(255,255,255,0.92); }',
+        '    .topbar-controls { position: absolute; top: 1.3rem; right: 1.3rem; z-index: 20; display: flex; align-items: center; gap: 0.4rem; }',
+        '    .ui-btn { appearance: none; border: 1px solid rgba(255,255,255,0.16); border-radius: 999px; background: rgba(6,4,4,0.45); color: rgba(247,241,238,0.48); padding: 0.26rem 0.62rem; font-family: \'Jost\', sans-serif; font-size: 0.6rem; font-weight: 300; letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-block; transition: color 0.2s, border-color 0.2s; white-space: nowrap; }',
+        '    .ui-btn:hover { color: rgba(247,241,238,0.9); border-color: rgba(255,255,255,0.4); }',
+        '    @media (max-width: 600px) { .gallery-title { font-size: 0.7rem; } .caption-el { font-size: 0.95rem; } .topbar-controls { top: 0.9rem; right: 0.9rem; } .ui-btn { font-size: 0.56rem; padding: 0.22rem 0.5rem; } }',
+        '  </style>', '</head>', '<body>',
+        '<div class="shell" id="shell">',
+        '  <div class="top-ui"><div class="gallery-title">' + title + '</div></div>',
+        '  <div class="bottom-ui">',
+        '    <div class="caption-el" id="caption-el"></div>',
+        '    <div class="counter-el" id="counter-el"></div>',
+        '  </div>',
+        '  <button class="edge-control edge-control-left" id="prev-btn" aria-label="Previous photograph">',
+        '    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M18 3 L5 24 L18 45"/></svg>',
+        '  </button>',
+        '  <button class="edge-control edge-control-right" id="next-btn" aria-label="Next photograph">',
+        '    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M6 3 L19 24 L6 45"/></svg>',
+        '  </button>',
+        '  <div class="topbar-controls">',
+        '    <button class="ui-btn" id="autoplay-btn">Pause ★</button>',
+        '    <button class="ui-btn" id="mute-btn">🔇</button>',
+        '    <button class="ui-btn" id="fs-btn">Fullscreen</button>',
+        '    <a class="ui-btn" href="' + back_href + '">← Galleries</a>',
+        '  </div>',
+        '</div>',
+        '<script>', '(function () {',
+        '  var slides = ' + sjs + ';',
+        "  var BASE = '" + base + "';",
+        '  var VIDEO_EXTS = [\'mp4\',\'mov\',\'webm\',\'m4v\'];',
+        '  var ZOOM_MS = 10000, AUTOPLAY_MS = 10000;',
+        '  var MOTIONS = [',
+        '    { ox: \'50%\', oy: \'50%\', from: \'scale(1.0)\', to: \'scale(1.22)\' },',
+        '    { ox: \'28%\', oy: \'50%\', from: \'scale(1.08) translateX(-2%)\', to: \'scale(1.18) translateX(2%)\' },',
+        '    { ox: \'72%\', oy: \'50%\', from: \'scale(1.08) translateX(2%)\', to: \'scale(1.18) translateX(-2%)\' },',
+        '    { ox: \'50%\', oy: \'35%\', from: \'scale(1.05) translateY(-1%)\', to: \'scale(1.2) translateY(2%)\' },',
+        '  ];',
+        '  var shell = document.getElementById(\'shell\');',
+        '  var captionEl = document.getElementById(\'caption-el\');',
+        '  var counterEl = document.getElementById(\'counter-el\');',
+        '  var prevBtn = document.getElementById(\'prev-btn\');',
+        '  var nextBtn = document.getElementById(\'next-btn\');',
+        '  var autoBtn = document.getElementById(\'autoplay-btn\');',
+        '  var muteBtn = document.getElementById(\'mute-btn\');',
+        '  var fsBtn = document.getElementById(\'fs-btn\');',
+        '  var current = 0, autoTimer = null, videoMuted = true;',
+        '  var slideEls = [], mediaEls = [], activeAnim = null;',
+        '  var bottomUI = document.querySelector(\'.bottom-ui\');',
+        '  slides.forEach(function (s, i) {',
+        '    var div = document.createElement(\'div\'); div.className = \'slide\';',
+        '    var ext = s.filename.split(\'.\').pop().toLowerCase(); var el;',
+        '    if (VIDEO_EXTS.indexOf(ext) !== -1) {',
+        '      el = document.createElement(\'video\'); el.src = BASE + encodeURIComponent(s.filename);',
+        '      el.loop = true; el.muted = true; el.playsInline = true;',
+        '    } else {',
+        '      el = document.createElement(\'img\'); el.src = BASE + encodeURIComponent(s.filename);',
+        "      el.alt = '" + _escape_js_str(title) + " — ' + (i + 1); el.draggable = false;",
+        '    }',
+        '    div.appendChild(el); shell.insertBefore(div, bottomUI);',
+        '    slideEls.push(div); mediaEls.push(el);',
+        '  });',
+        '  function startZoom(i) {',
+        '    var el = mediaEls[i];',
+        '    if (!el || el.tagName === \'VIDEO\') return;',
+        '    if (activeAnim) { try { activeAnim.cancel(); } catch (e) {} activeAnim = null; }',
+        '    el.style.transform = \'\';',
+        '    var m = MOTIONS[i % MOTIONS.length];',
+        '    el.style.transformOrigin = m.ox + \' \' + m.oy;',
+        '    activeAnim = el.animate([{ transform: m.from }, { transform: m.to }], { duration: ZOOM_MS, easing: \'ease-in-out\', fill: \'forwards\' });',
+        '  }',
+        '  function resetMedia(i) { var el = mediaEls[i]; if (!el) return; if (el.tagName === \'VIDEO\') { try { el.pause(); el.currentTime = 0; } catch (e) {} } el.style.transform = \'\'; }',
+        '  function goTo(n) {',
+        '    var old = current; current = ((n % slides.length) + slides.length) % slides.length;',
+        '    slideEls[old].classList.remove(\'active\'); resetMedia(old);',
+        '    captionEl.classList.remove(\'visible\');',
+        '    slideEls[current].classList.add(\'active\'); startZoom(current);',
+        '    var cap = slides[current].caption || \'\'; captionEl.textContent = cap; captionEl.style.display = cap ? \'\' : \'none\';',
+        '    if (cap) { setTimeout(function () { captionEl.classList.add(\'visible\'); }, 50); }',
+        '    counterEl.textContent = (current + 1) + \' / \' + slides.length;',
+        '    var vid = mediaEls[current]; if (vid && vid.tagName === \'VIDEO\') { vid.muted = videoMuted; try { vid.play(); } catch (e) {} }',
+        '  }',
+        '  function nudge(dir) { goTo(current + dir); if (autoTimer) { stopAuto(); startAuto(); } }',
+        '  prevBtn.addEventListener(\'click\', function () { nudge(-1); });',
+        '  nextBtn.addEventListener(\'click\', function () { nudge(1); });',
+        '  function startAuto() { if (autoTimer) return; autoTimer = setInterval(function () { goTo(current + 1); }, AUTOPLAY_MS); autoBtn.textContent = \'Pause ★\'; }',
+        '  function stopAuto() { clearInterval(autoTimer); autoTimer = null; autoBtn.textContent = \'Auto ★\'; }',
+        '  autoBtn.addEventListener(\'click\', function () { autoTimer ? stopAuto() : startAuto(); });',
+        '  muteBtn.addEventListener(\'click\', function () { videoMuted = !videoMuted; muteBtn.textContent = videoMuted ? \'🔇\' : \'🔊\'; var vid = mediaEls[current]; if (vid && vid.tagName === \'VIDEO\') { vid.muted = videoMuted; } });',
+        '  function toggleFS() { if (document.fullscreenElement) { document.exitFullscreen(); } else { (shell.requestFullscreen || shell.webkitRequestFullscreen).call(shell); } }',
+        '  fsBtn.addEventListener(\'click\', toggleFS);',
+        '  document.addEventListener(\'fullscreenchange\', function () { fsBtn.textContent = document.fullscreenElement ? \'Exit\' : \'Fullscreen\'; });',
+        '  window.addEventListener(\'keydown\', function (e) { if (e.key === \'ArrowLeft\') { nudge(-1); } else if (e.key === \'ArrowRight\') { nudge(1); } else if (e.key === \'f\' || e.key === \'F\') { toggleFS(); } else if (e.key === \' \') { e.preventDefault(); autoTimer ? stopAuto() : startAuto(); } });',
+        '  var tx = null;',
+        '  shell.addEventListener(\'touchstart\', function (e) { tx = e.touches[0].clientX; }, { passive: true });',
+        '  shell.addEventListener(\'touchend\', function (e) {',
+        '    if (tx === null) return; var dx = e.changedTouches[0].clientX - tx;',
+        '    if (Math.abs(dx) > 44) { nudge(dx < 0 ? 1 : -1); if (autoTimer) { stopAuto(); } }',
+        '    tx = null;',
+        '  }, { passive: true });',
+        '  goTo(0); startAuto();',
+        '})();', '</script>', '</body>', '</html>',
+    ]
+    return '\n'.join(L)
 
-    ze_label = _ZOOM_END_LABELS.get(settings["zoom_end"], f"{settings['zoom_end']:.2f}")
-    zm_label = _MS_LABELS.get(settings["zoom_ms"], f"{settings['zoom_ms']}ms")
-    am_label = _MS_LABELS.get(settings["auto_ms"], f"{settings['auto_ms']}ms")
 
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton(f"🔍 Zoom level: {ze_label}", callback_data="ds:zoom_end")],
-        [InlineKeyboardButton(f"⏱ Zoom speed: {zm_label}", callback_data="ds:zoom_ms")],
-        [InlineKeyboardButton(f"▶ Autoplay: {am_label}", callback_data="ds:auto_ms")],
-        [
-            InlineKeyboardButton(f"◀▶ Arrows: {onoff(settings['arrows'])}", callback_data="ds:arrows"),
-            InlineKeyboardButton(f"🔇 Sound btn: {onoff(settings['sound'])}", callback_data="ds:sound"),
-        ],
-        [
-            InlineKeyboardButton(f"👆 Touch: {onoff(settings['touch'])}", callback_data="ds:touch"),
-            InlineKeyboardButton(f"⌨ Keyboard: {onoff(settings['keyboard'])}", callback_data="ds:keyboard"),
-        ],
-        [InlineKeyboardButton("✓ Save Changes", callback_data="ds:done")],
-    ])
+def _build_html_filmstrip(title: str, slides: list[dict], base: str, back_href: str) -> str:
+    """Filmstrip Memory — thumbnail strip, random motion directions, film grain overlay."""
+    sjs = _slides_js(slides, default_zoom=1.20)
+    grain_svg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E"
+    L = [
+        '<!DOCTYPE html>', '<html lang="en">', '<head>',
+        '  <meta charset="UTF-8">',
+        '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+        f'  <title>{title} · Sheryl Joyce</title>',
+        '  <link rel="preconnect" href="https://fonts.googleapis.com">',
+        '  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300&display=swap" rel="stylesheet">',
+        '  <style>',
+        '    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }',
+        '    html, body { width: 100%; height: 100%; background: #060404; overflow: hidden; }',
+        '    .shell { position: relative; width: 100vw; height: 100vh; height: 100dvh; background: #060404; display: flex; flex-direction: column; overflow: hidden; }',
+        '    .main-view { position: relative; flex: 1; overflow: hidden; }',
+        '    .slide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; }',
+        '    .slide.active { opacity: 1; }',
+        '    .slide img { max-width: 100%; max-height: 100%; display: block; user-select: none; -webkit-user-drag: none; pointer-events: none; }',
+        '    .slide video { max-width: 100%; max-height: 100%; display: block; }',
+        '    .grain-overlay { position: absolute; inset: 0; z-index: 3; pointer-events: none;',
+        '      background-image: url("' + grain_svg + '"); background-repeat: repeat;',
+        '      opacity: 0.04; animation: grain-shift 0.35s steps(3) infinite; }',
+        '    @keyframes grain-shift { 0% { background-position: 0 0; } 33% { background-position: -12px -20px; } 66% { background-position: 8px 14px; } 100% { background-position: -6px 8px; } }',
+        '    .top-ui { position: absolute; top: 0; left: 0; right: 0; z-index: 10; padding: 1.4rem 2.5rem 3rem; background: linear-gradient(to bottom, rgba(6,4,4,0.72) 0%, transparent 100%); pointer-events: none; }',
+        '    .gallery-title { font-family: \'Cormorant Garamond\', serif; font-size: 0.78rem; font-weight: 300; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(247,241,238,0.48); }',
+        '    .bottom-caption { position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; padding: 2rem 3rem 0.5rem; background: linear-gradient(to top, rgba(6,4,4,0.72) 0%, transparent 100%); display: flex; flex-direction: column; align-items: center; gap: 0.4rem; pointer-events: none; }',
+        '    .caption-el { font-family: \'Cormorant Garamond\', serif; font-size: 1rem; font-weight: 300; font-style: italic; color: rgba(247,241,238,0.88); letter-spacing: 0.04em; text-align: center; max-width: 520px; line-height: 1.5; }',
+        '    .counter-el { font-family: \'Jost\', sans-serif; font-size: 0.58rem; font-weight: 200; letter-spacing: 0.26em; color: rgba(247,241,238,0.22); }',
+        '    .edge-control { position: absolute; top: 50%; z-index: 20; width: 30px; height: 96px; padding: 0; border: 0; background: transparent; transform: translateY(-50%); cursor: pointer; }',
+        '    .edge-control-left { left: 0; } .edge-control-right { right: 0; }',
+        '    .edge-control svg { width: 14px; height: 48px; fill: none; stroke: rgba(255,255,255,0.38); stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s ease; }',
+        '    .edge-control:hover svg { stroke: rgba(255,255,255,0.92); }',
+        '    .topbar-controls { position: absolute; top: 1.1rem; right: 1.1rem; z-index: 20; display: flex; align-items: center; gap: 0.4rem; }',
+        '    .ui-btn { appearance: none; border: 1px solid rgba(255,255,255,0.16); border-radius: 999px; background: rgba(6,4,4,0.45); color: rgba(247,241,238,0.48); padding: 0.24rem 0.56rem; font-family: \'Jost\', sans-serif; font-size: 0.58rem; font-weight: 300; letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-block; transition: color 0.2s, border-color 0.2s; white-space: nowrap; }',
+        '    .ui-btn:hover { color: rgba(247,241,238,0.9); border-color: rgba(255,255,255,0.4); }',
+        '    .filmstrip-wrap { height: 68px; background: #080406; border-top: 1px solid rgba(255,255,255,0.07); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; flex-shrink: 0; }',
+        '    .filmstrip-wrap::-webkit-scrollbar { display: none; }',
+        '    .filmstrip-inner { display: flex; align-items: center; height: 100%; gap: 3px; padding: 4px 8px; }',
+        '    .thumb { height: 56px; width: auto; aspect-ratio: 3/4; object-fit: cover; opacity: 0.35; cursor: pointer; transition: opacity 0.2s, outline 0.15s; flex-shrink: 0; border-radius: 1px; }',
+        '    .thumb.active { opacity: 1; outline: 1px solid rgba(247,241,238,0.55); outline-offset: 1px; }',
+        '    .thumb-video { height: 56px; width: 42px; background: #160c10; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.28); font-size: 1rem; flex-shrink: 0; opacity: 0.35; cursor: pointer; transition: opacity 0.2s; border-radius: 1px; }',
+        '    .thumb-video.active { opacity: 1; outline: 1px solid rgba(247,241,238,0.55); outline-offset: 1px; }',
+        '    @media (max-width: 600px) { .gallery-title { font-size: 0.7rem; } .caption-el { font-size: 0.9rem; } .topbar-controls { top: 0.8rem; right: 0.8rem; } .ui-btn { font-size: 0.54rem; padding: 0.2rem 0.46rem; } .filmstrip-wrap { height: 56px; } .thumb { height: 46px; } .thumb-video { height: 46px; width: 34px; } }',
+        '  </style>', '</head>', '<body>',
+        '<div class="shell" id="shell">',
+        '  <div class="main-view" id="main-view">',
+        '    <div class="top-ui"><div class="gallery-title">' + title + '</div></div>',
+        '    <div class="bottom-caption">',
+        '      <div class="caption-el" id="caption-el"></div>',
+        '      <div class="counter-el" id="counter-el"></div>',
+        '    </div>',
+        '    <button class="edge-control edge-control-left" id="prev-btn" aria-label="Previous photograph">',
+        '      <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M18 3 L5 24 L18 45"/></svg>',
+        '    </button>',
+        '    <button class="edge-control edge-control-right" id="next-btn" aria-label="Next photograph">',
+        '      <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M6 3 L19 24 L6 45"/></svg>',
+        '    </button>',
+        '    <div class="grain-overlay"></div>',
+        '    <div class="topbar-controls">',
+        '      <button class="ui-btn" id="autoplay-btn">Auto ★</button>',
+        '      <button class="ui-btn" id="mute-btn">🔇</button>',
+        '      <button class="ui-btn" id="fs-btn">Fullscreen</button>',
+        '      <a class="ui-btn" href="' + back_href + '">← Galleries</a>',
+        '    </div>',
+        '  </div>',
+        '  <div class="filmstrip-wrap"><div class="filmstrip-inner" id="filmstrip"></div></div>',
+        '</div>',
+        '<script>', '(function () {',
+        '  var slides = ' + sjs + ';',
+        "  var BASE = '" + base + "';",
+        '  var VIDEO_EXTS = [\'mp4\',\'mov\',\'webm\',\'m4v\'];',
+        '  var ZOOM_MS = 9000, AUTOPLAY_MS = 9000;',
+        '  var ANCHORS = [\'50% 50%\',\'30% 50%\',\'70% 50%\',\'50% 30%\',\'50% 65%\',\'35% 40%\',\'65% 40%\',\'50% 45%\'];',
+        '  var mainView = document.getElementById(\'main-view\');',
+        '  var captionEl = document.getElementById(\'caption-el\');',
+        '  var counterEl = document.getElementById(\'counter-el\');',
+        '  var prevBtn = document.getElementById(\'prev-btn\');',
+        '  var nextBtn = document.getElementById(\'next-btn\');',
+        '  var autoBtn = document.getElementById(\'autoplay-btn\');',
+        '  var muteBtn = document.getElementById(\'mute-btn\');',
+        '  var fsBtn = document.getElementById(\'fs-btn\');',
+        '  var shell = document.getElementById(\'shell\');',
+        '  var filmstrip = document.getElementById(\'filmstrip\');',
+        '  var current = 0, autoTimer = null, videoMuted = true;',
+        '  var slideEls = [], mediaEls = [], thumbEls = [], activeAnim = null;',
+        '  slides.forEach(function (s, i) {',
+        '    var div = document.createElement(\'div\'); div.className = \'slide\';',
+        '    var ext = s.filename.split(\'.\').pop().toLowerCase();',
+        '    var isVid = VIDEO_EXTS.indexOf(ext) !== -1; var el;',
+        '    if (isVid) {',
+        '      el = document.createElement(\'video\'); el.src = BASE + encodeURIComponent(s.filename);',
+        '      el.loop = true; el.muted = true; el.playsInline = true;',
+        '    } else {',
+        '      el = document.createElement(\'img\'); el.src = BASE + encodeURIComponent(s.filename);',
+        "      el.alt = '" + _escape_js_str(title) + " — ' + (i + 1); el.draggable = false;",
+        '    }',
+        '    div.appendChild(el); mainView.insertBefore(div, mainView.querySelector(\'.bottom-caption\'));',
+        '    slideEls.push(div); mediaEls.push(el);',
+        '    var th;',
+        '    if (isVid) {',
+        '      th = document.createElement(\'div\'); th.className = \'thumb-video\'; th.textContent = \'▶\';',
+        '    } else {',
+        '      th = document.createElement(\'img\'); th.className = \'thumb\';',
+        '      th.src = BASE + encodeURIComponent(s.filename);',
+        '    }',
+        '    th.dataset.idx = i;',
+        '    th.addEventListener(\'click\', function () { goTo(parseInt(this.dataset.idx)); if (autoTimer) { stopAuto(); } });',
+        '    filmstrip.appendChild(th); thumbEls.push(th);',
+        '  });',
+        '  function startZoom(i) {',
+        '    var el = mediaEls[i], s = slides[i];',
+        '    if (!el || el.tagName === \'VIDEO\') return;',
+        '    if (activeAnim) { try { activeAnim.cancel(); } catch (e) {} activeAnim = null; }',
+        '    el.style.transform = \'\';',
+        '    el.style.transformOrigin = ANCHORS[i % ANCHORS.length];',
+        '    activeAnim = el.animate([{ transform: \'scale(1)\' }, { transform: \'scale(\' + s.zoomEnd + \')\' }], { duration: ZOOM_MS, easing: \'ease-in-out\', fill: \'forwards\' });',
+        '  }',
+        '  function resetMedia(i) { var el = mediaEls[i]; if (!el) return; if (el.tagName === \'VIDEO\') { try { el.pause(); el.currentTime = 0; } catch (e) {} } el.style.transform = \'\'; }',
+        '  function scrollThumb(i) {',
+        '    var th = thumbEls[i]; if (!th) return;',
+        '    var fw = filmstrip.parentElement; var tr = th.getBoundingClientRect(); var fr = fw.getBoundingClientRect();',
+        '    if (tr.left < fr.left || tr.right > fr.right) { th.scrollIntoView({ behavior: \'smooth\', block: \'nearest\', inline: \'center\' }); }',
+        '  }',
+        '  function goTo(n) {',
+        '    var old = current; current = ((n % slides.length) + slides.length) % slides.length;',
+        '    slideEls[old].classList.remove(\'active\'); resetMedia(old);',
+        '    if (thumbEls[old]) thumbEls[old].classList.remove(\'active\');',
+        '    slideEls[current].classList.add(\'active\'); startZoom(current);',
+        '    if (thumbEls[current]) { thumbEls[current].classList.add(\'active\'); scrollThumb(current); }',
+        '    var cap = slides[current].caption || \'\'; captionEl.textContent = cap; captionEl.style.display = cap ? \'\' : \'none\';',
+        '    counterEl.textContent = (current + 1) + \' / \' + slides.length;',
+        '    var vid = mediaEls[current]; if (vid && vid.tagName === \'VIDEO\') { vid.muted = videoMuted; try { vid.play(); } catch (e) {} }',
+        '  }',
+        '  function nudge(dir) { goTo(current + dir); if (autoTimer) { stopAuto(); startAuto(); } }',
+        '  prevBtn.addEventListener(\'click\', function () { nudge(-1); });',
+        '  nextBtn.addEventListener(\'click\', function () { nudge(1); });',
+        '  function startAuto() { if (autoTimer) return; autoTimer = setInterval(function () { goTo(current + 1); }, AUTOPLAY_MS); autoBtn.textContent = \'Pause ★\'; }',
+        '  function stopAuto() { clearInterval(autoTimer); autoTimer = null; autoBtn.textContent = \'Auto ★\'; }',
+        '  autoBtn.addEventListener(\'click\', function () { autoTimer ? stopAuto() : startAuto(); });',
+        '  muteBtn.addEventListener(\'click\', function () { videoMuted = !videoMuted; muteBtn.textContent = videoMuted ? \'🔇\' : \'🔊\'; var vid = mediaEls[current]; if (vid && vid.tagName === \'VIDEO\') { vid.muted = videoMuted; } });',
+        '  function toggleFS() { if (document.fullscreenElement) { document.exitFullscreen(); } else { (shell.requestFullscreen || shell.webkitRequestFullscreen).call(shell); } }',
+        '  fsBtn.addEventListener(\'click\', toggleFS);',
+        '  document.addEventListener(\'fullscreenchange\', function () { fsBtn.textContent = document.fullscreenElement ? \'Exit\' : \'Fullscreen\'; });',
+        '  window.addEventListener(\'keydown\', function (e) { if (e.key === \'ArrowLeft\') { nudge(-1); } else if (e.key === \'ArrowRight\') { nudge(1); } else if (e.key === \'f\' || e.key === \'F\') { toggleFS(); } else if (e.key === \' \') { e.preventDefault(); autoTimer ? stopAuto() : startAuto(); } });',
+        '  var tx = null;',
+        '  mainView.addEventListener(\'touchstart\', function (e) { tx = e.touches[0].clientX; }, { passive: true });',
+        '  mainView.addEventListener(\'touchend\', function (e) { if (tx === null) return; var dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 44) nudge(dx < 0 ? 1 : -1); tx = null; }, { passive: true });',
+        '  goTo(0);',
+        '})();', '</script>', '</body>', '</html>',
+    ]
+    return '\n'.join(L)
+
+
+_STYLE_PRESETS = {
+    "classic":   ("🎬 Classic Cinematic",   "Ken Burns zoom · full controls · 8 s timing",         _build_html_classic),
+    "intimate":  ("💫 Intimate Slow",        "Breathing zoom · fade controls · 12 s timing",        _build_html_intimate),
+    "immersive": ("🌊 Immersive Story",      "Varied KB motion · auto-starts · delayed captions",   _build_html_immersive),
+    "filmstrip": ("🎞 Filmstrip Memory",     "Thumbnail strip · film grain · random motion",        _build_html_filmstrip),
+}
 
 
 async def cmd_display(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -3352,7 +3828,7 @@ async def cmd_display(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     context.user_data["display_galleries"] = galleries
     keyboard = [[InlineKeyboardButton(g, callback_data=f"dp:{i}")] for i, g in enumerate(galleries)]
     await update.message.reply_text(
-        "Which gallery's display settings do you want to adjust?",
+        "Which gallery do you want to restyle?",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
     return DISPLAY_GALLERY
@@ -3371,56 +3847,60 @@ async def display_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_T
         return ConversationHandler.END
 
     text = html_bytes.decode("utf-8")
-    if "var slides" not in text and "var ZOOM_MS" not in text:
+    slides = _extract_slides(text)
+    if not slides:
         await query.edit_message_text(
-            f"{gallery} uses an older gallery format — display settings are only supported for cinematic galleries."
+            f"{gallery} uses an older gallery format and can't be restyled yet."
         )
         return ConversationHandler.END
 
-    settings = _read_display_settings(text)
-    context.user_data["display_settings"] = settings
+    context.user_data["display_slides"] = slides
+    title, base, back = _extract_gallery_meta(text)
+    context.user_data["display_meta"] = (title, base, back)
 
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton(label + "\n" + desc, callback_data="dstyle:" + key)]
+        for key, (label, desc, _fn) in _STYLE_PRESETS.items()
+    ])
     await query.edit_message_text(
-        _display_menu_text(gallery, settings),
-        reply_markup=_display_menu_kb(settings),
+        f"Choose a display style for {gallery}:",
+        reply_markup=kb,
     )
     return DISPLAY_SETTINGS
 
 
-async def display_setting_changed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def display_style_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
 
-    key = query.data[3:]  # strip "ds:"
+    style_key = query.data[7:]  # strip "dstyle:"
     gallery = context.user_data["display_gallery"]
-    settings = context.user_data["display_settings"]
+    slides = context.user_data["display_slides"]
+    title, base, back = context.user_data["display_meta"]
 
-    if key == "done":
-        await query.edit_message_text(f"Saving display settings for {gallery}…")
-        html_bytes, sha = await _gh_get_file(_html_rel_path(gallery))
-        if not html_bytes:
-            await query.edit_message_text("Could not load HTML to save.")
-            return ConversationHandler.END
-        new_html = _apply_display_settings(html_bytes.decode("utf-8"), settings)
-        ok, err = await _gh_put_with_retry(
-            _html_rel_path(gallery),
-            new_html.encode("utf-8"),
-            f"Display settings: {gallery}",
-            sha=sha,
-        )
-        if ok:
-            await query.edit_message_text(f"✓ Display settings saved for {gallery}.")
-        else:
-            await query.edit_message_text(f"Failed to save: {err}")
+    preset = _STYLE_PRESETS.get(style_key)
+    if not preset:
+        await query.edit_message_text("Unknown style.")
         return ConversationHandler.END
 
-    settings = _cycle_display_setting(settings, key)
-    context.user_data["display_settings"] = settings
-    await query.edit_message_text(
-        _display_menu_text(gallery, settings),
-        reply_markup=_display_menu_kb(settings),
+    label, _desc, build_fn = preset
+    await query.edit_message_text(f"Applying {label} to {gallery}…")
+
+    _unused, sha = await _gh_get_file(_html_rel_path(gallery))
+    new_html = build_fn(title, slides, base, back)
+    ok, err = await _gh_put_with_retry(
+        _html_rel_path(gallery),
+        new_html.encode("utf-8"),
+        f"Style '{label}': {gallery}",
+        sha=sha,
     )
-    return DISPLAY_SETTINGS
+    if ok:
+        await query.edit_message_text(
+            f"✓ {gallery} is now {label}.\n\nWait ~2 min for GitHub Pages to update."
+        )
+    else:
+        await query.edit_message_text(f"Failed to save: {err}")
+    return ConversationHandler.END
 
 
 # ---------------------------------------------------------------------------
@@ -3501,7 +3981,7 @@ def main() -> None:
             DELETING_GALLERY:         [CallbackQueryHandler(delete_gallery_chosen, pattern=r"^dg:")],
             DELETING_GALLERY_CONFIRM: [CallbackQueryHandler(delete_gallery_confirm, pattern=r"^dgconf:")],
             DISPLAY_GALLERY:  [CallbackQueryHandler(display_gallery_chosen, pattern=r"^dp:")],
-            DISPLAY_SETTINGS: [CallbackQueryHandler(display_setting_changed, pattern=r"^ds:")],
+            DISPLAY_SETTINGS: [CallbackQueryHandler(display_style_chosen, pattern=r"^dstyle:")],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel), CommandHandler("start", _conv_start)],
         name="main_conv",
