@@ -3218,45 +3218,70 @@ def _escape_js_str(s: str) -> str:
 
 
 def _extract_slides(html: str) -> list[dict] | None:
-    """Parse var slides = [...] from cinematic gallery HTML."""
+    """Parse var slides = [...] (newer) or var filenames = [...] (older) format."""
+    def _bracket_block(src: str, pos: int) -> str:
+        depth, i = 1, pos
+        while i < len(src) and depth > 0:
+            if src[i] == "[":
+                depth += 1
+            elif src[i] == "]":
+                depth -= 1
+            i += 1
+        return src[pos : i - 1]
+
     m = re.search(r"var slides\s*=\s*\[", html)
-    if not m:
-        return None
-    start = m.end()
-    depth, i = 1, start
-    while i < len(html) and depth > 0:
-        if html[i] == "[":
-            depth += 1
-        elif html[i] == "]":
-            depth -= 1
-        i += 1
-    block = html[start : i - 1]
-    results = []
-    for obj in re.finditer(r"\{([^{}]+)\}", block):
-        t = obj.group(1)
-        fn = re.search(r"filename:\s*'([^']+)'", t)
-        if not fn:
-            continue
-        fx = re.search(r"focalX:\s*(\d+)", t)
-        fy = re.search(r"focalY:\s*(\d+)", t)
-        ze = re.search(r"zoomEnd:\s*([\d.]+)", t)
-        cap = re.search(r"caption:\s*'((?:[^'\\]|\\.)*)'", t)
-        results.append({
-            "filename": fn.group(1),
-            "focalX": int(fx.group(1)) if fx else 50,
-            "focalY": int(fy.group(1)) if fy else 42,
-            "zoomEnd": float(ze.group(1)) if ze else 1.28,
-            "caption": (cap.group(1).replace("\\'", "'") if cap else ""),
-        })
-    return results or None
+    if m:
+        block = _bracket_block(html, m.end())
+        results = []
+        for obj in re.finditer(r"\{([^{}]+)\}", block):
+            t = obj.group(1)
+            fn = re.search(r"filename:\s*'([^']+)'", t)
+            if not fn:
+                continue
+            fx = re.search(r"focalX:\s*(\d+)", t)
+            fy = re.search(r"focalY:\s*(\d+)", t)
+            ze = re.search(r"zoomEnd:\s*([\d.]+)", t)
+            cap = re.search(r"caption:\s*'((?:[^'\\]|\\.)*)'", t)
+            results.append({
+                "filename": fn.group(1),
+                "focalX": int(fx.group(1)) if fx else 50,
+                "focalY": int(fy.group(1)) if fy else 42,
+                "zoomEnd": float(ze.group(1)) if ze else 1.28,
+                "caption": (cap.group(1).replace("\\'", "'") if cap else ""),
+            })
+        return results or None
+
+    # Older format: plain filenames array, no slide metadata
+    m2 = re.search(r"var filenames\s*=\s*\[", html)
+    if m2:
+        block = _bracket_block(html, m2.end())
+        results = [
+            {"filename": fn_m.group(1), "focalX": 50, "focalY": 42,
+             "zoomEnd": 1.28, "caption": ""}
+            for fn_m in re.finditer(r"'([^']+\.(?:jpg|jpeg|png|webp|mp4|mov))'",
+                                    block, re.IGNORECASE)
+        ]
+        return results or None
+
+    return None
 
 
 def _extract_gallery_meta(html: str) -> tuple[str, str, str]:
     """Return (gallery_title, base_asset_url, back_href)."""
     title_m = re.search(r'<div class="gallery-title">([^<]+)</div>', html)
-    title = title_m.group(1) if title_m else "Gallery"
+    if title_m:
+        title = title_m.group(1)
+    else:
+        t2 = re.search(r"var galleryTitle\s*=\s*'([^']+)'", html)
+        title = t2.group(1) if t2 else "Gallery"
+
     base_m = re.search(r"var BASE\s*=\s*'([^']+)'", html)
-    base = base_m.group(1) if base_m else "../assets/Gallery/"
+    if base_m:
+        base = base_m.group(1)
+    else:
+        b2 = re.search(r"var assetFolder\s*=\s*'([^']+)'", html)
+        base = b2.group(1) if b2 else "../assets/Gallery/"
+
     back_m = re.search(r'href="(\.\./[^"]+\.html)"', html)
     back = back_m.group(1) if back_m else "../gallery.html"
     return title, base, back
