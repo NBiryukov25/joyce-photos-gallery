@@ -3249,7 +3249,9 @@ def _extract_slides(html: str) -> list[dict] | None:
                 "zoomEnd": float(ze.group(1)) if ze else 1.28,
                 "caption": (cap.group(1).replace("\\'", "'") if cap else ""),
             })
-        return results or None
+        if results:
+            return results
+        # Empty var slides = [] means it's built dynamically; fall through
 
     # Older format: plain filenames array, no slide metadata
     m2 = re.search(r"var filenames\s*=\s*\[", html)
