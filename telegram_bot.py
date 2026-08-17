@@ -3257,11 +3257,24 @@ def _extract_slides(html: str) -> list[dict] | None:
     m2 = re.search(r"var filenames\s*=\s*\[", html)
     if m2:
         block = _bracket_block(html, m2.end())
-        results = [
-            {"filename": fn_m.group(1), "focalX": 50, "focalY": 42,
-             "zoomEnd": 1.28, "caption": ""}
+        filenames = [
+            fn_m.group(1)
             for fn_m in re.finditer(r"'([^']+\.(?:jpg|jpeg|png|webp|mp4|mov))'",
                                     block, re.IGNORECASE)
+        ]
+        # Also read var captions = [...] if present
+        captions: list[str] = []
+        m3 = re.search(r"var captions\s*=\s*\[", html)
+        if m3:
+            cap_block = _bracket_block(html, m3.end())
+            captions = [
+                cm.group(1).replace("\\'", "'")
+                for cm in re.finditer(r"'((?:[^'\\]|\\.)*)'", cap_block)
+            ]
+        results = [
+            {"filename": fn, "focalX": 50, "focalY": 42, "zoomEnd": 1.28,
+             "caption": captions[i] if i < len(captions) else ""}
+            for i, fn in enumerate(filenames)
         ]
         return results or None
 
