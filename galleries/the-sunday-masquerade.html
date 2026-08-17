@@ -156,7 +156,7 @@
       var downloadBtn = document.getElementById('download-btn');
       var current    = 0;
       var autoplayTimer = null;
-      var slides     = [];
+      var slideEls     = [];
       var videoExts  = ['mp4', 'mov', 'webm', 'm4v', 'avi'];
 
       filenames.forEach(function (filename, index) {
@@ -175,18 +175,18 @@
         }
         slide.appendChild(media);
         frame.appendChild(slide);
-        slides.push(slide);
+        slideEls.push(slide);
       });
 
       function updateSlide(index) {
-        if (!slides.length) { return; }
-        slides[current].classList.remove('active');
-        current = (index + slides.length) % slides.length;
-        slides[current].classList.add('active');
+        if (!slideEls.length) { return; }
+        slideEls[current].classList.remove('active');
+        current = (index + slideEls.length) % slideEls.length;
+        slideEls[current].classList.add('active');
         var cap = captions[current] || '';
         captionEl.textContent = cap;
         captionWrap.style.display = cap ? '' : 'none';
-        numberEl.textContent = (current + 1) + ' / ' + slides.length;
+        numberEl.textContent = (current + 1) + ' / ' + slideEls.length;
         var src = assetFolder + encodeURIComponent(filenames[current]);
         downloadBtn.href = src;
         downloadBtn.setAttribute('download', filenames[current]);
