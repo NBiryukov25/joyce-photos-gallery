@@ -14,6 +14,7 @@ Optional env vars:
 
 import asyncio
 import base64
+import html as _html_mod
 import hashlib
 import hmac
 import io
@@ -83,7 +84,7 @@ NETLIFY_SITE_URL  = os.environ.get("NETLIFY_SITE_URL", "https://stalwart-crumble
 SHARE_SECRET      = os.environ.get("SHARE_SECRET", "")
 _SHARE_EXPIRY_DAYS = 30
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM, REORDER_BROWSE, DISPLAY_GALLERY, DISPLAY_SETTINGS = range(30)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM, REORDER_BROWSE, DISPLAY_GALLERY, DISPLAY_SETTINGS, CARD_GALLERY, CARD_FIELD, CARD_VALUE = range(33)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -4023,6 +4024,178 @@ async def display_style_chosen(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 # ---------------------------------------------------------------------------
+# /card — edit a gallery card on the gallery index page (gallery.html)
+# ---------------------------------------------------------------------------
+
+def _parse_gallery_cards(html: str) -> list[tuple[str, str]]:
+    """Return (title, href) for each gallery card in gallery.html, in order."""
+    marker = '<div class="gallery-item">'
+    results, seen = [], set()
+    for part in html.split(marker)[1:]:
+        href_m = re.search(r'href="(galleries/[^"]+\.html)"', part)
+        if not href_m:
+            continue
+        href = href_m.group(1)
+        if href in seen:
+            continue
+        seen.add(href)
+        title_m = re.search(r'<p class="gallery-caption-title">([^<]+)</p>', part)
+        title = _html_mod.unescape(title_m.group(1)) if title_m else href.split("/")[-1]
+        results.append((title, href))
+    return results
+
+
+def _get_card_fields(html: str, href: str) -> dict | None:
+    """Return {title, meta, caption} for the card with the given href."""
+    for part in html.split('<div class="gallery-item">')[1:]:
+        if href not in part:
+            continue
+        title_m = re.search(r'<p class="gallery-caption-title">([^<]*)</p>', part)
+        meta_m  = re.search(r'<p class="gallery-caption-meta">([^<]*)</p>', part)
+        cap_m   = re.search(r'<p class="gallery-caption-text">([^<]*)</p>', part)
+        return {
+            "title":   _html_mod.unescape(title_m.group(1)) if title_m else "",
+            "meta":    _html_mod.unescape(meta_m.group(1))  if meta_m  else "",
+            "caption": _html_mod.unescape(cap_m.group(1))   if cap_m   else "",
+        }
+    return None
+
+
+def _set_card_field(html: str, href: str, field: str, new_text: str) -> str | None:
+    """Replace one field in the gallery card. Returns updated HTML or None if card not found."""
+    class_map = {
+        "title":   "gallery-caption-title",
+        "meta":    "gallery-caption-meta",
+        "caption": "gallery-caption-text",
+    }
+    css = class_map.get(field)
+    if not css:
+        return None
+    escaped = _html_mod.escape(new_text)
+    marker = '<div class="gallery-item">'
+    parts = html.split(marker)
+    for i, part in enumerate(parts):
+        if href not in part:
+            continue
+        new_part, n = re.subn(
+            rf'<p class="{re.escape(css)}">[^<]*</p>',
+            f'<p class="{css}">{escaped}</p>',
+            part, count=1,
+        )
+        if n == 0 and new_text:
+            # Field doesn't exist yet — insert before the view-link
+            new_part = part.replace(
+                '<a class="gallery-view-link"',
+                f'<p class="{css}">{escaped}</p><a class="gallery-view-link"',
+                1,
+            )
+        parts[i] = new_part
+        return marker.join(parts)
+    return None
+
+
+async def cmd_card(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        await update.message.reply_text("Not authorized.")
+        return ConversationHandler.END
+    html_bytes, _ = await _gh_get_file("gallery.html")
+    if not html_bytes:
+        await update.message.reply_text("Could not load gallery.html.")
+        return ConversationHandler.END
+    cards = _parse_gallery_cards(html_bytes.decode("utf-8"))
+    if not cards:
+        await update.message.reply_text("No gallery cards found.")
+        return ConversationHandler.END
+    context.user_data["card_cards"] = cards
+    keyboard = [
+        [InlineKeyboardButton(title, callback_data=f"card:{i}")]
+        for i, (title, _) in enumerate(cards)
+    ]
+    await update.message.reply_text(
+        "Which gallery card do you want to edit?",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return CARD_GALLERY
+
+
+async def card_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    idx = int(query.data.split(":")[1])
+    title, href = context.user_data["card_cards"][idx]
+    context.user_data["card_href"] = href
+    context.user_data["card_title"] = title
+
+    html_bytes, _ = await _gh_get_file("gallery.html")
+    fields = _get_card_fields(html_bytes.decode("utf-8"), href) if html_bytes else None
+    if not fields:
+        await query.edit_message_text("Could not read that card's fields.")
+        return ConversationHandler.END
+    context.user_data["card_fields"] = fields
+
+    def _trunc(s: str, n: int = 45) -> str:
+        return (s[:n] + "…") if len(s) > n else s
+
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton(f"Title — {_trunc(fields['title']) or '(empty)'}", callback_data="cardf:title")],
+        [InlineKeyboardButton(f"Meta — {_trunc(fields['meta']) or '(empty)'}", callback_data="cardf:meta")],
+        [InlineKeyboardButton(f"Caption — {_trunc(fields['caption']) or '(empty)'}", callback_data="cardf:caption")],
+    ])
+    await query.edit_message_text(
+        f"Editing card: *{title}*\nPick the field to change:",
+        reply_markup=kb,
+        parse_mode="Markdown",
+    )
+    return CARD_FIELD
+
+
+async def card_field_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    field = query.data.split(":")[1]
+    context.user_data["card_field"] = field
+    current = context.user_data["card_fields"].get(field, "")
+    label = {"title": "Title", "meta": "Meta", "caption": "Caption"}.get(field, field)
+    await query.edit_message_text(
+        f"Current {label}:\n_{current or '(empty)'}_\n\nSend the new {label}:",
+        parse_mode="Markdown",
+    )
+    return CARD_VALUE
+
+
+async def card_value_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    new_text = update.message.text.strip()
+    href  = context.user_data["card_href"]
+    field = context.user_data["card_field"]
+    gtitle = context.user_data["card_title"]
+
+    html_bytes, sha = await _gh_get_file("gallery.html")
+    if not html_bytes:
+        await update.message.reply_text("Could not reload gallery.html.")
+        return ConversationHandler.END
+
+    updated = _set_card_field(html_bytes.decode("utf-8"), href, field, new_text)
+    if not updated:
+        await update.message.reply_text("Could not find that card in gallery.html.")
+        return ConversationHandler.END
+
+    label = {"title": "Title", "meta": "Meta", "caption": "Caption"}.get(field, field)
+    ok, err = await _gh_put_with_retry(
+        "gallery.html",
+        updated.encode("utf-8"),
+        f"Card {label}: {gtitle}",
+        sha=sha,
+    )
+    if ok:
+        await update.message.reply_text(
+            f"✓ {label} updated for {gtitle}.\n\nWait ~2 min for GitHub Pages to deploy."
+        )
+    else:
+        await update.message.reply_text(f"Failed to save: {err}")
+    return ConversationHandler.END
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -4046,6 +4219,7 @@ def main() -> None:
             CommandHandler("revoke", cmd_revoke),
             CommandHandler("deletegallery", cmd_deletegallery),
             CommandHandler("display", cmd_display),
+            CommandHandler("card", cmd_card),
         ],
         states={
             CHOOSING_GALLERY:        [
@@ -4101,6 +4275,9 @@ def main() -> None:
             DELETING_GALLERY_CONFIRM: [CallbackQueryHandler(delete_gallery_confirm, pattern=r"^dgconf:")],
             DISPLAY_GALLERY:  [CallbackQueryHandler(display_gallery_chosen, pattern=r"^dp:")],
             DISPLAY_SETTINGS: [CallbackQueryHandler(display_style_chosen, pattern=r"^dstyle:")],
+            CARD_GALLERY: [CallbackQueryHandler(card_gallery_chosen, pattern=r"^card:")],
+            CARD_FIELD:   [CallbackQueryHandler(card_field_chosen, pattern=r"^cardf:")],
+            CARD_VALUE:   [MessageHandler(filters.TEXT & ~filters.COMMAND, card_value_received)],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel), CommandHandler("start", _conv_start)],
         name="main_conv",
