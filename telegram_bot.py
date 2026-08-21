@@ -961,6 +961,7 @@ async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "/caption       — edit photo captions\n"
         "/reorder       — rearrange photo order\n"
         "/display       — adjust gallery display settings\n"
+        "/card          — edit gallery card (title, meta, caption)\n"
         "/deletegallery — archive an entire gallery\n"
         "/share         — generate a shareable link\n"
         "/revoke        — info about share link expiry\n"
@@ -4094,6 +4095,27 @@ def _set_card_field(html: str, href: str, field: str, new_text: str) -> str | No
     return None
 
 
+_CARD_PAGE_SIZE = 8
+
+
+def _card_gallery_keyboard(cards: list, page: int) -> InlineKeyboardMarkup:
+    start = page * _CARD_PAGE_SIZE
+    end = start + _CARD_PAGE_SIZE
+    rows = [
+        [InlineKeyboardButton(title, callback_data=f"card:{i}")]
+        for i, (title, _) in enumerate(cards)
+        if start <= i < end
+    ]
+    nav = []
+    if page > 0:
+        nav.append(InlineKeyboardButton("← Prev", callback_data=f"cardp:{page - 1}"))
+    if end < len(cards):
+        nav.append(InlineKeyboardButton("Next →", callback_data=f"cardp:{page + 1}"))
+    if nav:
+        rows.append(nav)
+    return InlineKeyboardMarkup(rows)
+
+
 async def cmd_card(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if not _authorized(update):
         await update.message.reply_text("Not authorized.")
@@ -4107,13 +4129,27 @@ async def cmd_card(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await update.message.reply_text("No gallery cards found.")
         return ConversationHandler.END
     context.user_data["card_cards"] = cards
-    keyboard = [
-        [InlineKeyboardButton(title, callback_data=f"card:{i}")]
-        for i, (title, _) in enumerate(cards)
-    ]
+    total = len(cards)
+    suffix = f" (1–{min(_CARD_PAGE_SIZE, total)} of {total})" if total > _CARD_PAGE_SIZE else ""
     await update.message.reply_text(
-        "Which gallery card do you want to edit?",
-        reply_markup=InlineKeyboardMarkup(keyboard),
+        f"Which gallery card do you want to edit?{suffix}",
+        reply_markup=_card_gallery_keyboard(cards, 0),
+    )
+    return CARD_GALLERY
+
+
+async def card_page_nav(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    page = int(query.data.split(":")[1])
+    cards = context.user_data.get("card_cards", [])
+    total = len(cards)
+    start = page * _CARD_PAGE_SIZE + 1
+    end = min((page + 1) * _CARD_PAGE_SIZE, total)
+    suffix = f" ({start}–{end} of {total})"
+    await query.edit_message_text(
+        f"Which gallery card do you want to edit?{suffix}",
+        reply_markup=_card_gallery_keyboard(cards, page),
     )
     return CARD_GALLERY
 
@@ -4275,7 +4311,10 @@ def main() -> None:
             DELETING_GALLERY_CONFIRM: [CallbackQueryHandler(delete_gallery_confirm, pattern=r"^dgconf:")],
             DISPLAY_GALLERY:  [CallbackQueryHandler(display_gallery_chosen, pattern=r"^dp:")],
             DISPLAY_SETTINGS: [CallbackQueryHandler(display_style_chosen, pattern=r"^dstyle:")],
-            CARD_GALLERY: [CallbackQueryHandler(card_gallery_chosen, pattern=r"^card:")],
+            CARD_GALLERY: [
+                CallbackQueryHandler(card_gallery_chosen, pattern=r"^card:\d+$"),
+                CallbackQueryHandler(card_page_nav, pattern=r"^cardp:\d+$"),
+            ],
             CARD_FIELD:   [CallbackQueryHandler(card_field_chosen, pattern=r"^cardf:")],
             CARD_VALUE:   [MessageHandler(filters.TEXT & ~filters.COMMAND, card_value_received)],
         },
