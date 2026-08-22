@@ -1558,6 +1558,7 @@ async def ai_cap_clicked(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await query.edit_message_reply_markup(reply_markup=None)
     except Exception:
         pass
+    context.user_data["cap_source"] = "upload"
     await query.message.reply_text(
         "Describe the tone or idea for the caption:\n"
         "(e.g. \"playful\", \"she just got home\", \"caught off guard, intimate\")"
@@ -1582,16 +1583,10 @@ async def _download_photo_bytes(context, item: dict) -> bytes:
     return raw
 
 
-async def _generate_ai_caption(context, tone: str) -> str:
-    """Download the queued photo and generate a caption.
-    Uses Groq Llama-3.2-Vision by default; falls back to Claude."""
-    item = (context.user_data.get("pending_album") or [context.user_data])[0]
-    if item.get("is_video"):
-        raise RuntimeError("AI captions only work on photos, not videos.")
-
-    raw_bytes = await _download_photo_bytes(context, item)
-    img_b64   = base64.standard_b64encode(raw_bytes).decode()
-    prompt    = _CAPTION_PROMPT.format(tone=tone)
+async def _generate_caption_from_bytes(raw_bytes: bytes, tone: str) -> str:
+    """Call Groq (or Claude fallback) with image bytes to generate a caption."""
+    img_b64 = base64.standard_b64encode(raw_bytes).decode()
+    prompt  = _CAPTION_PROMPT.format(tone=tone)
 
     if GROQ_API_KEY:
         async with httpx.AsyncClient(timeout=60) as client:
@@ -1629,6 +1624,36 @@ async def _generate_ai_caption(context, tone: str) -> str:
     raise RuntimeError("No AI key configured (set GROQ_API_KEY or ANTHROPIC_API_KEY).")
 
 
+async def _generate_ai_caption(context, tone: str) -> str:
+    """Download the photo for the current operation and generate a caption."""
+    source = context.user_data.get("cap_source", "upload")
+
+    if source == "edit":
+        gallery   = context.user_data["cap_gallery"]
+        filenames = context.user_data["cap_filenames"]
+        idx       = context.user_data["cap_edit_idx"]
+        filename  = filenames[idx]
+        ext = filename.rsplit(".", 1)[-1].lower()
+        if ext in _VIDEO_EXTS:
+            raise RuntimeError("AI captions only work on photos, not videos.")
+        raw_url = (
+            f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
+            f"/assets/{urllib.parse.quote(gallery)}/{urllib.parse.quote(filename)}"
+        )
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.get(raw_url)
+        if r.status_code != 200:
+            raise RuntimeError(f"Could not download photo ({r.status_code}).")
+        raw_bytes = r.content
+    else:
+        item = (context.user_data.get("pending_album") or [context.user_data])[0]
+        if item.get("is_video"):
+            raise RuntimeError("AI captions only work on photos, not videos.")
+        raw_bytes = await _download_photo_bytes(context, item)
+
+    return await _generate_caption_from_bytes(raw_bytes, tone)
+
+
 _AICAP_CONFIRM_KB = InlineKeyboardMarkup([
     [InlineKeyboardButton("✓ Use this", callback_data="aicap:use"),
      InlineKeyboardButton("↺ Regenerate", callback_data="aicap:regen")],
@@ -1662,12 +1687,17 @@ async def ai_cap_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await query.answer()
     action = query.data.split(":")[1]
 
+    source = context.user_data.get("cap_source", "upload")
+
     if action == "use":
         try:
             await query.edit_message_reply_markup(reply_markup=None)
         except Exception:
             pass
-        context.user_data["caption"] = context.user_data.get("ai_cap_draft", "")
+        caption = context.user_data.get("ai_cap_draft", "")
+        if source == "edit":
+            return await _apply_caption_edit(update, context, caption)
+        context.user_data["caption"] = caption
         return await _finalize(update, context)
 
     if action == "skip":
@@ -1675,6 +1705,8 @@ async def ai_cap_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await query.edit_message_reply_markup(reply_markup=None)
         except Exception:
             pass
+        if source == "edit":
+            return await _apply_caption_edit(update, context, "")
         context.user_data["caption"] = ""
         return await _finalize(update, context)
 
@@ -1684,7 +1716,7 @@ async def ai_cap_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             f"Current draft:\n_{draft}_\n\nType your edited caption:",
             parse_mode="Markdown",
         )
-        return ADDING_CAPTION
+        return CAPTION_TEXT if source == "edit" else ADDING_CAPTION
 
     if action == "regen":
         tone = context.user_data.get("ai_cap_tone", "evocative")
@@ -1693,7 +1725,7 @@ async def ai_cap_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             caption = await _generate_ai_caption(context, tone)
         except Exception as exc:
             await query.edit_message_text(f"Failed: {exc}\n\nType a caption manually.")
-            return ADDING_CAPTION
+            return CAPTION_TEXT if source == "edit" else ADDING_CAPTION
         context.user_data["ai_cap_draft"] = caption
         await query.edit_message_text(
             f"Suggested caption:\n\n_{caption}_",
@@ -2673,9 +2705,10 @@ async def _send_caption_preview(chat_id: int, context: ContextTypes.DEFAULT_TYPE
         tg_caption += f"\n📝 {current_cap[:200]}{'…' if len(current_cap) > 200 else ''}"
 
     keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("✏️ Edit", callback_data=f"ce:edit:{idx}"),
-        InlineKeyboardButton("→ Next",  callback_data=f"ce:nxt:{idx}"),
-        InlineKeyboardButton("✓ Done",  callback_data=f"ce:done:{idx}"),
+        InlineKeyboardButton("✏️ Edit",   callback_data=f"ce:edit:{idx}"),
+        InlineKeyboardButton("✨ AI",     callback_data=f"ce:ai:{idx}"),
+        InlineKeyboardButton("→ Next",   callback_data=f"ce:nxt:{idx}"),
+        InlineKeyboardButton("✓ Done",   callback_data=f"ce:done:{idx}"),
     ]])
 
     raw_url = (
@@ -2712,8 +2745,18 @@ async def caption_file_action(update: Update, context: ContextTypes.DEFAULT_TYPE
         await _send_caption_preview(update.effective_chat.id, context, file_idx + 1)
         return CAPTION_FILE
 
+    if action == "ai":
+        context.user_data["cap_edit_idx"] = file_idx
+        context.user_data["cap_source"] = "edit"
+        await query.message.reply_text(
+            "Describe the tone or idea for the AI caption:\n"
+            "(e.g. \"playful\", \"intimate\", \"caught off guard\")"
+        )
+        return AI_CAP_TONE
+
     # action == "edit"
     context.user_data["cap_edit_idx"] = file_idx
+    context.user_data["cap_source"] = "edit"
     total = len(context.user_data["cap_filenames"])
     await query.message.reply_text(
         f"Type the new caption for photo {file_idx + 1} / {total}:\n(or /skip to clear it)"
@@ -4657,6 +4700,7 @@ def main() -> None:
             CAPTION_FILE:            [CallbackQueryHandler(caption_file_action, pattern=r"^ce:")],
             CAPTION_TEXT:            [
                 CommandHandler("skip", caption_skip_received),
+                CallbackQueryHandler(ai_cap_confirm, pattern=r"^aicap:"),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, caption_text_received),
             ],
             FEATURE_TITLE:   [MessageHandler(filters.TEXT & ~filters.COMMAND, feature_title_received)],
