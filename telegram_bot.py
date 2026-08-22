@@ -1594,7 +1594,7 @@ async def _generate_caption_from_bytes(raw_bytes: bytes, tone: str) -> str:
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
                 json={
-                    "model": "llama-3.2-90b-vision-preview",
+                    "model": "meta-llama/llama-4-scout-17b-16e-instruct",
                     "max_tokens": 200,
                     "messages": [{
                         "role": "user",
