@@ -84,7 +84,7 @@ NETLIFY_SITE_URL  = os.environ.get("NETLIFY_SITE_URL", "https://stalwart-crumble
 SHARE_SECRET      = os.environ.get("SHARE_SECRET", "")
 _SHARE_EXPIRY_DAYS = 30
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM, REORDER_BROWSE, DISPLAY_GALLERY, DISPLAY_SETTINGS, CARD_GALLERY, CARD_FIELD, CARD_VALUE = range(33)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM, REORDER_BROWSE, DISPLAY_GALLERY, DISPLAY_SETTINGS, CARD_GALLERY, CARD_FIELD, CARD_VALUE, CARD_PHOTO = range(34)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -4095,6 +4095,24 @@ def _set_card_field(html: str, href: str, field: str, new_text: str) -> str | No
     return None
 
 
+def _set_card_image(html: str, href: str, new_src: str) -> str | None:
+    marker = '<div class="gallery-item">'
+    parts = html.split(marker)
+    for i, part in enumerate(parts):
+        if href not in part:
+            continue
+        new_part = re.sub(
+            r'(<img\b[^>]*?\bsrc=")[^"]*(")',
+            rf'\g<1>{new_src}\g<2>',
+            part, count=1,
+        )
+        if new_part == part:
+            return None
+        parts[i] = new_part
+        return marker.join(parts)
+    return None
+
+
 _CARD_PAGE_SIZE = 8
 
 
@@ -4163,11 +4181,24 @@ async def card_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data["card_title"] = title
 
     html_bytes, _ = await _gh_get_file("gallery.html")
-    fields = _get_card_fields(html_bytes.decode("utf-8"), href) if html_bytes else None
+    if not html_bytes:
+        await query.edit_message_text("Could not load gallery.html.")
+        return ConversationHandler.END
+    html_str = html_bytes.decode("utf-8")
+    fields = _get_card_fields(html_str, href)
     if not fields:
         await query.edit_message_text("Could not read that card's fields.")
         return ConversationHandler.END
     context.user_data["card_fields"] = fields
+
+    # extract current cover image src for display
+    img_m = None
+    for part in html_str.split('<div class="gallery-item">')[1:]:
+        if href in part:
+            img_m = re.search(r'<img\b[^>]*?\bsrc="([^"]+)"', part)
+            break
+    current_img = img_m.group(1) if img_m else "(unknown)"
+    context.user_data["card_img_src"] = current_img
 
     def _trunc(s: str, n: int = 45) -> str:
         return (s[:n] + "…") if len(s) > n else s
@@ -4176,6 +4207,7 @@ async def card_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE
         [InlineKeyboardButton(f"Title — {_trunc(fields['title']) or '(empty)'}", callback_data="cardf:title")],
         [InlineKeyboardButton(f"Meta — {_trunc(fields['meta']) or '(empty)'}", callback_data="cardf:meta")],
         [InlineKeyboardButton(f"Caption — {_trunc(fields['caption']) or '(empty)'}", callback_data="cardf:caption")],
+        [InlineKeyboardButton("Cover photo — send new image", callback_data="cardf:photo")],
     ])
     await query.edit_message_text(
         f"Editing card: *{title}*\nPick the field to change:",
@@ -4190,6 +4222,15 @@ async def card_field_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     await query.answer()
     field = query.data.split(":")[1]
     context.user_data["card_field"] = field
+
+    if field == "photo":
+        current_img = context.user_data.get("card_img_src", "(unknown)")
+        await query.edit_message_text(
+            f"Current cover: `{current_img}`\n\nSend the new cover photo (as a file for best quality):",
+            parse_mode="Markdown",
+        )
+        return CARD_PHOTO
+
     current = context.user_data["card_fields"].get(field, "")
     label = {"title": "Title", "meta": "Meta", "caption": "Caption"}.get(field, field)
     await query.edit_message_text(
@@ -4197,6 +4238,74 @@ async def card_field_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         parse_mode="Markdown",
     )
     return CARD_VALUE
+
+
+async def card_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    msg = update.message
+    href   = context.user_data["card_href"]
+    gtitle = context.user_data["card_title"]
+
+    # derive asset folder from current img src or from href slug
+    current_src = context.user_data.get("card_img_src", "")
+    src_folder_m = re.match(r"assets/([^/]+)/", current_src)
+    if src_folder_m:
+        asset_folder = src_folder_m.group(1)
+    else:
+        slug = href.split("/")[-1].replace(".html", "")
+        asset_folder = "-".join(w.capitalize() for w in slug.split("-"))
+
+    # get file_id and extension
+    if msg.document and msg.document.mime_type and msg.document.mime_type.startswith("image/"):
+        file_id = msg.document.file_id
+        ext = Path(msg.document.file_name or "cover.jpg").suffix or ".jpg"
+    elif msg.photo:
+        file_id = msg.photo[-1].file_id
+        ext = ".jpg"
+    else:
+        await msg.reply_text("Please send a photo or image file.")
+        return CARD_PHOTO
+
+    await msg.reply_text("Uploading cover photo…")
+
+    try:
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+        tg_file = await context.bot.get_file(file_id)
+        await asyncio.wait_for(tg_file.download_to_drive(str(tmp_path)), timeout=60)
+        raw_bytes = tmp_path.read_bytes()
+        tmp_path.unlink(missing_ok=True)
+    except Exception as exc:
+        await msg.reply_text(f"Download failed: {exc}")
+        return ConversationHandler.END
+
+    upload_bytes = _compress_photo(raw_bytes) if ext.lower() in (".jpg", ".jpeg") else raw_bytes
+    ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    filename = f"card-cover-{ts}{ext}"
+    rel_path = f"assets/{asset_folder}/{filename}"
+
+    ok, err = await _gh_put_with_retry(rel_path, upload_bytes, f"Card cover: {gtitle}")
+    if not ok:
+        await msg.reply_text(f"Upload failed: {err}")
+        return ConversationHandler.END
+
+    new_src = rel_path
+    html_bytes, sha = await _gh_get_file("gallery.html")
+    if not html_bytes:
+        await msg.reply_text("Could not reload gallery.html.")
+        return ConversationHandler.END
+
+    updated = _set_card_image(html_bytes.decode("utf-8"), href, new_src)
+    if not updated:
+        await msg.reply_text("Photo uploaded but could not update gallery card.")
+        return ConversationHandler.END
+
+    ok2, err2 = await _gh_put_with_retry("gallery.html", updated.encode("utf-8"),
+                                         f"Card cover photo: {gtitle}", sha=sha)
+    if ok2:
+        await msg.reply_text(f"✓ Cover photo updated for {gtitle}.\n\nWait ~2 min for GitHub Pages to deploy.")
+    else:
+        await msg.reply_text(f"Failed to save gallery.html: {err2}")
+    return ConversationHandler.END
 
 
 async def card_value_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -4317,6 +4426,7 @@ def main() -> None:
             ],
             CARD_FIELD:   [CallbackQueryHandler(card_field_chosen, pattern=r"^cardf:")],
             CARD_VALUE:   [MessageHandler(filters.TEXT & ~filters.COMMAND, card_value_received)],
+            CARD_PHOTO:   [MessageHandler((filters.PHOTO | filters.Document.IMAGE), card_photo_received)],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel), CommandHandler("start", _conv_start)],
         name="main_conv",
