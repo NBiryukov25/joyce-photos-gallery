@@ -84,10 +84,14 @@ NETLIFY_SITE_URL  = os.environ.get("NETLIFY_SITE_URL", "https://stalwart-crumble
 SHARE_SECRET      = os.environ.get("SHARE_SECRET", "")
 _SHARE_EXPIRY_DAYS = 30
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM, REORDER_BROWSE, DISPLAY_GALLERY, DISPLAY_SETTINGS, CARD_GALLERY, CARD_FIELD, CARD_VALUE, CARD_PHOTO, CARD_PHOTO_UPLOAD = range(35)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM, REORDER_BROWSE, DISPLAY_GALLERY, DISPLAY_SETTINGS, CARD_GALLERY, CARD_FIELD, CARD_VALUE, CARD_PHOTO, CARD_PHOTO_UPLOAD, AI_CAP_TONE, AI_CAP_CONFIRM = range(37)
 
-_SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
-_SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
+_SKIP_CB   = "sc"   # callback_data for the inline Skip Caption button
+_AICAP_CB  = "aic"  # callback_data for AI Caption button
+_SKIP_KB = InlineKeyboardMarkup([[
+    InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB),
+    InlineKeyboardButton("✨ AI Caption", callback_data=_AICAP_CB),
+]])
 
 SPECIAL_HTML: dict[str, str] = {
     "Stashed-companion": "galleries/Stashed-companion.html",
@@ -1544,6 +1548,136 @@ async def gallery_named(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     context.user_data["target_page"] = "gallery"
     await update.message.reply_text(f"Gallery: {name}\n\nCaption? (or tap Skip)", reply_markup=_SKIP_KB)
     return ADDING_CAPTION
+
+
+async def ai_cap_clicked(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """User tapped '✨ AI Caption' — ask for a tone/idea."""
+    query = update.callback_query
+    await query.answer()
+    try:
+        await query.edit_message_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    await query.message.reply_text(
+        "Describe the tone or idea for the caption:\n"
+        "(e.g. \"playful\", \"she just got home\", \"caught off guard, intimate\")"
+    )
+    return AI_CAP_TONE
+
+
+async def _generate_ai_caption(context, tone: str) -> str:
+    """Download the queued photo and ask Claude to write a caption."""
+    if not ANTHROPIC_API_KEY:
+        raise RuntimeError("ANTHROPIC_API_KEY not configured.")
+
+    item = (context.user_data.get("pending_album") or [context.user_data])[0]
+    file_id  = item["file_id"]
+    is_video = item.get("is_video", False)
+
+    if is_video:
+        raise RuntimeError("AI captions only work on photos, not videos.")
+
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+    tg_file = await context.bot.get_file(file_id)
+    await asyncio.wait_for(tg_file.download_to_drive(str(tmp_path)), timeout=60)
+    raw_bytes = tmp_path.read_bytes()
+    tmp_path.unlink(missing_ok=True)
+
+    img_b64 = base64.standard_b64encode(raw_bytes).decode()
+    client = _anthropic_sdk.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+    msg = await client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=200,
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img_b64}},
+                {"type": "text", "text": (
+                    f"Write a single photo caption for this image. Tone/idea: {tone}.\n"
+                    "The caption should be 1–3 sentences, evocative and personal, "
+                    "not generic. Return only the caption text, nothing else."
+                )},
+            ],
+        }],
+    )
+    return msg.content[0].text.strip()
+
+
+_AICAP_CONFIRM_KB = InlineKeyboardMarkup([
+    [InlineKeyboardButton("✓ Use this", callback_data="aicap:use"),
+     InlineKeyboardButton("↺ Regenerate", callback_data="aicap:regen")],
+    [InlineKeyboardButton("✏️ Edit", callback_data="aicap:edit"),
+     InlineKeyboardButton("Skip →", callback_data="aicap:skip")],
+])
+
+
+async def ai_cap_tone_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    tone = update.message.text.strip()
+    context.user_data["ai_cap_tone"] = tone
+    thinking = await update.message.reply_text("Analyzing photo…")
+    try:
+        caption = await _generate_ai_caption(context, tone)
+    except Exception as exc:
+        await thinking.delete()
+        await update.message.reply_text(f"AI caption failed: {exc}\n\nType a caption manually or /skip.")
+        return ADDING_CAPTION
+    await thinking.delete()
+    context.user_data["ai_cap_draft"] = caption
+    await update.message.reply_text(
+        f"Suggested caption:\n\n_{caption}_",
+        reply_markup=_AICAP_CONFIRM_KB,
+        parse_mode="Markdown",
+    )
+    return AI_CAP_CONFIRM
+
+
+async def ai_cap_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    action = query.data.split(":")[1]
+
+    if action == "use":
+        try:
+            await query.edit_message_reply_markup(reply_markup=None)
+        except Exception:
+            pass
+        context.user_data["caption"] = context.user_data.get("ai_cap_draft", "")
+        return await _finalize(update, context)
+
+    if action == "skip":
+        try:
+            await query.edit_message_reply_markup(reply_markup=None)
+        except Exception:
+            pass
+        context.user_data["caption"] = ""
+        return await _finalize(update, context)
+
+    if action == "edit":
+        draft = context.user_data.get("ai_cap_draft", "")
+        await query.edit_message_text(
+            f"Current draft:\n_{draft}_\n\nType your edited caption:",
+            parse_mode="Markdown",
+        )
+        return ADDING_CAPTION
+
+    if action == "regen":
+        tone = context.user_data.get("ai_cap_tone", "evocative")
+        await query.edit_message_text("Regenerating…")
+        try:
+            caption = await _generate_ai_caption(context, tone)
+        except Exception as exc:
+            await query.edit_message_text(f"Failed: {exc}\n\nType a caption manually.")
+            return ADDING_CAPTION
+        context.user_data["ai_cap_draft"] = caption
+        await query.edit_message_text(
+            f"Suggested caption:\n\n_{caption}_",
+            reply_markup=_AICAP_CONFIRM_KB,
+            parse_mode="Markdown",
+        )
+        return AI_CAP_CONFIRM
+
+    return AI_CAP_CONFIRM
 
 
 async def caption_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -4483,8 +4617,11 @@ def main() -> None:
             ADDING_CAPTION:          [
                 CommandHandler("skip", caption_skipped),
                 CallbackQueryHandler(skip_caption_button, pattern=rf"^{_SKIP_CB}$"),
+                CallbackQueryHandler(ai_cap_clicked, pattern=rf"^{_AICAP_CB}$"),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, caption_received),
             ],
+            AI_CAP_TONE:    [MessageHandler(filters.TEXT & ~filters.COMMAND, ai_cap_tone_received)],
+            AI_CAP_CONFIRM: [CallbackQueryHandler(ai_cap_confirm, pattern=r"^aicap:")],
             ADDING_MORE:             [
                 MessageHandler(_media_filter, more_photo_received),
                 CommandHandler("done", cmd_done),
