@@ -84,7 +84,7 @@ NETLIFY_SITE_URL  = os.environ.get("NETLIFY_SITE_URL", "https://stalwart-crumble
 SHARE_SECRET      = os.environ.get("SHARE_SECRET", "")
 _SHARE_EXPIRY_DAYS = 30
 
-CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM, REORDER_BROWSE, DISPLAY_GALLERY, DISPLAY_SETTINGS, CARD_GALLERY, CARD_FIELD, CARD_VALUE, CARD_PHOTO = range(34)
+CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM, REORDER_BROWSE, DISPLAY_GALLERY, DISPLAY_SETTINGS, CARD_GALLERY, CARD_FIELD, CARD_VALUE, CARD_PHOTO, CARD_PHOTO_UPLOAD = range(35)
 
 _SKIP_CB = "sc"  # callback_data for the inline Skip Caption button
 _SKIP_KB = InlineKeyboardMarkup([[InlineKeyboardButton("Skip Caption →", callback_data=_SKIP_CB)]])
@@ -115,6 +115,23 @@ async def _gh_get_file(rel_path: str) -> tuple[bytes | None, str | None]:
         data = r.json()
         return base64.b64decode(data["content"]), data["sha"]
     return None, None
+
+
+async def _gh_list_dir(rel_path: str) -> list[str]:
+    """Return filenames in a GitHub directory (images only), sorted."""
+    url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/{rel_path}"
+    async with httpx.AsyncClient(timeout=30) as client:
+        r = await client.get(url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
+    if r.status_code != 200:
+        return []
+    data = r.json()
+    if not isinstance(data, list):
+        return []
+    img_exts = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+    return sorted(
+        e["name"] for e in data
+        if e.get("type") == "file" and Path(e["name"]).suffix.lower() in img_exts
+    )
 
 
 async def _gh_put_file(rel_path: str, content: bytes, message: str, sha: str | None = None) -> tuple[bool, str]:
@@ -4095,6 +4112,27 @@ def _set_card_field(html: str, href: str, field: str, new_text: str) -> str | No
     return None
 
 
+_CARD_PHOTO_PAGE_SIZE = 8
+
+
+def _card_photo_keyboard(photos: list[str], page: int) -> InlineKeyboardMarkup:
+    start = page * _CARD_PHOTO_PAGE_SIZE
+    end = start + _CARD_PHOTO_PAGE_SIZE
+    rows = [
+        [InlineKeyboardButton(name, callback_data=f"cardpick:{page}:{i + start}")]
+        for i, name in enumerate(photos[start:end])
+    ]
+    nav = []
+    if page > 0:
+        nav.append(InlineKeyboardButton("← Prev", callback_data=f"cardpickp:{page - 1}"))
+    if end < len(photos):
+        nav.append(InlineKeyboardButton("Next →", callback_data=f"cardpickp:{page + 1}"))
+    if nav:
+        rows.append(nav)
+    rows.append([InlineKeyboardButton("📤 Upload new photo", callback_data="cardpick:_new")])
+    return InlineKeyboardMarkup(rows)
+
+
 def _set_card_image(html: str, href: str, new_src: str) -> str | None:
     marker = '<div class="gallery-item">'
     parts = html.split(marker)
@@ -4224,10 +4262,23 @@ async def card_field_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     context.user_data["card_field"] = field
 
     if field == "photo":
-        current_img = context.user_data.get("card_img_src", "(unknown)")
+        href = context.user_data.get("card_href", "")
+        current_src = context.user_data.get("card_img_src", "")
+        src_folder_m = re.match(r"assets/([^/]+)/", current_src)
+        if src_folder_m:
+            asset_folder = src_folder_m.group(1)
+        else:
+            slug = href.split("/")[-1].replace(".html", "")
+            asset_folder = "-".join(w.capitalize() for w in slug.split("-"))
+        context.user_data["card_asset_folder"] = asset_folder
+
+        photos = await _gh_list_dir(f"assets/{asset_folder}")
+        context.user_data["card_photo_list"] = photos
+
+        kb = _card_photo_keyboard(photos, 0)
         await query.edit_message_text(
-            f"Current cover: `{current_img}`\n\nSend the new cover photo (as a file for best quality):",
-            parse_mode="Markdown",
+            f"Pick a photo from the gallery, or upload a new one:",
+            reply_markup=kb,
         )
         return CARD_PHOTO
 
@@ -4240,21 +4291,73 @@ async def card_field_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     return CARD_VALUE
 
 
-async def card_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    msg = update.message
+async def card_photo_page_nav(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    page = int(query.data.split(":")[1])
+    photos = context.user_data.get("card_photo_list", [])
+    await query.edit_message_text(
+        "Pick a photo from the gallery, or upload a new one:",
+        reply_markup=_card_photo_keyboard(photos, page),
+    )
+    return CARD_PHOTO
+
+
+async def card_photo_picked(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """User picked an existing gallery photo as the cover."""
+    query = update.callback_query
+    await query.answer()
+    data = query.data  # "cardpick:{page}:{idx}" or "cardpick:_new"
+
+    if data == "cardpick:_new":
+        await query.edit_message_text(
+            "Send the new cover photo (send as a file for best quality):"
+        )
+        return CARD_PHOTO_UPLOAD
+
+    _, _page, idx_str = data.split(":")
+    idx = int(idx_str)
+    photos = context.user_data.get("card_photo_list", [])
+    if idx >= len(photos):
+        await query.edit_message_text("Invalid selection.")
+        return ConversationHandler.END
+
+    filename = photos[idx]
+    asset_folder = context.user_data.get("card_asset_folder", "")
+    new_src = f"assets/{asset_folder}/{filename}"
     href   = context.user_data["card_href"]
     gtitle = context.user_data["card_title"]
 
-    # derive asset folder from current img src or from href slug
-    current_src = context.user_data.get("card_img_src", "")
-    src_folder_m = re.match(r"assets/([^/]+)/", current_src)
-    if src_folder_m:
-        asset_folder = src_folder_m.group(1)
-    else:
-        slug = href.split("/")[-1].replace(".html", "")
-        asset_folder = "-".join(w.capitalize() for w in slug.split("-"))
+    await query.edit_message_text(f"Setting cover to {filename}…")
 
-    # get file_id and extension
+    html_bytes, sha = await _gh_get_file("gallery.html")
+    if not html_bytes:
+        await query.edit_message_text("Could not load gallery.html.")
+        return ConversationHandler.END
+
+    updated = _set_card_image(html_bytes.decode("utf-8"), href, new_src)
+    if not updated:
+        await query.edit_message_text("Could not update the card image.")
+        return ConversationHandler.END
+
+    ok, err = await _gh_put_with_retry("gallery.html", updated.encode("utf-8"),
+                                       f"Card cover photo: {gtitle}", sha=sha)
+    if ok:
+        await query.edit_message_text(
+            f"✓ Cover set to {filename} for {gtitle}.\n\nWait ~2 min for GitHub Pages to deploy."
+        )
+    else:
+        await query.edit_message_text(f"Failed to save: {err}")
+    return ConversationHandler.END
+
+
+async def card_photo_upload_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """User sent a new photo to upload as the cover."""
+    msg = update.message
+    href         = context.user_data["card_href"]
+    gtitle       = context.user_data["card_title"]
+    asset_folder = context.user_data.get("card_asset_folder", "")
+
     if msg.document and msg.document.mime_type and msg.document.mime_type.startswith("image/"):
         file_id = msg.document.file_id
         ext = Path(msg.document.file_name or "cover.jpg").suffix or ".jpg"
@@ -4263,7 +4366,7 @@ async def card_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE
         ext = ".jpg"
     else:
         await msg.reply_text("Please send a photo or image file.")
-        return CARD_PHOTO
+        return CARD_PHOTO_UPLOAD
 
     await msg.reply_text("Uploading cover photo…")
 
@@ -4288,13 +4391,12 @@ async def card_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE
         await msg.reply_text(f"Upload failed: {err}")
         return ConversationHandler.END
 
-    new_src = rel_path
     html_bytes, sha = await _gh_get_file("gallery.html")
     if not html_bytes:
         await msg.reply_text("Could not reload gallery.html.")
         return ConversationHandler.END
 
-    updated = _set_card_image(html_bytes.decode("utf-8"), href, new_src)
+    updated = _set_card_image(html_bytes.decode("utf-8"), href, rel_path)
     if not updated:
         await msg.reply_text("Photo uploaded but could not update gallery card.")
         return ConversationHandler.END
@@ -4426,7 +4528,11 @@ def main() -> None:
             ],
             CARD_FIELD:   [CallbackQueryHandler(card_field_chosen, pattern=r"^cardf:")],
             CARD_VALUE:   [MessageHandler(filters.TEXT & ~filters.COMMAND, card_value_received)],
-            CARD_PHOTO:   [MessageHandler((filters.PHOTO | filters.Document.IMAGE), card_photo_received)],
+            CARD_PHOTO: [
+                CallbackQueryHandler(card_photo_picked, pattern=r"^cardpick:"),
+                CallbackQueryHandler(card_photo_page_nav, pattern=r"^cardpickp:\d+$"),
+            ],
+            CARD_PHOTO_UPLOAD: [MessageHandler((filters.PHOTO | filters.Document.IMAGE), card_photo_upload_received)],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel), CommandHandler("start", _conv_start)],
         name="main_conv",
