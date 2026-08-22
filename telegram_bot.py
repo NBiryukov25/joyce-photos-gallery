@@ -1558,6 +1558,7 @@ async def ai_cap_clicked(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await query.edit_message_reply_markup(reply_markup=None)
     except Exception:
         pass
+    context.user_data["cap_source"] = "upload"
     await query.message.reply_text(
         "Describe the tone or idea for the caption:\n"
         "(e.g. \"playful\", \"she just got home\", \"caught off guard, intimate\")"
@@ -1565,43 +1566,92 @@ async def ai_cap_clicked(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     return AI_CAP_TONE
 
 
-async def _generate_ai_caption(context, tone: str) -> str:
-    """Download the queued photo and ask Claude to write a caption."""
-    if not ANTHROPIC_API_KEY:
-        raise RuntimeError("ANTHROPIC_API_KEY not configured.")
+_CAPTION_PROMPT = (
+    "Write a single photo caption for this image. Tone/idea: {tone}.\n"
+    "The caption should be 1–3 sentences, evocative and personal, "
+    "not generic. Return only the caption text, nothing else."
+)
 
-    item = (context.user_data.get("pending_album") or [context.user_data])[0]
-    file_id  = item["file_id"]
-    is_video = item.get("is_video", False)
 
-    if is_video:
-        raise RuntimeError("AI captions only work on photos, not videos.")
-
+async def _download_photo_bytes(context, item: dict) -> bytes:
     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
         tmp_path = Path(tmp.name)
-    tg_file = await context.bot.get_file(file_id)
+    tg_file = await context.bot.get_file(item["file_id"])
     await asyncio.wait_for(tg_file.download_to_drive(str(tmp_path)), timeout=60)
-    raw_bytes = tmp_path.read_bytes()
+    raw = tmp_path.read_bytes()
     tmp_path.unlink(missing_ok=True)
+    return raw
 
+
+async def _generate_caption_from_bytes(raw_bytes: bytes, tone: str) -> str:
+    """Call Groq (or Claude fallback) with image bytes to generate a caption."""
     img_b64 = base64.standard_b64encode(raw_bytes).decode()
-    client = _anthropic_sdk.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-    msg = await client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=200,
-        messages=[{
-            "role": "user",
-            "content": [
+    prompt  = _CAPTION_PROMPT.format(tone=tone)
+
+    if GROQ_API_KEY:
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": "llama-3.2-90b-vision-preview",
+                    "max_tokens": 200,
+                    "messages": [{
+                        "role": "user",
+                        "content": [
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}},
+                            {"type": "text", "text": prompt},
+                        ],
+                    }],
+                },
+            )
+        if r.status_code == 200:
+            return r.json()["choices"][0]["message"]["content"].strip()
+        raise RuntimeError(f"Groq error {r.status_code}: {r.text[:200]}")
+
+    if ANTHROPIC_API_KEY:
+        client = _anthropic_sdk.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+        msg = await client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=200,
+            messages=[{"role": "user", "content": [
                 {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img_b64}},
-                {"type": "text", "text": (
-                    f"Write a single photo caption for this image. Tone/idea: {tone}.\n"
-                    "The caption should be 1–3 sentences, evocative and personal, "
-                    "not generic. Return only the caption text, nothing else."
-                )},
-            ],
-        }],
-    )
-    return msg.content[0].text.strip()
+                {"type": "text", "text": prompt},
+            ]}],
+        )
+        return msg.content[0].text.strip()
+
+    raise RuntimeError("No AI key configured (set GROQ_API_KEY or ANTHROPIC_API_KEY).")
+
+
+async def _generate_ai_caption(context, tone: str) -> str:
+    """Download the photo for the current operation and generate a caption."""
+    source = context.user_data.get("cap_source", "upload")
+
+    if source == "edit":
+        gallery   = context.user_data["cap_gallery"]
+        filenames = context.user_data["cap_filenames"]
+        idx       = context.user_data["cap_edit_idx"]
+        filename  = filenames[idx]
+        ext = filename.rsplit(".", 1)[-1].lower()
+        if ext in _VIDEO_EXTS:
+            raise RuntimeError("AI captions only work on photos, not videos.")
+        raw_url = (
+            f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
+            f"/assets/{urllib.parse.quote(gallery)}/{urllib.parse.quote(filename)}"
+        )
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.get(raw_url)
+        if r.status_code != 200:
+            raise RuntimeError(f"Could not download photo ({r.status_code}).")
+        raw_bytes = r.content
+    else:
+        item = (context.user_data.get("pending_album") or [context.user_data])[0]
+        if item.get("is_video"):
+            raise RuntimeError("AI captions only work on photos, not videos.")
+        raw_bytes = await _download_photo_bytes(context, item)
+
+    return await _generate_caption_from_bytes(raw_bytes, tone)
 
 
 _AICAP_CONFIRM_KB = InlineKeyboardMarkup([
@@ -1637,12 +1687,17 @@ async def ai_cap_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await query.answer()
     action = query.data.split(":")[1]
 
+    source = context.user_data.get("cap_source", "upload")
+
     if action == "use":
         try:
             await query.edit_message_reply_markup(reply_markup=None)
         except Exception:
             pass
-        context.user_data["caption"] = context.user_data.get("ai_cap_draft", "")
+        caption = context.user_data.get("ai_cap_draft", "")
+        if source == "edit":
+            return await _apply_caption_edit(update, context, caption)
+        context.user_data["caption"] = caption
         return await _finalize(update, context)
 
     if action == "skip":
@@ -1650,6 +1705,8 @@ async def ai_cap_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await query.edit_message_reply_markup(reply_markup=None)
         except Exception:
             pass
+        if source == "edit":
+            return await _apply_caption_edit(update, context, "")
         context.user_data["caption"] = ""
         return await _finalize(update, context)
 
@@ -1659,7 +1716,7 @@ async def ai_cap_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             f"Current draft:\n_{draft}_\n\nType your edited caption:",
             parse_mode="Markdown",
         )
-        return ADDING_CAPTION
+        return CAPTION_TEXT if source == "edit" else ADDING_CAPTION
 
     if action == "regen":
         tone = context.user_data.get("ai_cap_tone", "evocative")
@@ -1668,7 +1725,7 @@ async def ai_cap_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             caption = await _generate_ai_caption(context, tone)
         except Exception as exc:
             await query.edit_message_text(f"Failed: {exc}\n\nType a caption manually.")
-            return ADDING_CAPTION
+            return CAPTION_TEXT if source == "edit" else ADDING_CAPTION
         context.user_data["ai_cap_draft"] = caption
         await query.edit_message_text(
             f"Suggested caption:\n\n_{caption}_",
@@ -2648,9 +2705,10 @@ async def _send_caption_preview(chat_id: int, context: ContextTypes.DEFAULT_TYPE
         tg_caption += f"\n📝 {current_cap[:200]}{'…' if len(current_cap) > 200 else ''}"
 
     keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("✏️ Edit", callback_data=f"ce:edit:{idx}"),
-        InlineKeyboardButton("→ Next",  callback_data=f"ce:nxt:{idx}"),
-        InlineKeyboardButton("✓ Done",  callback_data=f"ce:done:{idx}"),
+        InlineKeyboardButton("✏️ Edit",   callback_data=f"ce:edit:{idx}"),
+        InlineKeyboardButton("✨ AI",     callback_data=f"ce:ai:{idx}"),
+        InlineKeyboardButton("→ Next",   callback_data=f"ce:nxt:{idx}"),
+        InlineKeyboardButton("✓ Done",   callback_data=f"ce:done:{idx}"),
     ]])
 
     raw_url = (
@@ -2687,8 +2745,18 @@ async def caption_file_action(update: Update, context: ContextTypes.DEFAULT_TYPE
         await _send_caption_preview(update.effective_chat.id, context, file_idx + 1)
         return CAPTION_FILE
 
+    if action == "ai":
+        context.user_data["cap_edit_idx"] = file_idx
+        context.user_data["cap_source"] = "edit"
+        await query.message.reply_text(
+            "Describe the tone or idea for the AI caption:\n"
+            "(e.g. \"playful\", \"intimate\", \"caught off guard\")"
+        )
+        return AI_CAP_TONE
+
     # action == "edit"
     context.user_data["cap_edit_idx"] = file_idx
+    context.user_data["cap_source"] = "edit"
     total = len(context.user_data["cap_filenames"])
     await query.message.reply_text(
         f"Type the new caption for photo {file_idx + 1} / {total}:\n(or /skip to clear it)"
@@ -4632,6 +4700,7 @@ def main() -> None:
             CAPTION_FILE:            [CallbackQueryHandler(caption_file_action, pattern=r"^ce:")],
             CAPTION_TEXT:            [
                 CommandHandler("skip", caption_skip_received),
+                CallbackQueryHandler(ai_cap_confirm, pattern=r"^aicap:"),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, caption_text_received),
             ],
             FEATURE_TITLE:   [MessageHandler(filters.TEXT & ~filters.COMMAND, feature_title_received)],
