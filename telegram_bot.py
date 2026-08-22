@@ -1565,43 +1565,68 @@ async def ai_cap_clicked(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     return AI_CAP_TONE
 
 
-async def _generate_ai_caption(context, tone: str) -> str:
-    """Download the queued photo and ask Claude to write a caption."""
-    if not ANTHROPIC_API_KEY:
-        raise RuntimeError("ANTHROPIC_API_KEY not configured.")
+_CAPTION_PROMPT = (
+    "Write a single photo caption for this image. Tone/idea: {tone}.\n"
+    "The caption should be 1–3 sentences, evocative and personal, "
+    "not generic. Return only the caption text, nothing else."
+)
 
-    item = (context.user_data.get("pending_album") or [context.user_data])[0]
-    file_id  = item["file_id"]
-    is_video = item.get("is_video", False)
 
-    if is_video:
-        raise RuntimeError("AI captions only work on photos, not videos.")
-
+async def _download_photo_bytes(context, item: dict) -> bytes:
     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
         tmp_path = Path(tmp.name)
-    tg_file = await context.bot.get_file(file_id)
+    tg_file = await context.bot.get_file(item["file_id"])
     await asyncio.wait_for(tg_file.download_to_drive(str(tmp_path)), timeout=60)
-    raw_bytes = tmp_path.read_bytes()
+    raw = tmp_path.read_bytes()
     tmp_path.unlink(missing_ok=True)
+    return raw
 
-    img_b64 = base64.standard_b64encode(raw_bytes).decode()
-    client = _anthropic_sdk.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-    msg = await client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=200,
-        messages=[{
-            "role": "user",
-            "content": [
+
+async def _generate_ai_caption(context, tone: str) -> str:
+    """Download the queued photo and generate a caption.
+    Uses Groq Llama-3.2-Vision by default; falls back to Claude."""
+    item = (context.user_data.get("pending_album") or [context.user_data])[0]
+    if item.get("is_video"):
+        raise RuntimeError("AI captions only work on photos, not videos.")
+
+    raw_bytes = await _download_photo_bytes(context, item)
+    img_b64   = base64.standard_b64encode(raw_bytes).decode()
+    prompt    = _CAPTION_PROMPT.format(tone=tone)
+
+    if GROQ_API_KEY:
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": "llama-3.2-90b-vision-preview",
+                    "max_tokens": 200,
+                    "messages": [{
+                        "role": "user",
+                        "content": [
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}},
+                            {"type": "text", "text": prompt},
+                        ],
+                    }],
+                },
+            )
+        if r.status_code == 200:
+            return r.json()["choices"][0]["message"]["content"].strip()
+        raise RuntimeError(f"Groq error {r.status_code}: {r.text[:200]}")
+
+    if ANTHROPIC_API_KEY:
+        client = _anthropic_sdk.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+        msg = await client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=200,
+            messages=[{"role": "user", "content": [
                 {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img_b64}},
-                {"type": "text", "text": (
-                    f"Write a single photo caption for this image. Tone/idea: {tone}.\n"
-                    "The caption should be 1–3 sentences, evocative and personal, "
-                    "not generic. Return only the caption text, nothing else."
-                )},
-            ],
-        }],
-    )
-    return msg.content[0].text.strip()
+                {"type": "text", "text": prompt},
+            ]}],
+        )
+        return msg.content[0].text.strip()
+
+    raise RuntimeError("No AI key configured (set GROQ_API_KEY or ANTHROPIC_API_KEY).")
 
 
 _AICAP_CONFIRM_KB = InlineKeyboardMarkup([
