@@ -4682,7 +4682,10 @@ async def card_value_received(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 def main() -> None:
-    persistence = PicklePersistence(filepath="/tmp/joyce_bot_state.pkl")
+    # Use DATA_DIR env var for persistent disk on Render; fallback to /tmp (ephemeral).
+    _data_dir = os.environ.get("DATA_DIR", "/tmp")
+    os.makedirs(_data_dir, exist_ok=True)
+    persistence = PicklePersistence(filepath=f"{_data_dir}/joyce_bot_state.pkl")
     app = Application.builder().token(BOT_TOKEN).persistence(persistence).build()
 
     _media_filter = filters.PHOTO | filters.VIDEO | filters.Document.IMAGE | filters.Document.VIDEO
