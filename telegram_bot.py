@@ -4505,6 +4505,37 @@ async def card_photo_page_nav(update: Update, context: ContextTypes.DEFAULT_TYPE
     return CARD_PHOTO
 
 
+async def _update_gallery_html_cover(href: str, new_src: str, gtitle: str) -> tuple[bool, str]:
+    """Fetch gallery.html, swap cover src, push back. Returns (ok, error_msg)."""
+    html_bytes, sha = await _gh_get_file("gallery.html")
+    if not html_bytes:
+        return False, "Could not load gallery.html from GitHub."
+    updated = _set_card_image(html_bytes.decode("utf-8"), href, new_src)
+    if updated is None:
+        current_src_m = re.search(rf'href="{re.escape(href)}"[^<]*<img\b[^>]*?\bsrc="([^"]+)"',
+                                  html_bytes.decode("utf-8"))
+        current = current_src_m.group(1) if current_src_m else "?"
+        if current == new_src:
+            return False, f"That photo is already set as the cover ({new_src})."
+        return False, f"Could not locate the cover <img> for this card in gallery.html."
+    ok, err = await _gh_put_with_retry("gallery.html", updated.encode("utf-8"),
+                                       f"Card cover photo: {gtitle}", sha=sha)
+    if ok:
+        return True, ""
+    if "sha" in err.lower() or "409" in err or "422" in err:
+        # SHA conflict — gallery.html was updated between our fetch and put; retry once with fresh SHA
+        html_bytes2, sha2 = await _gh_get_file("gallery.html")
+        if html_bytes2:
+            updated2 = _set_card_image(html_bytes2.decode("utf-8"), href, new_src)
+            if updated2:
+                ok2, err2 = await _gh_put_with_retry("gallery.html", updated2.encode("utf-8"),
+                                                     f"Card cover photo: {gtitle}", sha=sha2)
+                if ok2:
+                    return True, ""
+                return False, f"Conflict retry also failed: {err2}"
+    return False, err
+
+
 async def card_photo_picked(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """User picked an existing gallery photo as the cover."""
     query = update.callback_query
@@ -4517,8 +4548,13 @@ async def card_photo_picked(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         )
         return CARD_PHOTO_UPLOAD
 
-    _, _page, idx_str = data.split(":")
-    idx = int(idx_str)
+    try:
+        _, _page, idx_str = data.split(":")
+        idx = int(idx_str)
+    except (ValueError, IndexError):
+        await query.edit_message_text("Invalid selection.")
+        return ConversationHandler.END
+
     photos = context.user_data.get("card_photo_list", [])
     if idx >= len(photos):
         await query.edit_message_text("Invalid selection.")
@@ -4532,83 +4568,79 @@ async def card_photo_picked(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     await query.edit_message_text(f"Setting cover to {filename}…")
 
-    html_bytes, sha = await _gh_get_file("gallery.html")
-    if not html_bytes:
-        await query.edit_message_text("Could not load gallery.html.")
-        return ConversationHandler.END
-
-    updated = _set_card_image(html_bytes.decode("utf-8"), href, new_src)
-    if not updated:
-        await query.edit_message_text("Could not update the card image.")
-        return ConversationHandler.END
-
-    ok, err = await _gh_put_with_retry("gallery.html", updated.encode("utf-8"),
-                                       f"Card cover photo: {gtitle}", sha=sha)
+    ok, err = await _update_gallery_html_cover(href, new_src, gtitle)
     if ok:
         await query.edit_message_text(
-            f"✓ Cover set to {filename} for {gtitle}.\n\nWait ~2 min for GitHub Pages to deploy."
+            f"✓ Cover set to {filename} for {gtitle}.\n\nWait ~2 min for the site to rebuild."
         )
     else:
-        await query.edit_message_text(f"Failed to save: {err}")
+        await query.edit_message_text(f"Cover update failed: {err}")
     return ConversationHandler.END
 
 
 async def card_photo_upload_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """User sent a new photo to upload as the cover."""
     msg = update.message
-    href         = context.user_data["card_href"]
-    gtitle       = context.user_data["card_title"]
-    asset_folder = context.user_data.get("card_asset_folder", "")
-
-    if msg.document and msg.document.mime_type and msg.document.mime_type.startswith("image/"):
-        file_id = msg.document.file_id
-        ext = Path(msg.document.file_name or "cover.jpg").suffix or ".jpg"
-    elif msg.photo:
-        file_id = msg.photo[-1].file_id
-        ext = ".jpg"
-    else:
-        await msg.reply_text("Please send a photo or image file.")
-        return CARD_PHOTO_UPLOAD
-
-    await msg.reply_text("Uploading cover photo…")
-
     try:
-        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
-            tmp_path = Path(tmp.name)
-        tg_file = await context.bot.get_file(file_id)
-        await asyncio.wait_for(tg_file.download_to_drive(str(tmp_path)), timeout=60)
-        raw_bytes = tmp_path.read_bytes()
-        tmp_path.unlink(missing_ok=True)
+        href         = context.user_data["card_href"]
+        gtitle       = context.user_data["card_title"]
+        asset_folder = context.user_data.get("card_asset_folder", "")
+
+        if msg.document and msg.document.mime_type and msg.document.mime_type.startswith("image/"):
+            file_id = msg.document.file_id
+            ext = Path(msg.document.file_name or "cover.jpg").suffix or ".jpg"
+        elif msg.photo:
+            file_id = msg.photo[-1].file_id
+            ext = ".jpg"
+        else:
+            await msg.reply_text("Please send a photo or image file.")
+            return CARD_PHOTO_UPLOAD
+
+        await msg.reply_text("Uploading cover photo…")
+
+        try:
+            with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+                tmp_path = Path(tmp.name)
+            tg_file = await context.bot.get_file(file_id)
+            await asyncio.wait_for(tg_file.download_to_drive(str(tmp_path)), timeout=60)
+            raw_bytes = tmp_path.read_bytes()
+            tmp_path.unlink(missing_ok=True)
+        except Exception as exc:
+            await msg.reply_text(f"Download failed: {exc}")
+            return ConversationHandler.END
+
+        try:
+            upload_bytes = _compress_photo(raw_bytes) if ext.lower() in (".jpg", ".jpeg") else raw_bytes
+        except Exception as exc:
+            await msg.reply_text(f"Could not process image: {exc}")
+            return ConversationHandler.END
+
+        if not asset_folder:
+            await msg.reply_text("Session expired — please restart /card.")
+            return ConversationHandler.END
+
+        ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        filename = f"card-cover-{ts}{ext}"
+        rel_path = f"assets/{asset_folder}/{filename}"
+
+        ok, err = await _gh_put_with_retry(rel_path, upload_bytes, f"Card cover: {gtitle}")
+        if not ok:
+            await msg.reply_text(f"Upload failed: {err}")
+            return ConversationHandler.END
+
+        ok2, err2 = await _update_gallery_html_cover(href, rel_path, gtitle)
+        if ok2:
+            await msg.reply_text(
+                f"✓ Cover photo updated for {gtitle}.\n\nWait ~2 min for the site to rebuild."
+            )
+        else:
+            await msg.reply_text(
+                f"Photo was uploaded but gallery card not updated: {err2}\n"
+                f"(File saved at {rel_path})"
+            )
     except Exception as exc:
-        await msg.reply_text(f"Download failed: {exc}")
-        return ConversationHandler.END
-
-    upload_bytes = _compress_photo(raw_bytes) if ext.lower() in (".jpg", ".jpeg") else raw_bytes
-    ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
-    filename = f"card-cover-{ts}{ext}"
-    rel_path = f"assets/{asset_folder}/{filename}"
-
-    ok, err = await _gh_put_with_retry(rel_path, upload_bytes, f"Card cover: {gtitle}")
-    if not ok:
-        await msg.reply_text(f"Upload failed: {err}")
-        return ConversationHandler.END
-
-    html_bytes, sha = await _gh_get_file("gallery.html")
-    if not html_bytes:
-        await msg.reply_text("Could not reload gallery.html.")
-        return ConversationHandler.END
-
-    updated = _set_card_image(html_bytes.decode("utf-8"), href, rel_path)
-    if not updated:
-        await msg.reply_text("Photo uploaded but could not update gallery card.")
-        return ConversationHandler.END
-
-    ok2, err2 = await _gh_put_with_retry("gallery.html", updated.encode("utf-8"),
-                                         f"Card cover photo: {gtitle}", sha=sha)
-    if ok2:
-        await msg.reply_text(f"✓ Cover photo updated for {gtitle}.\n\nWait ~2 min for GitHub Pages to deploy.")
-    else:
-        await msg.reply_text(f"Failed to save gallery.html: {err2}")
+        logger.exception("card_photo_upload_received error")
+        await msg.reply_text(f"Unexpected error: {exc}\nPlease try /card again.")
     return ConversationHandler.END
 
 
