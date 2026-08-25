@@ -95,6 +95,7 @@ _SKIP_KB = InlineKeyboardMarkup([[
 
 SPECIAL_HTML: dict[str, str] = {
     "Stashed-companion": "galleries/Stashed-companion.html",
+    "Northern-Summer-Fun": "galleries/petit-traitor.html",
 }
 
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
