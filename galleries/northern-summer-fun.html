@@ -9,116 +9,75 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; background: #060404; overflow: hidden; }
-    .shell { position: relative; width: 100vw; height: 100vh; height: 100dvh; background: #060404; display: flex; flex-direction: column; overflow: hidden; }
-    .main-view { position: relative; flex: 1; overflow: hidden; }
-    .slide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; }
+    .shell { position: relative; width: 100vw; height: 100vh; height: 100dvh; background: #060404; overflow: hidden; }
+    .slide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.9s ease; }
     .slide.active { opacity: 1; }
     .slide img { max-width: 100%; max-height: 100%; display: block; user-select: none; -webkit-user-drag: none; pointer-events: none; }
     .slide video { max-width: 100%; max-height: 100%; display: block; }
-    .grain-overlay { position: absolute; inset: 0; z-index: 3; pointer-events: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E"); background-repeat: repeat;
-      opacity: 0.04; animation: grain-shift 0.35s steps(3) infinite; }
-    @keyframes grain-shift { 0% { background-position: 0 0; } 33% { background-position: -12px -20px; } 66% { background-position: 8px 14px; } 100% { background-position: -6px 8px; } }
-    .top-ui { position: absolute; top: 0; left: 0; right: 0; z-index: 10; padding: 1.4rem 2.5rem 3rem; background: linear-gradient(to bottom, rgba(6,4,4,0.72) 0%, transparent 100%); pointer-events: none; }
-    .gallery-title { font-family: 'Cormorant Garamond', serif; font-size: 0.78rem; font-weight: 300; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(247,241,238,0.48); }
-    .bottom-caption { position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; padding: 2rem 3rem 0.5rem; background: linear-gradient(to top, rgba(6,4,4,0.72) 0%, transparent 100%); display: flex; flex-direction: column; align-items: center; gap: 0.4rem; pointer-events: none; }
-    .caption-el { font-family: 'Cormorant Garamond', serif; font-size: 1rem; font-weight: 300; font-style: italic; color: rgba(247,241,238,0.88); letter-spacing: 0.04em; text-align: center; max-width: 520px; line-height: 1.5; }
-    .counter-el { font-family: 'Jost', sans-serif; font-size: 0.58rem; font-weight: 200; letter-spacing: 0.26em; color: rgba(247,241,238,0.22); }
-    .edge-control { position: absolute; top: 50%; z-index: 20; width: 30px; height: 96px; padding: 0; border: 0; background: transparent; transform: translateY(-50%); cursor: pointer; }
+    .top-ui { position: absolute; top: 0; left: 0; right: 0; z-index: 10; padding: 1.6rem 2.5rem 4rem; background: linear-gradient(to bottom, rgba(6,4,4,0.55) 0%, transparent 100%); pointer-events: none; transition: opacity 0.6s ease; }
+    .gallery-title { font-family: 'Cormorant Garamond', serif; font-size: 0.78rem; font-weight: 300; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(247,241,238,0.38); }
+    .bottom-ui { position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; padding: 4rem 3rem 1.4rem; background: linear-gradient(to top, rgba(6,4,4,0.65) 0%, transparent 100%); display: flex; flex-direction: column; align-items: center; gap: 0.6rem; pointer-events: none; transition: opacity 0.6s ease; }
+    .caption-el { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 300; font-style: italic; color: rgba(247,241,238,0.88); letter-spacing: 0.04em; text-align: center; max-width: 540px; line-height: 1.65; }
+    .counter-el { font-family: 'Jost', sans-serif; font-size: 0.6rem; font-weight: 200; letter-spacing: 0.26em; color: rgba(247,241,238,0.2); }
+    .edge-control { position: absolute; top: 50%; z-index: 20; width: 30px; height: 96px; padding: 0; border: 0; background: transparent; transform: translateY(-50%); cursor: pointer; transition: opacity 0.6s ease; }
     .edge-control-left { left: 0; } .edge-control-right { right: 0; }
-    .edge-control svg { width: 14px; height: 48px; fill: none; stroke: rgba(255,255,255,0.38); stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s ease; }
-    .edge-control:hover svg { stroke: rgba(255,255,255,0.92); }
-    .topbar-controls { position: absolute; top: 1.1rem; right: 1.1rem; z-index: 20; display: flex; align-items: center; gap: 0.4rem; }
-    .ui-btn { appearance: none; border: 1px solid rgba(255,255,255,0.16); border-radius: 999px; background: rgba(6,4,4,0.45); color: rgba(247,241,238,0.48); padding: 0.24rem 0.56rem; font-family: 'Jost', sans-serif; font-size: 0.58rem; font-weight: 300; letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-block; transition: color 0.2s, border-color 0.2s; white-space: nowrap; }
-    .ui-btn:hover { color: rgba(247,241,238,0.9); border-color: rgba(255,255,255,0.4); }
-    .filmstrip-wrap { height: 68px; background: #080406; border-top: 1px solid rgba(255,255,255,0.07); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; flex-shrink: 0; }
-    .filmstrip-wrap::-webkit-scrollbar { display: none; }
-    .filmstrip-inner { display: flex; align-items: center; height: 100%; gap: 3px; padding: 4px 8px; }
-    .thumb { height: 56px; width: auto; aspect-ratio: 3/4; object-fit: cover; opacity: 0.35; cursor: pointer; transition: opacity 0.2s, outline 0.15s; flex-shrink: 0; border-radius: 1px; }
-    .thumb.active { opacity: 1; outline: 1px solid rgba(247,241,238,0.55); outline-offset: 1px; }
-    .thumb-video { height: 56px; width: 42px; background: #160c10; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.28); font-size: 1rem; flex-shrink: 0; opacity: 0.35; cursor: pointer; transition: opacity 0.2s; border-radius: 1px; }
-    .thumb-video.active { opacity: 1; outline: 1px solid rgba(247,241,238,0.55); outline-offset: 1px; }
-    @media (max-width: 600px) { .gallery-title { font-size: 0.7rem; } .caption-el { font-size: 0.9rem; } .topbar-controls { top: 0.8rem; right: 0.8rem; } .ui-btn { font-size: 0.54rem; padding: 0.2rem 0.46rem; } .filmstrip-wrap { height: 56px; } .thumb { height: 46px; } .thumb-video { height: 46px; width: 34px; } }
+    .edge-control svg { width: 14px; height: 48px; fill: none; stroke: rgba(255,255,255,0.28); stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.3s ease; }
+    .edge-control:hover svg { stroke: rgba(255,255,255,0.75); }
+    .topbar-controls { position: absolute; top: 1.3rem; right: 1.3rem; z-index: 20; display: flex; align-items: center; gap: 0.4rem; transition: opacity 0.6s ease; }
+    .ui-btn { appearance: none; border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; background: rgba(6,4,4,0.35); color: rgba(247,241,238,0.38); padding: 0.26rem 0.62rem; font-family: 'Jost', sans-serif; font-size: 0.6rem; font-weight: 300; letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-block; transition: color 0.2s, border-color 0.2s; white-space: nowrap; }
+    .ui-btn:hover { color: rgba(247,241,238,0.85); border-color: rgba(255,255,255,0.35); }
+    .ui-hidden { opacity: 0; pointer-events: none; }
+    @media (max-width: 600px) { .gallery-title { font-size: 0.7rem; } .caption-el { font-size: 0.98rem; } .topbar-controls { top: 0.9rem; right: 0.9rem; } .ui-btn { font-size: 0.56rem; padding: 0.22rem 0.5rem; } }
   </style>
 </head>
 <body>
 <div class="shell" id="shell">
-  <div class="main-view" id="main-view">
-    <div class="top-ui"><div class="gallery-title">Northern Summer Fun</div></div>
-    <div class="bottom-caption">
-      <div class="caption-el" id="caption-el"></div>
-      <div class="counter-el" id="counter-el"></div>
-    </div>
-    <button class="edge-control edge-control-left" id="prev-btn" aria-label="Previous photograph">
-      <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M18 3 L5 24 L18 45"/></svg>
-    </button>
-    <button class="edge-control edge-control-right" id="next-btn" aria-label="Next photograph">
-      <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M6 3 L19 24 L6 45"/></svg>
-    </button>
-    <div class="grain-overlay"></div>
-    <div class="topbar-controls">
-      <button class="ui-btn" id="autoplay-btn">Auto ★</button>
-      <button class="ui-btn" id="mute-btn">🔇</button>
-      <button class="ui-btn" id="fs-btn">Fullscreen</button>
-      <a class="ui-btn" href="../gallery.html">← Galleries</a>
-    </div>
+  <div class="top-ui" id="top-ui"><div class="gallery-title">Northern Summer Fun</div></div>
+  <div class="bottom-ui" id="bottom-ui">
+    <div class="caption-el" id="caption-el"></div>
+    <div class="counter-el" id="counter-el"></div>
   </div>
-  <div class="filmstrip-wrap"><div class="filmstrip-inner" id="filmstrip"></div></div>
+  <button class="edge-control edge-control-left" id="prev-btn" aria-label="Previous photograph">
+    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M18 3 L5 24 L18 45"/></svg>
+  </button>
+  <button class="edge-control edge-control-right" id="next-btn" aria-label="Next photograph">
+    <svg viewBox="0 0 24 48" aria-hidden="true"><path d="M6 3 L19 24 L6 45"/></svg>
+  </button>
+  <div class="topbar-controls" id="topbar">
+    <button class="ui-btn" id="autoplay-btn">Auto ★</button>
+    <button class="ui-btn" id="mute-btn">🔇</button>
+    <button class="ui-btn" id="fs-btn">Fullscreen</button>
+    <a class="ui-btn" href="../gallery.html">← Galleries</a>
+  </div>
 </div>
 <script>
 (function () {
   var slides = [
-
     { filename: 'photo-20260824-155504-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260707-185745-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.28, caption: 'Escaping on a vessel while hubby is home,  just met the captain.' },
-
     { filename: 'photo-20260823-064054.jpg', focalX: 50, focalY: 42, zoomEnd: 1.28, caption: 'He thinks I\'m off to find some spiritual clarity at the harbor by myself. He doesn\'t know I\'m off to meet a tall, rich 64-year-old man who actually listens to me. He understands my soul.' },
-
     { filename: 'photo-20260823-064715.jpg', focalX: 50, focalY: 42, zoomEnd: 1.28, caption: 'Not her husband' },
-
     { filename: 'photo-20260823-064717-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.28, caption: 'Not her husband' },
-
     { filename: 'photo-20260823-064720-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.28, caption: 'Not her husband' },
-
     { filename: 'photo-20260823-203905.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: 'On a quiet ferry ride, the Filipino fiancée leans into her secret lover—the older American man who\'s been spoiling her since she arrived. Her K-1 fiancé has no idea she\'s already giving her heart (and body) to someone else while he waits back home processing the paperwork.' },
-
     { filename: 'photo-20260823-203907-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260823-203910-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: 'She rises on her toes and claims his mouth like she owns it, and will press her barely-covered tits against his chest. The same lips that promised forever to her American sponsor are now hungry for the man who\'s been fucking her raw on this trip.' },
-
     { filename: 'photo-20260823-203912-03.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260823-203915-04.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: 'Caught red-handed. Her fiancé stands there stunned while she stays half-naked between the two men, still glowing from the older guy\'s touch. The lover shrugs like it\'s no big deal that he\'s been deep inside the woman the younger man was about to marry.' },
-
     { filename: 'photo-20260823-203917-05.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: 'She doesn\'t even flinch. Instead she plants her hands on her fiancé\'s chest and shoves him back, choosing the older man who\'s been bending her over every chance he gets over the one who was ready to give her a green card and a wedding.' },
-
     { filename: 'photo-20260824-133801.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: 'She tamed them not with words, but with the slow, deliberate rhythm of her body.' },
-
     { filename: 'photo-20260824-132235.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260824-132237-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260824-132240-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260824-132242-03.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260824-132245-04.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260824-132247-05.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260824-061846.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260824-061849-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260824-061851-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260824-061853-03.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260824-061856-04.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260824-061858-05.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-
     { filename: 'photo-20260824-161233.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
     { filename: 'photo-20260824-172153.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
     { filename: 'photo-20260824-172156-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
@@ -137,13 +96,12 @@
     { filename: 'photo-20260825-060243-01.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
     { filename: 'photo-20260825-060246-02.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
     { filename: 'photo-20260825-060248-03.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
-    { filename: 'photo-20260825-061058.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' },
+    { filename: 'photo-20260825-061058.jpg', focalX: 50, focalY: 42, zoomEnd: 1.26, caption: '' }
   ];
   var BASE = '../assets/Northern-Summer-Fun/';
   var VIDEO_EXTS = ['mp4','mov','webm','m4v'];
-  var ZOOM_MS = 9000, AUTOPLAY_MS = 9000;
-  var ANCHORS = ['50% 50%','30% 50%','70% 50%','50% 30%','50% 65%','35% 40%','65% 40%','50% 45%'];
-  var mainView = document.getElementById('main-view');
+  var ZOOM_MS = 12000, AUTOPLAY_MS = 12000;
+  var shell = document.getElementById('shell');
   var captionEl = document.getElementById('caption-el');
   var counterEl = document.getElementById('counter-el');
   var prevBtn = document.getElementById('prev-btn');
@@ -151,54 +109,47 @@
   var autoBtn = document.getElementById('autoplay-btn');
   var muteBtn = document.getElementById('mute-btn');
   var fsBtn = document.getElementById('fs-btn');
-  var shell = document.getElementById('shell');
-  var filmstrip = document.getElementById('filmstrip');
-  var current = 0, autoTimer = null, videoMuted = true;
-  var slideEls = [], mediaEls = [], thumbEls = [], activeAnim = null;
+  var controlEls = [document.getElementById('top-ui'), document.getElementById('bottom-ui'), document.getElementById('topbar'), prevBtn, nextBtn];
+  var current = 0, autoTimer = null, videoMuted = true, hideTimer = null;
+  var slideEls = [], mediaEls = [], activeAnim = null;
+  var bottomUI = document.querySelector('.bottom-ui');
+  function showControls() {
+    controlEls.forEach(function (el) { el.classList.remove('ui-hidden'); });
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(function () { controlEls.forEach(function (el) { el.classList.add('ui-hidden'); }); }, 3000);
+  }
+  shell.addEventListener('mousemove', showControls);
+  shell.addEventListener('touchstart', showControls, { passive: true });
+  showControls();
   slides.forEach(function (s, i) {
     var div = document.createElement('div'); div.className = 'slide';
-    var ext = s.filename.split('.').pop().toLowerCase();
-    var isVid = VIDEO_EXTS.indexOf(ext) !== -1; var el;
-    if (isVid) {
+    var ext = s.filename.split('.').pop().toLowerCase(); var el;
+    if (VIDEO_EXTS.indexOf(ext) !== -1) {
       el = document.createElement('video'); el.src = BASE + encodeURIComponent(s.filename);
       el.loop = true; el.muted = true; el.playsInline = true;
     } else {
       el = document.createElement('img'); el.src = BASE + encodeURIComponent(s.filename);
       el.alt = 'Northern Summer Fun — ' + (i + 1); el.draggable = false;
     }
-    div.appendChild(el); mainView.insertBefore(div, mainView.querySelector('.bottom-caption'));
+    div.appendChild(el); shell.insertBefore(div, bottomUI);
     slideEls.push(div); mediaEls.push(el);
-    var th;
-    if (isVid) {
-      th = document.createElement('div'); th.className = 'thumb-video'; th.textContent = '▶';
-    } else {
-      th = document.createElement('img'); th.className = 'thumb';
-      th.src = BASE + encodeURIComponent(s.filename);
-    }
-    th.dataset.idx = i;
-    th.addEventListener('click', function () { goTo(parseInt(this.dataset.idx)); if (autoTimer) { stopAuto(); } });
-    filmstrip.appendChild(th); thumbEls.push(th);
   });
   function startZoom(i) {
     var el = mediaEls[i], s = slides[i];
     if (!el || el.tagName === 'VIDEO') return;
     if (activeAnim) { try { activeAnim.cancel(); } catch (e) {} activeAnim = null; }
     el.style.transform = '';
-    el.style.transformOrigin = ANCHORS[i % ANCHORS.length];
-    activeAnim = el.animate([{ transform: 'scale(1)' }, { transform: 'scale(' + s.zoomEnd + ')' }], { duration: ZOOM_MS, easing: 'ease-in-out', fill: 'forwards' });
+    el.style.transformOrigin = s.focalX + '% ' + s.focalY + '%';
+    activeAnim = el.animate(
+      [{ transform: 'scale(1.0)', offset: 0 }, { transform: 'scale(' + s.zoomEnd + ')', offset: 0.5 }, { transform: 'scale(1.01)', offset: 1 }],
+      { duration: ZOOM_MS, easing: 'ease-in-out', fill: 'forwards' }
+    );
   }
   function resetMedia(i) { var el = mediaEls[i]; if (!el) return; if (el.tagName === 'VIDEO') { try { el.pause(); el.currentTime = 0; } catch (e) {} } el.style.transform = ''; }
-  function scrollThumb(i) {
-    var th = thumbEls[i]; if (!th) return;
-    var fw = filmstrip.parentElement; var tr = th.getBoundingClientRect(); var fr = fw.getBoundingClientRect();
-    if (tr.left < fr.left || tr.right > fr.right) { th.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); }
-  }
   function goTo(n) {
     var old = current; current = ((n % slides.length) + slides.length) % slides.length;
     slideEls[old].classList.remove('active'); resetMedia(old);
-    if (thumbEls[old]) thumbEls[old].classList.remove('active');
     slideEls[current].classList.add('active'); startZoom(current);
-    if (thumbEls[current]) { thumbEls[current].classList.add('active'); scrollThumb(current); }
     var cap = slides[current].caption || ''; captionEl.textContent = cap; captionEl.style.display = cap ? '' : 'none';
     counterEl.textContent = (current + 1) + ' / ' + slides.length;
     var vid = mediaEls[current]; if (vid && vid.tagName === 'VIDEO') { vid.muted = videoMuted; try { vid.play(); } catch (e) {} }
@@ -215,8 +166,8 @@
   document.addEventListener('fullscreenchange', function () { fsBtn.textContent = document.fullscreenElement ? 'Exit' : 'Fullscreen'; });
   window.addEventListener('keydown', function (e) { if (e.key === 'ArrowLeft') { nudge(-1); } else if (e.key === 'ArrowRight') { nudge(1); } else if (e.key === 'f' || e.key === 'F') { toggleFS(); } else if (e.key === ' ') { e.preventDefault(); autoTimer ? stopAuto() : startAuto(); } });
   var tx = null;
-  mainView.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
-  mainView.addEventListener('touchend', function (e) { if (tx === null) return; var dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 44) nudge(dx < 0 ? 1 : -1); tx = null; }, { passive: true });
+  shell.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  shell.addEventListener('touchend', function (e) { if (tx === null) return; var dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 44) nudge(dx < 0 ? 1 : -1); tx = null; }, { passive: true });
   goTo(0);
 })();
 </script>
