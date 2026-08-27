@@ -89,10 +89,18 @@ def _b64(path: Path) -> str:
 
 def caption_via_ollama(image_path: Path, tone: str) -> str:
     import urllib.request, json
-    prompt = (
-        f"Write a caption for this photo. Tone: {tone}. "
-        "Return ONLY the caption text, nothing else."
-    )
+    # moondream works best with a direct question; other models prefer instruction form
+    is_moondream = "moondream" in OLLAMA_MODEL.lower()
+    if is_moondream:
+        prompt = (
+            f"Describe what is happening in this photo in 1-3 sentences. "
+            f"Focus on the mood, the person, and the scene. Be {tone}."
+        )
+    else:
+        prompt = (
+            f"Write a caption for this photo. Tone: {tone}. "
+            "Return ONLY the caption text, nothing else."
+        )
     data = json.dumps({
         "model":  OLLAMA_MODEL,
         "prompt": prompt,
@@ -104,9 +112,12 @@ def caption_via_ollama(image_path: Path, tone: str) -> str:
         data=data,
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
+    with urllib.request.urlopen(req, timeout=120) as resp:
         result = json.loads(resp.read())
-    return result.get("response", "").strip()
+    text = result.get("response", "").strip()
+    if not text:
+        raise RuntimeError("Model returned empty response — try a different prompt or model.")
+    return text
 
 
 def caption_via_xai(image_path: Path, tone: str) -> str:
