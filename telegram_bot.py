@@ -2788,7 +2788,7 @@ async def _apply_caption_edit(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Always fetch fresh HTML + SHA before saving to avoid conflicts
     current_html, html_sha = await _gh_get_file(_html_rel_path(gallery))
     if not current_html:
-        await update.message.reply_text("Failed to fetch gallery HTML.")
+        await update.effective_message.reply_text("Failed to fetch gallery HTML.")
         return CAPTION_FILE
 
     text = current_html.decode("utf-8")
@@ -2802,11 +2802,11 @@ async def _apply_caption_edit(update: Update, context: ContextTypes.DEFAULT_TYPE
         sha=html_sha,
     )
     if not ok:
-        await update.message.reply_text(f"Save failed: {err}")
+        await update.effective_message.reply_text(f"Save failed: {err}")
         return CAPTION_FILE
 
     label = "Caption updated." if new_caption else "Caption cleared."
-    await update.message.reply_text(label)
+    await update.effective_message.reply_text(label)
     await _send_caption_preview(update.effective_chat.id, context, idx + 1)
     return CAPTION_FILE
 
