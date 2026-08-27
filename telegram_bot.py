@@ -993,6 +993,19 @@ async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
+async def cmd_groqmodels(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _authorized(update):
+        return
+    models = await _groq_list_models()
+    if not models:
+        await update.message.reply_text("No Groq models found (key missing or API error).")
+        return
+    vision = [m for m in models if any(kw in m.lower() for kw in _GROQ_VISION_KEYWORDS)]
+    other  = [m for m in models if m not in vision]
+    lines  = ["*Vision-capable models:*"] + (vision or ["(none)"]) + ["", "*Other models:*"] + other
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+
 async def cmd_galleries(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
     galleries = await _existing_galleries()
     if not galleries:
@@ -1584,22 +1597,57 @@ async def _download_photo_bytes(context, item: dict) -> bytes:
     return raw
 
 
+_GROQ_VISION_KEYWORDS = ("vision", "llama-4", "scout", "maverick", "llava", "clip")
+
+async def _groq_list_models() -> list[str]:
+    """Return all model IDs from this Groq account."""
+    if not GROQ_API_KEY:
+        return []
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(
+                "https://api.groq.com/openai/v1/models",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            )
+        if r.status_code == 200:
+            return [m["id"] for m in r.json().get("data", [])]
+    except Exception:
+        pass
+    return []
+
+
 async def _generate_caption_from_bytes(raw_bytes: bytes, tone: str) -> str:
-    """Call Groq (or Claude fallback) with image bytes to generate a caption."""
+    """Call Groq with image bytes to generate a caption."""
     img_b64 = base64.standard_b64encode(raw_bytes).decode()
     prompt  = _CAPTION_PROMPT.format(tone=tone)
 
-    _GROQ_VISION_MODELS = (
+    # Preferred model order — discovered models (vision-like keywords) tried first
+    _PREFERRED = [
         "llama-4-scout-17b-16e-instruct",
         "meta-llama/llama-4-scout-17b-16e-instruct",
         "llama-4-maverick-17b-128e-instruct-fp8",
         "meta-llama/llama-4-maverick-17b-128e-instruct-fp8",
         "llama-3.2-11b-vision-preview",
         "llama-3.2-90b-vision-preview",
-    )
+    ]
+
     if GROQ_API_KEY:
-        _groq_last_error = ""
-        for _groq_model in _GROQ_VISION_MODELS:
+        # Auto-discover: put account models that look like vision first
+        account_models = await _groq_list_models()
+        vision_candidates = [
+            m for m in account_models
+            if any(kw in m.lower() for kw in _GROQ_VISION_KEYWORDS)
+        ]
+        # Try vision candidates first, then known list, deduplicated
+        seen: set[str] = set()
+        candidates: list[str] = []
+        for m in vision_candidates + _PREFERRED:
+            if m not in seen:
+                seen.add(m)
+                candidates.append(m)
+
+        errors: list[str] = []
+        for _groq_model in candidates:
             async with httpx.AsyncClient(timeout=60) as client:
                 r = await client.post(
                     "https://api.groq.com/openai/v1/chat/completions",
@@ -1618,11 +1666,13 @@ async def _generate_caption_from_bytes(raw_bytes: bytes, tone: str) -> str:
                 )
             if r.status_code == 200:
                 return r.json()["choices"][0]["message"]["content"].strip()
-            _groq_last_error = f"{_groq_model}: {r.status_code}"
+            errors.append(f"{_groq_model}:{r.status_code}")
             if r.status_code not in (404, 400):
                 raise RuntimeError(f"Groq error {r.status_code}: {r.text[:200]}")
+
+        err_summary = ", ".join(errors[:4])
         raise RuntimeError(
-            f"No Groq vision model available ({_groq_last_error}). "
+            f"No Groq vision model available ({err_summary}). "
             "Type the caption manually or /skip."
         )
 
@@ -4797,6 +4847,7 @@ def main() -> None:
 
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("galleries", cmd_galleries))
+    app.add_handler(CommandHandler("groqmodels", cmd_groqmodels))
     app.add_handler(CommandHandler("sync", cmd_sync))
     app.add_handler(conv)
     app.add_error_handler(error_handler)
