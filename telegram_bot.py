@@ -1590,25 +1590,28 @@ async def _generate_caption_from_bytes(raw_bytes: bytes, tone: str) -> str:
     prompt  = _CAPTION_PROMPT.format(tone=tone)
 
     if GROQ_API_KEY:
-        async with httpx.AsyncClient(timeout=60) as client:
-            r = await client.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-                json={
-                    "model": "meta-llama/llama-4-scout-17b-16e-instruct",
-                    "max_tokens": 200,
-                    "messages": [{
-                        "role": "user",
-                        "content": [
-                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}},
-                            {"type": "text", "text": prompt},
-                        ],
-                    }],
-                },
-            )
-        if r.status_code == 200:
-            return r.json()["choices"][0]["message"]["content"].strip()
-        raise RuntimeError(f"Groq error {r.status_code}: {r.text[:200]}")
+        for _groq_model in ("llama-4-scout-17b-16e-instruct", "meta-llama/llama-4-scout-17b-16e-instruct"):
+            async with httpx.AsyncClient(timeout=60) as client:
+                r = await client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                    json={
+                        "model": _groq_model,
+                        "max_tokens": 200,
+                        "messages": [{
+                            "role": "user",
+                            "content": [
+                                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}},
+                                {"type": "text", "text": prompt},
+                            ],
+                        }],
+                    },
+                )
+            if r.status_code == 200:
+                return r.json()["choices"][0]["message"]["content"].strip()
+            if r.status_code not in (404, 400):
+                raise RuntimeError(f"Groq error {r.status_code}: {r.text[:200]}")
+            # 404/400 on this model ID — try next or fall through to Claude
 
     if ANTHROPIC_API_KEY:
         client = _anthropic_sdk.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
