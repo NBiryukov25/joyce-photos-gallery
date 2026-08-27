@@ -258,21 +258,11 @@ def process_gallery(html_path: Path, tone: str, skip_existing: bool) -> int:
         if existing:
             print(f"  Current: {existing!r}")
 
-        # Generate
-        print("  Generating…", end="", flush=True)
-        try:
-            suggested = generate_caption(image_path, tone)
-            print(f"\r  Suggested: {suggested}")
-        except Exception as e:
-            print(f"\r  ERROR: {e}")
-            suggested = ""
+        suggested = ""
 
         # Interactive review
         while True:
-            if suggested:
-                choice = input("  [u]se / [e]dit / [s]kip / [q]uit? ").strip().lower()
-            else:
-                choice = input("  [e]nter caption / [s]kip / [q]uit? ").strip().lower()
+            choice = input("  [e]nter caption / [s]kip / [q]uit? ").strip().lower()
 
             if choice == "q":
                 if changed:
