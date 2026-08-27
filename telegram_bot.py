@@ -1589,8 +1589,17 @@ async def _generate_caption_from_bytes(raw_bytes: bytes, tone: str) -> str:
     img_b64 = base64.standard_b64encode(raw_bytes).decode()
     prompt  = _CAPTION_PROMPT.format(tone=tone)
 
+    _GROQ_VISION_MODELS = (
+        "llama-4-scout-17b-16e-instruct",
+        "meta-llama/llama-4-scout-17b-16e-instruct",
+        "llama-4-maverick-17b-128e-instruct-fp8",
+        "meta-llama/llama-4-maverick-17b-128e-instruct-fp8",
+        "llama-3.2-11b-vision-preview",
+        "llama-3.2-90b-vision-preview",
+    )
     if GROQ_API_KEY:
-        for _groq_model in ("llama-4-scout-17b-16e-instruct", "meta-llama/llama-4-scout-17b-16e-instruct"):
+        _groq_last_error = ""
+        for _groq_model in _GROQ_VISION_MODELS:
             async with httpx.AsyncClient(timeout=60) as client:
                 r = await client.post(
                     "https://api.groq.com/openai/v1/chat/completions",
@@ -1609,23 +1618,15 @@ async def _generate_caption_from_bytes(raw_bytes: bytes, tone: str) -> str:
                 )
             if r.status_code == 200:
                 return r.json()["choices"][0]["message"]["content"].strip()
+            _groq_last_error = f"{_groq_model}: {r.status_code}"
             if r.status_code not in (404, 400):
                 raise RuntimeError(f"Groq error {r.status_code}: {r.text[:200]}")
-            # 404/400 on this model ID — try next or fall through to Claude
-
-    if ANTHROPIC_API_KEY:
-        client = _anthropic_sdk.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-        msg = await client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=200,
-            messages=[{"role": "user", "content": [
-                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img_b64}},
-                {"type": "text", "text": prompt},
-            ]}],
+        raise RuntimeError(
+            f"No Groq vision model available ({_groq_last_error}). "
+            "Type the caption manually or /skip."
         )
-        return msg.content[0].text.strip()
 
-    raise RuntimeError("No AI key configured (set GROQ_API_KEY or ANTHROPIC_API_KEY).")
+    raise RuntimeError("No AI vision key configured (set GROQ_API_KEY).")
 
 
 async def _generate_ai_caption(context, tone: str) -> str:
