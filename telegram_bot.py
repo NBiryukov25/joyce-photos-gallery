@@ -1048,21 +1048,29 @@ async def cmd_spreadsheet(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             continue
         html = raw.decode("utf-8")
 
-        m = _re.search(r"var slides\s*=\s*\[([\s\S]*?)\];", html)
-        if not m:
-            continue
-
         slides = []
-        for obj in _re.finditer(r"\{([^{}]+)\}", m.group(1)):
-            t = obj.group(1)
-            fn = _re.search(r"filename:\s*'([^']+)'", t)
-            if not fn:
-                continue
-            cap = _re.search(r"caption:\s*'((?:[^'\\]|\\.)*)'", t)
-            slides.append({
-                "filename": fn.group(1),
-                "caption":  cap.group(1).replace("\\'", "'") if cap else "",
-            })
+        # Format 1: var slides = [{filename: '...', caption: '...'}, ...]
+        m = _re.search(r"var slides\s*=\s*\[([\s\S]*?)\];", html)
+        if m:
+            for obj in _re.finditer(r"\{([^{}]+)\}", m.group(1)):
+                t = obj.group(1)
+                fn = _re.search(r"filename:\s*'([^']+)'", t)
+                if not fn:
+                    continue
+                cap = _re.search(r"caption:\s*'((?:[^'\\]|\\.)*)'", t)
+                slides.append({
+                    "filename": fn.group(1),
+                    "caption":  cap.group(1).replace("\\'", "'") if cap else "",
+                })
+        # Format 2: var filenames = ['...', '...']  (older galleries, no captions)
+        if not slides:
+            mf = _re.search(r"var filenames\s*=\s*\[([\s\S]*?)\]", html)
+            if mf:
+                for fn in _re.findall(r"'([^']+\.\w+)'", mf.group(1)):
+                    slides.append({"filename": fn, "caption": ""})
+
+        if not slides:
+            continue
 
         sheet_name = gallery[:31]
         ws = wb.create_sheet(title=sheet_name)
