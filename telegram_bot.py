@@ -987,10 +987,164 @@ async def cmd_start(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
         "/deletegallery — archive an entire gallery\n"
         "/share         — generate a shareable link\n"
         "/revoke        — info about share link expiry\n"
+        "/spreadsheet   — download gallery as Excel file\n"
         "/sync          — post all photos to the channel\n"
         "/done          — finish a batch upload\n"
         "/cancel        — cancel current operation"
     )
+
+
+async def cmd_spreadsheet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not _authorized(update):
+        return
+    import io, re as _re
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+    except ImportError:
+        await update.effective_message.reply_text("openpyxl not installed on the server.")
+        return
+
+    galleries = await _existing_galleries()
+    args = context.args
+    if args:
+        name = " ".join(args)
+        match = next((g for g in galleries if g.lower() == name.lower()), None)
+        if not match:
+            names = "\n".join(f"  {g}" for g in sorted(galleries))
+            await update.effective_message.reply_text(
+                f"Gallery '{name}' not found. Available:\n{names}"
+            )
+            return
+        targets = [match]
+    else:
+        targets = sorted(galleries)
+
+    await update.effective_message.reply_text(
+        f"Building spreadsheet for {len(targets)} gallery/galleries…"
+    )
+
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)
+
+    hdr_fill = PatternFill("solid", fgColor="1F3864")
+    hdr_font = Font(name="Arial", bold=True, color="FFFFFF", size=11)
+    link_font = Font(name="Arial", size=10, color="0563C1", underline="single")
+    data_font = Font(name="Arial", size=10)
+    alt_fill  = PatternFill("solid", fgColor="EBF3FB")
+    wht_fill  = PatternFill("solid", fgColor="FFFFFF")
+    border    = Border(
+        left=Side(style="thin"), right=Side(style="thin"),
+        top=Side(style="thin"),  bottom=Side(style="thin"),
+    )
+    headers    = ["#", "Filename", "View Photo", "Caption", "Notes"]
+    col_widths = [5, 40, 14, 50, 30]
+
+    for gallery in targets:
+        html_path = _html_rel_path(gallery)
+        raw, _ = await _gh_get_file(html_path)
+        if not raw:
+            continue
+        html = raw.decode("utf-8")
+
+        m = _re.search(r"var slides\s*=\s*\[([\s\S]*?)\];", html)
+        if not m:
+            continue
+
+        slides = []
+        for obj in _re.finditer(r"\{([^{}]+)\}", m.group(1)):
+            t = obj.group(1)
+            fn = _re.search(r"filename:\s*'([^']+)'", t)
+            if not fn:
+                continue
+            cap = _re.search(r"caption:\s*'((?:[^'\\]|\\.)*)'", t)
+            slides.append({
+                "filename": fn.group(1),
+                "caption":  cap.group(1).replace("\\'", "'") if cap else "",
+            })
+
+        sheet_name = gallery[:31]
+        ws = wb.create_sheet(title=sheet_name)
+
+        for col, (h, w) in enumerate(zip(headers, col_widths), 1):
+            cell = ws.cell(row=1, column=col, value=h)
+            cell.font = hdr_font
+            cell.fill = hdr_fill
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = border
+            ws.column_dimensions[get_column_letter(col)].width = w
+        ws.row_dimensions[1].height = 22
+
+        assets_folder = _assets_folder_name(gallery)
+        base_url = (
+            f"https://nbiryukov25.github.io/joyce-photos-gallery/assets/{assets_folder}/"
+        )
+
+        for i, slide in enumerate(slides, 1):
+            row  = i + 1
+            ext  = slide["filename"].rsplit(".", 1)[-1].lower()
+            is_v = ext in ("mp4", "mov", "webm")
+            fill = alt_fill if i % 2 == 0 else wht_fill
+
+            # sequence
+            c = ws.cell(row=row, column=1, value=i)
+            c.font = data_font; c.fill = fill; c.border = border
+            c.alignment = Alignment(horizontal="center", vertical="center")
+            # filename
+            c = ws.cell(row=row, column=2, value=slide["filename"])
+            c.font = data_font; c.fill = fill; c.border = border
+            c.alignment = Alignment(vertical="center")
+            # link
+            c = ws.cell(row=row, column=3)
+            if is_v:
+                c.value = "(video)"; c.font = data_font
+            else:
+                c.value = "Open photo"
+                c.hyperlink = base_url + slide["filename"]
+                c.font = link_font
+            c.fill = fill; c.border = border
+            c.alignment = Alignment(horizontal="center", vertical="center")
+            # caption
+            c = ws.cell(row=row, column=4, value=slide["caption"])
+            c.font = data_font; c.fill = fill; c.border = border
+            c.alignment = Alignment(vertical="center", wrap_text=True)
+            # notes
+            c = ws.cell(row=row, column=5, value="")
+            c.font = data_font; c.fill = fill; c.border = border
+            c.alignment = Alignment(vertical="center")
+
+            ws.row_dimensions[row].height = 18
+
+        ws.freeze_panes = "A2"
+
+    if not wb.sheetnames:
+        await update.effective_message.reply_text("No slide data found.")
+        return
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    filename = (
+        f"{targets[0].replace(' ', '-')}-gallery.xlsx"
+        if len(targets) == 1
+        else "galleries.xlsx"
+    )
+    await update.effective_message.reply_document(
+        document=buf,
+        filename=filename,
+        caption=f"Gallery spreadsheet — {sum(wb[s].max_row - 1 for s in wb.sheetnames)} photos across {len(wb.sheetnames)} gallery/galleries.",
+    )
+
+
+def _assets_folder_name(gallery: str) -> str:
+    """Return the assets subfolder name for a gallery (mirrors SPECIAL_HTML logic)."""
+    # Special cases where gallery name != assets folder
+    SPECIAL_ASSETS = {
+        "Northern-Summer-Fun": "Northern-Summer-Fun",
+    }
+    return SPECIAL_ASSETS.get(gallery, gallery)
 
 
 async def cmd_groqmodels(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
@@ -4848,6 +5002,7 @@ def main() -> None:
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("galleries", cmd_galleries))
     app.add_handler(CommandHandler("groqmodels", cmd_groqmodels))
+    app.add_handler(CommandHandler("spreadsheet", cmd_spreadsheet))
     app.add_handler(CommandHandler("sync", cmd_sync))
     app.add_handler(conv)
     app.add_error_handler(error_handler)
