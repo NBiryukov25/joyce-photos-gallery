@@ -95,7 +95,8 @@ _SKIP_KB = InlineKeyboardMarkup([[
 
 SPECIAL_HTML: dict[str, str] = {
     "Stashed-companion": "galleries/Stashed-companion.html",
-    "Northern-Summer-Fun": "galleries/petit-traitor.html",
+    "Petit-Traitor": "galleries/petit-traitor.html",
+    "Northern-Summer-Fun": "galleries/petit-traitor.html",  # legacy alias — kept so old uploads don't break
 }
 
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
@@ -1148,9 +1149,9 @@ async def cmd_spreadsheet(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 def _assets_folder_name(gallery: str) -> str:
     """Return the assets subfolder name for a gallery (mirrors SPECIAL_HTML logic)."""
-    # Special cases where gallery name != assets folder
     SPECIAL_ASSETS = {
-        "Northern-Summer-Fun": "Northern-Summer-Fun",
+        "Petit-Traitor": "Northern-Summer-Fun",
+        "Northern-Summer-Fun": "Northern-Summer-Fun",  # legacy alias
     }
     return SPECIAL_ASSETS.get(gallery, gallery)
 
