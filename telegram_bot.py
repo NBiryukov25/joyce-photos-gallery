@@ -3253,9 +3253,10 @@ async def _reorder_show(context, chat_id: int, gallery: str, filenames: list, cu
     fn = filenames[cursor]
     ext = fn.rsplit(".", 1)[-1].lower()
     is_video = ext in _VIDEO_EXTS
+    assets_folder = _assets_folder_name(gallery)
     raw_url = (
         f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
-        f"/assets/{urllib.parse.quote(gallery)}/{urllib.parse.quote(fn)}"
+        f"/assets/{urllib.parse.quote(assets_folder)}/{urllib.parse.quote(fn)}"
     )
     if picked is not None:
         caption = f"{cursor + 1} of {n}  ·  {gallery}\n{fn}\n\n✂️ Photo {picked + 1} picked — browse here then tap Place"
@@ -3263,13 +3264,17 @@ async def _reorder_show(context, chat_id: int, gallery: str, filenames: list, cu
         caption = f"{cursor + 1} of {n}  ·  {gallery}\n{fn}"
     keyboard = _reorder_keyboard(cursor, n, picked)
 
+    # Use cached Telegram file_id if available — avoids re-downloading from GitHub on every tap
+    file_ids: dict = context.user_data.setdefault("reorder_file_ids", {})
+    media_src = file_ids.get(fn, raw_url)
+
     # Try editing the existing photo message in-place
     if not is_video and old_msg_id and old_is_photo:
         try:
             await context.bot.edit_message_media(
                 chat_id=chat_id,
                 message_id=old_msg_id,
-                media=InputMediaPhoto(media=raw_url, caption=caption),
+                media=InputMediaPhoto(media=media_src, caption=caption),
                 reply_markup=keyboard,
             )
             return old_msg_id, True
@@ -3288,7 +3293,10 @@ async def _reorder_show(context, chat_id: int, gallery: str, filenames: list, cu
         return msg.message_id, False
 
     try:
-        msg = await context.bot.send_photo(chat_id=chat_id, photo=raw_url, caption=caption, reply_markup=keyboard)
+        msg = await context.bot.send_photo(chat_id=chat_id, photo=media_src, caption=caption, reply_markup=keyboard)
+        # Cache the file_id so revisiting this photo is instant
+        if msg.photo:
+            file_ids[fn] = msg.photo[-1].file_id
         return msg.message_id, True
     except Exception:
         msg = await context.bot.send_message(chat_id=chat_id, text=f"🖼 {caption}", reply_markup=keyboard)
