@@ -2918,6 +2918,7 @@ async def nocaption_gallery_chosen(update: Update, context: ContextTypes.DEFAULT
 
     context.user_data["cap_filenames"] = filenames
     context.user_data["cap_captions"] = captions
+    context.user_data["cap_nocaption_mode"] = True
 
     first_uncaptioned = next(
         (i for i, cap in enumerate(captions) if not cap.strip()),
@@ -2970,6 +2971,7 @@ async def caption_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_T
 
     context.user_data["cap_filenames"] = filenames
     context.user_data["cap_captions"] = captions  # stored as JS-escaped strings
+    context.user_data["cap_nocaption_mode"] = False
 
     await query.edit_message_text(f"{gallery} — {len(filenames)} photo(s). Sending preview…")
     await _send_caption_preview(update.effective_chat.id, context, 0)
@@ -3036,14 +3038,25 @@ async def caption_file_action(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.message.reply_text("Done.\n\n/caption to edit more · send a photo to upload")
         return ConversationHandler.END
 
-    if action == "prv":
+    if action in ("prv", "nxt"):
+        captions = context.user_data["cap_captions"]
         total = len(context.user_data["cap_filenames"])
-        await _send_caption_preview(update.effective_chat.id, context, (file_idx - 1) % total)
-        return CAPTION_FILE
-
-    if action == "nxt":
-        total = len(context.user_data["cap_filenames"])
-        await _send_caption_preview(update.effective_chat.id, context, (file_idx + 1) % total)
+        if context.user_data.get("cap_nocaption_mode"):
+            if action == "nxt":
+                candidates = [i for i in range(file_idx + 1, total) if not captions[i].strip()]
+                if not candidates:
+                    candidates = [i for i in range(0, file_idx) if not captions[i].strip()]
+            else:
+                candidates = [i for i in range(file_idx - 1, -1, -1) if not captions[i].strip()]
+                if not candidates:
+                    candidates = [i for i in range(total - 1, file_idx, -1) if not captions[i].strip()]
+            if not candidates:
+                await context.bot.send_message(update.effective_chat.id, "All photos now have captions! 🎉\n\n/nocaption · /caption · send a photo to upload")
+                return ConversationHandler.END
+            await _send_caption_preview(update.effective_chat.id, context, candidates[0])
+        else:
+            delta = 1 if action == "nxt" else -1
+            await _send_caption_preview(update.effective_chat.id, context, (file_idx + delta) % total)
         return CAPTION_FILE
 
     if action == "ai":
@@ -3104,7 +3117,18 @@ async def _apply_caption_edit(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     label = "Caption updated." if new_caption else "Caption cleared."
     await update.effective_message.reply_text(label)
-    await _send_caption_preview(update.effective_chat.id, context, idx + 1)
+    if context.user_data.get("cap_nocaption_mode"):
+        total = len(filenames)
+        next_idx = next(
+            (i for i in range(idx + 1, total) if not captions[i].strip()),
+            next((i for i in range(0, idx) if not captions[i].strip()), None),
+        )
+        if next_idx is None:
+            await update.effective_message.reply_text("All photos now have captions! 🎉\n\n/nocaption · /caption · send a photo to upload")
+            return ConversationHandler.END
+        await _send_caption_preview(update.effective_chat.id, context, next_idx)
+    else:
+        await _send_caption_preview(update.effective_chat.id, context, idx + 1)
     return CAPTION_FILE
 
 
