@@ -2870,6 +2870,71 @@ async def cmd_caption(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     return CAPTION_GALLERY
 
 
+async def cmd_nocaption(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        await update.message.reply_text("Not authorized.")
+        return ConversationHandler.END
+    galleries = await _existing_galleries()
+    if not galleries:
+        await update.message.reply_text("No galleries found.")
+        return ConversationHandler.END
+    context.user_data["cap_galleries"] = galleries
+    keyboard = [[InlineKeyboardButton(g, callback_data=f"ng:{i}")] for i, g in enumerate(galleries)]
+    await update.message.reply_text("Jump to first uncaptioned photo in which gallery?", reply_markup=InlineKeyboardMarkup(keyboard))
+    return CAPTION_GALLERY
+
+
+async def nocaption_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    idx = int(query.data[3:])
+    gallery = context.user_data["cap_galleries"][idx]
+    context.user_data["cap_gallery"] = gallery
+
+    await query.edit_message_text(f"Loading {gallery}…")
+    current_html, html_sha = await _gh_get_file(_html_rel_path(gallery))
+    if not current_html:
+        await query.edit_message_text("Could not load gallery HTML.")
+        return ConversationHandler.END
+
+    text = current_html.decode("utf-8")
+    filenames = _get_js_array_entries(text, "filenames")
+    captions = _get_js_array_entries(text, "captions")
+    while len(captions) < len(filenames):
+        captions.append("")
+
+    if not filenames and re.search(r"var slides\s*=\s*\[", text):
+        filenames = _get_slides_filenames(text)
+        captions = _get_slides_captions(text)
+        while len(captions) < len(filenames):
+            captions.append("")
+        context.user_data["cap_format"] = "slides"
+    else:
+        context.user_data["cap_format"] = "arrays"
+
+    if not filenames:
+        await query.edit_message_text(f"No photos found in {gallery}.")
+        return ConversationHandler.END
+
+    context.user_data["cap_filenames"] = filenames
+    context.user_data["cap_captions"] = captions
+
+    first_uncaptioned = next(
+        (i for i, cap in enumerate(captions) if not cap.strip()),
+        None,
+    )
+
+    if first_uncaptioned is None:
+        await query.edit_message_text(f"All {len(filenames)} photos in {gallery} have captions! 🎉")
+        return ConversationHandler.END
+
+    await query.edit_message_text(
+        f"{gallery} — first uncaptioned photo is #{first_uncaptioned + 1} of {len(filenames)}. Sending preview…"
+    )
+    await _send_caption_preview(update.effective_chat.id, context, first_uncaptioned)
+    return CAPTION_FILE
+
+
 async def caption_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
@@ -4939,6 +5004,7 @@ def main() -> None:
             MessageHandler(_media_filter, photo_received),
             CommandHandler("remove", cmd_remove),
             CommandHandler("caption", cmd_caption),
+            CommandHandler("nocaption", cmd_nocaption),
             CommandHandler("feature", cmd_feature),
             CommandHandler("fcaption", cmd_fcaption),
             CommandHandler("reorder", cmd_reorder),
@@ -4975,7 +5041,10 @@ def main() -> None:
             ],
             REMOVING_GALLERY:        [CallbackQueryHandler(remove_gallery_chosen, pattern=r"^rg:")],
             REMOVING_FILE:           [CallbackQueryHandler(remove_file_action, pattern=r"^rd:")],
-            CAPTION_GALLERY:         [CallbackQueryHandler(caption_gallery_chosen, pattern=r"^cg:")],
+            CAPTION_GALLERY:         [
+                CallbackQueryHandler(caption_gallery_chosen, pattern=r"^cg:"),
+                CallbackQueryHandler(nocaption_gallery_chosen, pattern=r"^ng:"),
+            ],
             CAPTION_FILE:            [CallbackQueryHandler(caption_file_action, pattern=r"^ce:")],
             CAPTION_TEXT:            [
                 CommandHandler("skip", caption_skip_received),
@@ -5056,6 +5125,7 @@ def main() -> None:
                         BotCommand("galleries", "List existing galleries"),
                         BotCommand("remove",    "Delete a photo or video from a gallery"),
                         BotCommand("caption",   "Edit photo captions in a gallery"),
+                        BotCommand("nocaption", "Jump to first uncaptioned photo in a gallery"),
                         BotCommand("reorder",   "Rearrange photo order in a gallery"),
                         BotCommand("feature",   "Create a featured page for Joyce Ultra"),
                         BotCommand("fcaption",  "Update caption on a featured page"),
