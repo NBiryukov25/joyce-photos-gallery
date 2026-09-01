@@ -2765,23 +2765,28 @@ async def _send_remove_preview(chat_id: int, context: ContextTypes.DEFAULT_TYPE,
     gallery = context.user_data["remove_gallery"]
     total = len(files)
 
-    if idx >= total:
+    if total == 0:
         await context.bot.send_message(chat_id, "No more files.\n\n/remove to start over · send a photo to upload")
         return
 
+    idx = idx % total  # wrap around
     file_info = files[idx]
     filename = file_info["name"]
     ext = filename.rsplit(".", 1)[-1].lower()
     caption = f"{idx + 1} / {total}"
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("🗑 Delete", callback_data=f"rd:del:{idx}"),
-        InlineKeyboardButton("→ Next",   callback_data=f"rd:nxt:{idx}"),
-        InlineKeyboardButton("✓ Done",   callback_data=f"rd:done:{idx}"),
-    ]])
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("← Back",    callback_data=f"rd:prv:{idx}"),
+            InlineKeyboardButton("🗑 Delete",  callback_data=f"rd:del:{idx}"),
+            InlineKeyboardButton("→ Next",    callback_data=f"rd:nxt:{idx}"),
+        ],
+        [InlineKeyboardButton("✓ Done",       callback_data=f"rd:done:{idx}")],
+    ])
 
+    assets_folder = _assets_folder_name(gallery)
     raw_url = (
         f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
-        f"/assets/{urllib.parse.quote(gallery)}/{urllib.parse.quote(filename)}"
+        f"/assets/{urllib.parse.quote(assets_folder)}/{urllib.parse.quote(filename)}"
     )
 
     if ext in _VIDEO_EXTS:
@@ -2838,8 +2843,10 @@ async def remove_file_action(update: Update, context: ContextTypes.DEFAULT_TYPE)
         files.pop(file_idx)
         next_idx = file_idx  # next file slides into same position
 
+    elif action == "prv":
+        next_idx = (file_idx - 1) % len(files)
     else:  # nxt
-        next_idx = file_idx + 1
+        next_idx = (file_idx + 1) % len(files)
 
     await _send_remove_preview(update.effective_chat.id, context, next_idx)
     return REMOVING_FILE
@@ -2910,10 +2917,11 @@ async def _send_caption_preview(chat_id: int, context: ContextTypes.DEFAULT_TYPE
     gallery = context.user_data["cap_gallery"]
     total = len(filenames)
 
-    if idx >= total:
+    if total == 0:
         await context.bot.send_message(chat_id, "All photos reviewed.\n\n/caption to edit more · send a photo to upload")
         return
 
+    idx = idx % total  # wrap around — back from first goes to last, next from last goes to first
     filename = filenames[idx]
     current_cap = _unescape_js(captions[idx]) if captions[idx] else ""
     ext = filename.rsplit(".", 1)[-1].lower()
@@ -2922,16 +2930,20 @@ async def _send_caption_preview(chat_id: int, context: ContextTypes.DEFAULT_TYPE
     if current_cap:
         tg_caption += f"\n📝 {current_cap[:200]}{'…' if len(current_cap) > 200 else ''}"
 
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("✏️ Edit",   callback_data=f"ce:edit:{idx}"),
-        InlineKeyboardButton("✨ AI",     callback_data=f"ce:ai:{idx}"),
-        InlineKeyboardButton("→ Next",   callback_data=f"ce:nxt:{idx}"),
-        InlineKeyboardButton("✓ Done",   callback_data=f"ce:done:{idx}"),
-    ]])
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("← Back",  callback_data=f"ce:prv:{idx}"),
+            InlineKeyboardButton("✏️ Edit", callback_data=f"ce:edit:{idx}"),
+            InlineKeyboardButton("✨ AI",   callback_data=f"ce:ai:{idx}"),
+            InlineKeyboardButton("→ Next",  callback_data=f"ce:nxt:{idx}"),
+        ],
+        [InlineKeyboardButton("✓ Done",     callback_data=f"ce:done:{idx}")],
+    ])
 
+    assets_folder = _assets_folder_name(gallery)
     raw_url = (
         f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
-        f"/assets/{urllib.parse.quote(gallery)}/{urllib.parse.quote(filename)}"
+        f"/assets/{urllib.parse.quote(assets_folder)}/{urllib.parse.quote(filename)}"
     )
 
     if ext in _VIDEO_EXTS:
@@ -2959,8 +2971,14 @@ async def caption_file_action(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.message.reply_text("Done.\n\n/caption to edit more · send a photo to upload")
         return ConversationHandler.END
 
+    if action == "prv":
+        total = len(context.user_data["cap_filenames"])
+        await _send_caption_preview(update.effective_chat.id, context, (file_idx - 1) % total)
+        return CAPTION_FILE
+
     if action == "nxt":
-        await _send_caption_preview(update.effective_chat.id, context, file_idx + 1)
+        total = len(context.user_data["cap_filenames"])
+        await _send_caption_preview(update.effective_chat.id, context, (file_idx + 1) % total)
         return CAPTION_FILE
 
     if action == "ai":
