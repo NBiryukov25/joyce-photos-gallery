@@ -3329,9 +3329,9 @@ def _reorder_keyboard(cursor: int, n: int, picked: int = None) -> InlineKeyboard
     at_start = cursor == 0
     at_end = cursor == n - 1
     nav = [
-        InlineKeyboardButton("← Prev" if not at_start else "·", callback_data="rorb:prev" if not at_start else noop),
+        InlineKeyboardButton("← Prev", callback_data="rorb:prev"),
         InlineKeyboardButton(f"{cursor + 1} of {n}", callback_data=noop),
-        InlineKeyboardButton("Next →" if not at_end else "·", callback_data="rorb:next" if not at_end else noop),
+        InlineKeyboardButton("Next →", callback_data="rorb:next"),
     ]
     if picked is not None:
         # Pick-and-place mode: user picked a photo, now browsing to destination
@@ -3547,10 +3547,10 @@ async def reorder_browse_callback(update: Update, context: ContextTypes.DEFAULT_
         context.user_data.pop("reorder_picked", None)
         picked = None
     # Navigation / nudge
-    elif action == "prev" and cursor > 0:
-        cursor -= 1
-    elif action == "next" and cursor < n - 1:
-        cursor += 1
+    elif action == "prev":
+        cursor = (cursor - 1) % n
+    elif action == "next":
+        cursor = (cursor + 1) % n
     elif action == "up" and cursor > 0:
         filenames[cursor], filenames[cursor - 1] = filenames[cursor - 1], filenames[cursor]
         cursor -= 1
