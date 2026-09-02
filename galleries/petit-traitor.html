@@ -51,6 +51,7 @@
   <div class="topbar-controls">
     <button class="ui-btn" id="autoplay-btn">Pause</button>
     <button class="ui-btn" id="mute-btn">🔇</button>
+    <button class="ui-btn" id="dl-btn">⬇ Save</button>
     <button class="ui-btn" id="fs-btn">Fullscreen</button>
     <a class="ui-btn" href="../gallery.html">← Galleries</a>
   </div>
@@ -149,6 +150,8 @@
     if (VIDEO_EXTS.indexOf(ext) !== -1) {
       el = document.createElement('video'); el.src = BASE + encodeURIComponent(s.filename);
       el.loop = true; el.muted = true; el.playsInline = true;
+      el.setAttribute('playsinline', ''); el.setAttribute('webkit-playsinline', '');
+      el.preload = 'metadata';
     } else {
       el = document.createElement('img'); el.src = BASE + encodeURIComponent(s.filename);
       el.alt = 'Petite Traitor — ' + (i + 1); el.draggable = false;
@@ -185,7 +188,10 @@
     if (cap) { setTimeout(function () { captionEl.classList.add('visible'); }, 50); }
     counterEl.textContent = (current + 1) + ' / ' + slides.length;
     var vid = mediaEls[current];
-    if (vid && vid.tagName === 'VIDEO') { vid.muted = videoMuted; try { vid.play(); } catch (e) {} }
+    if (vid && vid.tagName === 'VIDEO') {
+      vid.muted = videoMuted;
+      var p = vid.play(); if (p && p.catch) { p.catch(function () {}); }
+    }
   }
 
   /* ── Autoplay with variable hold times ── */
@@ -217,7 +223,21 @@
   muteBtn.addEventListener('click', function (e) {
     e.stopPropagation(); showControls();
     videoMuted = !videoMuted; muteBtn.textContent = videoMuted ? '🔇' : '🔊';
-    var vid = mediaEls[current]; if (vid && vid.tagName === 'VIDEO') { vid.muted = videoMuted; }
+    var vid = mediaEls[current];
+    if (vid && vid.tagName === 'VIDEO') {
+      vid.muted = videoMuted;
+      if (vid.paused) { var p = vid.play(); if (p && p.catch) { p.catch(function () {}); } }
+    }
+  });
+
+  var dlBtn = document.getElementById('dl-btn');
+  dlBtn.addEventListener('click', function (e) {
+    e.stopPropagation(); showControls();
+    var s = slides[current];
+    var a = document.createElement('a');
+    a.href = BASE + encodeURIComponent(s.filename);
+    a.download = s.filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   });
 
   /* ── Fullscreen ── */
