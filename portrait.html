@@ -156,6 +156,11 @@
     </section>
     <hr class="portrait-divider">
     <div class="char-grid">
+      <!-- ANGLE PACK card -->
+      <button type="button" class="char-card" id="tool-card-angle-pack" style="text-align:left;color:inherit;background:transparent;font:inherit">
+        <span class="char-card-name">ANGLE PACK</span>
+        <span class="char-card-snippet" style="display:block">Explore new camera angles, framing and zoom from your reference photographs.</span>
+      </button>
       <div class="char-card" id="tool-card-three-faces">
         <p class="char-card-name">Three Faces</p>
         <p class="char-card-snippet">Build character portraits — Persona, Ego, Shadow — from a few notes or freeform observations.</p>
@@ -316,6 +321,12 @@
     </div>
 
     <div class="char-form" style="max-width:720px">
+      <!-- Runtime Transcribe credential entry -->
+      <div class="field-group" id="transcribe-credentials">
+        <label class="field-label" for="transcribe-token-input">Transcribe access token</label>
+        <input type="password" id="transcribe-token-input" class="field-input" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Enter your Transcribe token" style="min-height:44px;font-size:16px">
+        <p class="field-hint">Kept only in memory for this tab. Reload to forget it. Leave blank to reuse a token already entered. Use your Transcribe access token, not an image-provider API key.</p>
+      </div>
       <div class="field-group">
         <label class="field-label" for="transcribe-file-input">Audio or video file <span class="field-hint">.mp3 · .mov · .mp4 — any length</span></label>
         <input type="file" id="transcribe-file-input" accept="audio/*,video/*" class="field-input" style="padding:0.6rem 0.7rem;">
@@ -338,11 +349,17 @@
     </div>
   </div>
 
+  <!-- ANGLE PACK native tool; its styles are isolated from the existing site. -->
+  <div id="view-angle-pack" hidden>
+    <button class="back-btn" id="angle-pack-back" type="button">← Tools</button>
+    <angle-pack-tool></angle-pack-tool>
+  </div>
+  <script type="module" src="assets/angle-pack/app.js"></script>
   <script>
     var API_BASE = 'https://joyce-photos-gallery.onrender.com';
     var STORAGE_KEY = 'joyce_portraits_v1';
-    var TRANSCRIBE_TOKEN = 'D2uCUAHstMee2EV-0c-_YBHNQ7hDivV11QdPRja8azY';
-    var TRANSCRIBE_PASSWORD = 'sherylonly';
+    // Runtime-only access token; never persisted in browser storage.
+    var TRANSCRIBE_TOKEN = '';
 
     // ── state ──────────────────────────────────────────────────────────────────
     var _editingId   = null;   // id of character being edited (null = new)
@@ -376,7 +393,7 @@
 
     // ── views ──────────────────────────────────────────────────────────────────
     function showView(name) {
-      ['tools-home', 'collection', 'form', 'portrait', 'transcribe'].forEach(function(v) {
+      ['tools-home', 'collection', 'form', 'portrait', 'transcribe', 'angle-pack'].forEach(function(v) {
         document.getElementById('view-' + v).hidden = (v !== name);
       });
       window.scrollTo(0, 0);
@@ -598,7 +615,6 @@
     });
 
     document.getElementById('tool-card-transcribe').addEventListener('click', function() {
-      if (!ensureTranscribeUnlocked()) return;
       resetTranscribeUI();
       showView('transcribe');
     });
@@ -607,14 +623,13 @@
     });
 
     function ensureTranscribeUnlocked() {
-      if (sessionStorage.getItem('transcribe_unlocked') === '1') return true;
-      var pw = prompt('Enter password to use this tool:');
-      if (pw === null) return false;
-      if (pw === TRANSCRIBE_PASSWORD) {
-        sessionStorage.setItem('transcribe_unlocked', '1');
-        return true;
-      }
-      alert('Incorrect password.');
+      var input = document.getElementById('transcribe-token-input');
+      var entered = input.value.trim();
+      input.value = '';
+      if (entered) TRANSCRIBE_TOKEN = entered;
+      if (TRANSCRIBE_TOKEN) return true;
+      setTranscribeStatus('Enter your Transcribe access token before submitting.', true);
+      input.focus();
       return false;
     }
 
@@ -680,6 +695,7 @@
 
     document.getElementById('transcribe-submit-btn').addEventListener('click', function() {
       if (!_transcribeFile) return;
+      if (!ensureTranscribeUnlocked()) return;
       var ext = (_transcribeFile.name.split('.').pop() || '').toLowerCase();
       if (ext !== 'mp3' && ext !== 'mov' && ext !== 'mp4') {
         setTranscribeStatus('Unsupported file type — please choose an .mp3, .mov, or .mp4 file.', true);
@@ -966,6 +982,8 @@
       return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    document.getElementById('tool-card-angle-pack').onclick = function(){showView('angle-pack');};
+    document.getElementById('angle-pack-back').onclick = function(){showView('tools-home');};
     // ── boot ───────────────────────────────────────────────────────────────────
     showView('tools-home');
   </script>
