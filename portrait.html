@@ -129,6 +129,30 @@
     .fields-divider::before, .fields-divider::after { content: ''; flex: 1; height: 1px; background: rgba(247,241,238,0.07); }
     @keyframes fieldPop { 0% { border-color: rgba(139,58,58,0.7); background: rgba(139,58,58,0.07); } 100% { border-color: rgba(247,241,238,0.1); background: rgba(255,255,255,0.03); } }
     .field-populated { animation: fieldPop 1.8s ease forwards; }
+
+    /* ── standalone footer link ── */
+    .tools-gallery-link {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(247,241,238,0.08);
+      text-align: center;
+    }
+    .tools-gallery-link a {
+      font-family: 'Jost', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 300;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: rgba(247,241,238,0.35);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(247,241,238,0.15);
+      padding-bottom: 2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tools-gallery-link a:hover {
+      color: rgba(247,241,238,0.75);
+      border-bottom-color: #8b3a3a;
+    }
   </style>
 </head>
 <body>
@@ -148,7 +172,7 @@
   </header>
 
   <!-- ═══════════════════════════════════ TOOLS HUB ═══════════════════════════════════ -->
-  <div id="view-tools-home" hidden>
+  <div id="view-tools-home">
     <section class="portrait-hero">
       <p class="portrait-overline">Sheryl Joyce</p>
       <h1 class="portrait-title">Tools</h1>
@@ -169,6 +193,9 @@
         <p class="char-card-name">Transcribe</p>
         <p class="char-card-snippet">Upload an .mp3, .mov, or .mp4 and get back a verbatim text transcript. Any length — long recordings are chunked automatically.</p>
       </div>
+    </div>
+    <div class="tools-gallery-link">
+      <a href="gallery.html">← Back to Joyce Photos Gallery</a>
     </div>
   </div>
 
