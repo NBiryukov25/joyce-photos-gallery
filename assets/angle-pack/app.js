@@ -112,7 +112,11 @@ function outputControls(out,i,mode,refs,refresh,options={}) {
   if(rules.usesAngle)row.append(selectField(`Angle · output ${i+1}`,ANGLES,out.angle,v=>{out.angle=v;refresh();}));
   else row.append(selectField(`Source photo · output ${i+1}`,Object.fromEntries(refs.map((r,i)=>[i,`Reference ${i+1}`])),out.sourceIndex,v=>{out.sourceIndex=Number(v);refresh();}));
   row.append(selectField(`Framing · output ${i+1}`,FRAMINGS,out.framing,v=>{out.framing=v;delete out.crop;refresh();}));
-  if((rules.requiresModels||options.showModel) && rules.generative)row.append(selectField(`Model · output ${i+1}`,modelChoices(true),out.model||'',v=>{if(v)out.model=v;else delete out.model;refresh();}));
+  if((rules.requiresModels||options.showModel) && rules.generative) {
+    // A model name is far too long for the half-width control column.
+    const field=selectField(`Model · output ${i+1}`,modelChoices(true),out.model||'',v=>{if(v)out.model=v;else delete out.model;refresh();});
+    field.className='field full';row.append(field);
+  }
   if(mode==='GENERATIVE_ANGLE' && out.angle==='CUSTOM') {
     const field=el('div',{class:'custom'}),lab=el('label',{},'Custom camera position'),text=el('textarea',{rows:'2',maxlength:'1500',placeholder:'Describe where the photographer moves…',required:''});text.value=out.custom||'';text.oninput=()=>out.custom=text.value;lab.append(text);field.append(lab);row.append(field);
   }
