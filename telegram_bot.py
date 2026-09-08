@@ -958,6 +958,41 @@ async def _transcription_status(
     return job
 
 
+class _ChaptersRequest(BaseModel):
+    text: str
+    token: str = ""
+
+
+@portrait_api.post("/transcribe/chapters")
+async def _make_chapters(req: _ChaptersRequest, authorization: str = Header(default="")):
+    _check_transcribe_auth(authorization, req.token)
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=503, detail="Anthropic API not configured.")
+    if not req.text.strip():
+        raise HTTPException(status_code=400, detail="No transcript text provided.")
+
+    prompt = (
+        "You are given a verbatim transcript. Your job is to reformat it as a clean Markdown document.\n\n"
+        "Rules:\n"
+        "- Identify natural topic changes or discussion shifts in the transcript.\n"
+        "- Insert a Markdown chapter heading (## Heading) at each topic change. Pick a concise, descriptive title.\n"
+        "- Lightly clean up filler words (um, uh, like) and false starts, but keep the speaker's natural voice.\n"
+        "- Do NOT summarize — preserve all meaningful content from the transcript.\n"
+        "- Return only the Markdown document, no preamble or explanation.\n\n"
+        "Transcript:\n\n"
+        + req.text
+    )
+
+    client = _anthropic_sdk.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+    message = await client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=8192,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    markdown = message.content[0].text
+    return {"markdown": markdown}
+
+
 # ---------------------------------------------------------------------------
 # authorization
 # ---------------------------------------------------------------------------

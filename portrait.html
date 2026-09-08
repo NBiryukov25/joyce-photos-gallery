@@ -371,7 +371,9 @@
         <div class="form-actions">
           <button type="button" class="pill-btn" id="transcribe-copy-btn">Copy</button>
           <button type="button" class="pill-btn" id="transcribe-download-btn">Download .txt</button>
+          <button type="button" class="pill-btn primary" id="transcribe-chapters-btn">📖 Create Chapter Markdown</button>
         </div>
+        <p id="transcribe-chapters-status" style="font-family:'Jost',sans-serif; font-size:0.72rem; margin-top:0.8rem; display:none;"></p>
       </div>
     </div>
   </div>
@@ -875,6 +877,51 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('transcribe-chapters-btn').addEventListener('click', function() {
+      var text = document.getElementById('transcribe-result-text').value;
+      if (!text.trim()) return;
+      var btn = document.getElementById('transcribe-chapters-btn');
+      var statusEl = document.getElementById('transcribe-chapters-status');
+      btn.disabled = true;
+      btn.textContent = 'Generating chapters…';
+      statusEl.style.display = '';
+      statusEl.style.color = 'rgba(247,241,238,0.45)';
+      statusEl.textContent = 'Sending transcript to Claude — this takes 10–30 seconds…';
+
+      fetch(API_BASE + '/transcribe/chapters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text, token: TRANSCRIBE_TOKEN })
+      })
+      .then(function(res) {
+        if (!res.ok) return res.json().then(function(b) { throw new Error(b.detail || 'Server error'); });
+        return res.json();
+      })
+      .then(function(data) {
+        btn.disabled = false;
+        btn.textContent = '📖 Create Chapter Markdown';
+        statusEl.textContent = '';
+        statusEl.style.display = 'none';
+        var md = data.markdown || '';
+        var baseName = (_transcribeFile ? _transcribeFile.name.replace(/\.[^.]+$/, '') : 'transcript');
+        var blob = new Blob([md], { type: 'text/markdown' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = baseName + '-chapters.md';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      })
+      .catch(function(err) {
+        btn.disabled = false;
+        btn.textContent = '📖 Create Chapter Markdown';
+        statusEl.style.color = '#b05050';
+        statusEl.textContent = err.message || 'Failed to generate chapters. Please try again.';
+      });
     });
 
     function backFromForm() {
