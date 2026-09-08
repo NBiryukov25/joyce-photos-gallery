@@ -352,7 +352,7 @@
       <div class="field-group" id="transcribe-credentials">
         <label class="field-label" for="transcribe-token-input">Transcribe access token</label>
         <input type="password" id="transcribe-token-input" class="field-input" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Enter your Transcribe token" style="min-height:44px;font-size:16px">
-        <p class="field-hint">Kept only in memory for this tab. Reload to forget it. Leave blank to reuse a token already entered. Use your Transcribe access token, not an image-provider API key.</p>
+        <p class="field-hint">Saved in this browser so you only need to enter it once. Leave blank to reuse the saved token. Use your Transcribe access token, not an image-provider API key.</p>
       </div>
       <div class="field-group">
         <label class="field-label" for="transcribe-file-input">Audio or video file <span class="field-hint">.mp3 · .mov · .mp4 — any length</span></label>
@@ -385,8 +385,11 @@
   <script>
     var API_BASE = 'https://joyce-photos-gallery.onrender.com';
     var STORAGE_KEY = 'joyce_portraits_v1';
-    // Runtime-only access token; never persisted in browser storage.
-    var TRANSCRIBE_TOKEN = '';
+    var TRANSCRIBE_TOKEN_KEY = 'joyce_transcribe_token_v1';
+    // Load saved token from localStorage so the user doesn't have to re-enter it.
+    var TRANSCRIBE_TOKEN = (function() {
+      try { return localStorage.getItem(TRANSCRIBE_TOKEN_KEY) || ''; } catch(e) { return ''; }
+    })();
 
     // ── state ──────────────────────────────────────────────────────────────────
     var _editingId   = null;   // id of character being edited (null = new)
@@ -643,6 +646,8 @@
 
     document.getElementById('tool-card-transcribe').addEventListener('click', function() {
       resetTranscribeUI();
+      // Hide the token field if a token is already saved
+      document.getElementById('transcribe-credentials').style.display = TRANSCRIBE_TOKEN ? 'none' : '';
       showView('transcribe');
     });
     document.getElementById('transcribe-back-btn').addEventListener('click', function() {
@@ -653,7 +658,10 @@
       var input = document.getElementById('transcribe-token-input');
       var entered = input.value.trim();
       input.value = '';
-      if (entered) TRANSCRIBE_TOKEN = entered;
+      if (entered) {
+        TRANSCRIBE_TOKEN = entered;
+        try { localStorage.setItem(TRANSCRIBE_TOKEN_KEY, entered); } catch(e) {}
+      }
       if (TRANSCRIBE_TOKEN) return true;
       setTranscribeStatus('Enter your Transcribe access token before submitting.', true);
       input.focus();
