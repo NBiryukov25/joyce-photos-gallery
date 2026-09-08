@@ -20,18 +20,20 @@ export const ATTRIBUTES = {
 //   requiresDirection each output needs its own written instruction
 //   requiresAttributes each output needs at least two attribute sources
 //   requiresModels    distinct models the session must span
+//   requiresReferenceInput the operation is defined by the reference
+//                     photographs, so a text-only endpoint cannot perform it
 export const MODES = {
   CROP_ZOOM: {label:'Crop Zoom', blurb:'Frame existing pixels · no API cost', generative:false, usesAngle:false, subject:'same', minReferences:1,
     note:'Local crop only. No new pixels or camera angles are generated. All API calls are bypassed.'},
-  OUTPAINT_ZOOM: {label:'Outpaint Zoom', blurb:'Reconstruct beyond the original edges', generative:true, usesAngle:false, subject:'same', minReferences:1,
+  OUTPAINT_ZOOM: {label:'Outpaint Zoom', blurb:'Reconstruct beyond the original edges', generative:true, usesAngle:false, subject:'same', minReferences:1, requiresReferenceInput:true,
     note:'Generatively expands the photograph beyond its edges. Uses all references for continuity.'},
   GENERATIVE_ANGLE: {label:'Generative Angle', blurb:'Move the virtual camera around the subject', generative:true, usesAngle:true, subject:'same', minReferences:1,
     note:'A new camera viewpoint inferred from all references. Left and right refer to the subject\u2019s own sides.'},
-  MULTI_REFERENCE: {label:'Multi-Reference', blurb:'One subject, every reference as evidence', generative:true, usesAngle:true, subject:'same', minReferences:2,
+  MULTI_REFERENCE: {label:'Multi-Reference', blurb:'One subject, every reference as evidence', generative:true, usesAngle:true, subject:'same', minReferences:2, requiresReferenceInput:true,
     note:'Synthesises one new photograph of the same subject from all references at once. Add a written direction to steer it.'},
-  COMBINED_IMAGES: {label:'Combined Images', blurb:'Different subjects in one photograph', generative:true, usesAngle:true, subject:'distinct', minReferences:2, requiresDirection:true,
+  COMBINED_IMAGES: {label:'Combined Images', blurb:'Different subjects in one photograph', generative:true, usesAngle:true, subject:'distinct', minReferences:2, requiresDirection:true, requiresReferenceInput:true,
     note:'The references show different subjects, objects or scenes. Describe how they belong together in one photograph.'},
-  ATTRIBUTE_COMBINE: {label:'Attribute Combine', blurb:'Take each attribute from a named reference', generative:true, usesAngle:true, subject:'attributes', minReferences:2, requiresAttributes:true,
+  ATTRIBUTE_COMBINE: {label:'Attribute Combine', blurb:'Take each attribute from a named reference', generative:true, usesAngle:true, subject:'attributes', minReferences:2, requiresAttributes:true, requiresReferenceInput:true,
     note:'Assign at least two attributes, each to the reference it should come from. Nothing else is taken from those references.'},
   MODEL_COMPARISON: {label:'Model Comparison', blurb:'The same shot across several models', generative:true, usesAngle:true, subject:'same', minReferences:1, requiresModels:2,
     note:'Every output shares one instruction and runs on a different model, so the results are directly comparable. LIVE charges one request per model.'},

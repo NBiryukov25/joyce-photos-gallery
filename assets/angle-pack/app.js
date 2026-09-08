@@ -164,6 +164,7 @@ function updateSubmission() {
   if(state.refs.length&&state.refs.length<rules.minReferences)problems.push(`${rules.label} needs at least ${rules.minReferences} reference photographs.`);
   state.outputs.forEach((out,i)=>{for(const issue of outputProblems(state.mode,out))problems.push(`Output ${i+1}: ${issue}.`);});
   if(rules.requiresModels&&new Set(state.outputs.map(o=>o.model||state.model||'session default')).size<rules.requiresModels)problems.push(`${rules.label} needs at least ${rules.requiresModels} different models across the outputs.`);
+  if(rules.requiresReferenceInput)state.outputs.forEach((out,i)=>{const chosen=modelInfo(out.model||state.model);if(chosen&&!chosen.usesReferences)problems.push(`Output ${i+1}: ${chosen.label} accepts no image input, which ${rules.label} works from.`);});
   $('generate').textContent=state.busy?'GENERATION IN PROGRESS…':`GENERATE ${n} IMAGE${n>1?'S':''} ↗`;
   $('generate').disabled=state.busy||!state.refs.length||!state.config||problems.length>0||(paid&&!state.config.liveAvailable);
   $('cost-summary').textContent=!rules.generative?`${n} local crops · 0 API requests.`:paid?`${n} images · ${n} paid image-edit request${n>1?'s':''} · ${rules.requiresModels?'one per model':info?info.label:'server default model'} · ${state.config?.size}.`:`${n} labeled mock previews · 0 API requests. No new viewpoints in mock mode.`;
