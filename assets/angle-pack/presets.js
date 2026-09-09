@@ -6,6 +6,15 @@ export const ANGLES = {
 };
 export const FRAMINGS = { FACE: 'Face', HEAD_SHOULDERS: 'Head & shoulders', CHEST: 'Chest-up', WAIST: 'Waist-up', THREE_QUARTER: 'Three-quarter body', FULL_BODY: 'Full body', WIDE: 'Wide / full available frame' };
 export const PRESERVATIONS = ['FACE', 'BODY', 'HAIR', 'OUTFIT', 'ACCESSORIES', 'BACKGROUND', 'LIGHTING', 'PHOTO_STYLE'];
+// Preservation attributes fall into two kinds, and conflating them is what made
+// a camera move fight the preservation controls. Identity attributes must not
+// change at all. Scene attributes must stay the SAME SUBJECT MATTER while being
+// re-rendered from the new camera position, because perspective, occlusion and
+// shadow placement necessarily change when the camera moves.
+export const PRESERVATION_CLASS = {
+  FACE: 'identity', BODY: 'identity', HAIR: 'identity', OUTFIT: 'identity', ACCESSORIES: 'identity',
+  BACKGROUND: 'scene', LIGHTING: 'scene', PHOTO_STYLE: 'scene',
+};
 // Attribute Combine takes each of these from one named reference.
 export const ATTRIBUTES = {
   FACE: 'Face and identity', HAIR: 'Hair', OUTFIT: 'Outfit', ACCESSORIES: 'Accessories',
