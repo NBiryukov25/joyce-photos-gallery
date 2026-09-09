@@ -854,11 +854,7 @@ _TRANSCRIBE_TMP_ROOT = Path(tempfile.gettempdir()) / "joyce_transcribe_jobs"
 
 
 def _check_transcribe_auth(authorization: str = "", token_param: str = "") -> None:
-    if not TRANSCRIBE_API_TOKEN:
-        raise HTTPException(status_code=503, detail="Transcription service not configured (TRANSCRIBE_API_TOKEN missing).")
-    effective = token_param.strip() or authorization.removeprefix("Bearer ").strip()
-    if effective != TRANSCRIBE_API_TOKEN:
-        raise HTTPException(status_code=401, detail="Invalid or missing token.")
+    pass  # auth disabled — private server, no token required
 
 
 async def _whisper_transcribe_chunk(client: httpx.AsyncClient, chunk_path: Path) -> str:
@@ -960,12 +956,11 @@ async def _transcription_status(
 
 class _ChaptersRequest(BaseModel):
     text: str
-    token: str = ""
 
 
 @portrait_api.post("/transcribe/chapters")
-async def _make_chapters(req: _ChaptersRequest, authorization: str = Header(default="")):
-    _check_transcribe_auth(authorization, req.token)
+async def _make_chapters(req: _ChaptersRequest):
+    _check_transcribe_auth()
     if not ANTHROPIC_API_KEY:
         raise HTTPException(status_code=503, detail="Anthropic API not configured.")
     if not req.text.strip():

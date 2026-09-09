@@ -348,12 +348,6 @@
     </div>
 
     <div class="char-form" style="max-width:720px">
-      <!-- Runtime Transcribe credential entry -->
-      <div class="field-group" id="transcribe-credentials">
-        <label class="field-label" for="transcribe-token-input">Transcribe access token</label>
-        <input type="password" id="transcribe-token-input" class="field-input" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Enter your Transcribe token" style="min-height:44px;font-size:16px">
-        <p class="field-hint">Saved in this browser so you only need to enter it once. Leave blank to reuse the saved token. Use your Transcribe access token, not an image-provider API key.</p>
-      </div>
       <div class="field-group">
         <label class="field-label" for="transcribe-file-input">Audio or video file <span class="field-hint">.mp3 · .mov · .mp4 — any length</span></label>
         <input type="file" id="transcribe-file-input" accept="audio/*,video/*" class="field-input" style="padding:0.6rem 0.7rem;">
@@ -387,11 +381,6 @@
   <script>
     var API_BASE = 'https://joyce-photos-gallery.onrender.com';
     var STORAGE_KEY = 'joyce_portraits_v1';
-    var TRANSCRIBE_TOKEN_KEY = 'joyce_transcribe_token_v1';
-    // Load saved token from localStorage so the user doesn't have to re-enter it.
-    var TRANSCRIBE_TOKEN = (function() {
-      try { return localStorage.getItem(TRANSCRIBE_TOKEN_KEY) || ''; } catch(e) { return ''; }
-    })();
 
     // ── state ──────────────────────────────────────────────────────────────────
     var _editingId   = null;   // id of character being edited (null = new)
@@ -648,27 +637,11 @@
 
     document.getElementById('tool-card-transcribe').addEventListener('click', function() {
       resetTranscribeUI();
-      // Hide the token field if a token is already saved
-      document.getElementById('transcribe-credentials').style.display = TRANSCRIBE_TOKEN ? 'none' : '';
       showView('transcribe');
     });
     document.getElementById('transcribe-back-btn').addEventListener('click', function() {
       showView('tools-home');
     });
-
-    function ensureTranscribeUnlocked() {
-      var input = document.getElementById('transcribe-token-input');
-      var entered = input.value.trim();
-      input.value = '';
-      if (entered) {
-        TRANSCRIBE_TOKEN = entered;
-        try { localStorage.setItem(TRANSCRIBE_TOKEN_KEY, entered); } catch(e) {}
-      }
-      if (TRANSCRIBE_TOKEN) return true;
-      setTranscribeStatus('Enter your Transcribe access token before submitting.', true);
-      input.focus();
-      return false;
-    }
 
     // ── transcribe ─────────────────────────────────────────────────────────────
     var _transcribeFile = null;
@@ -732,7 +705,6 @@
 
     document.getElementById('transcribe-submit-btn').addEventListener('click', function() {
       if (!_transcribeFile) return;
-      if (!ensureTranscribeUnlocked()) return;
       var ext = (_transcribeFile.name.split('.').pop() || '').toLowerCase();
       if (ext !== 'mp3' && ext !== 'mov' && ext !== 'mp4') {
         setTranscribeStatus('Unsupported file type — please choose an .mp3, .mov, or .mp4 file.', true);
@@ -790,7 +762,7 @@
         form.append('file', file);
 
         // Token in query param — avoids CORS pre-flight on iOS for multipart uploads.
-        var uploadUrl = API_BASE + '/transcribe/start?token=' + encodeURIComponent(TRANSCRIBE_TOKEN);
+        var uploadUrl = API_BASE + '/transcribe/start';
 
         fetch(uploadUrl, { method: 'POST', body: form })
         .then(function(res) {
@@ -824,7 +796,7 @@
       setTranscribeStatus('Processing…', false);
       var failCount = 0;
       var poll = function() {
-        var pollUrl = API_BASE + '/transcribe/status/' + jobId + '?token=' + encodeURIComponent(TRANSCRIBE_TOKEN);
+        var pollUrl = API_BASE + '/transcribe/status/' + jobId;
         fetch(pollUrl)
         .then(function(res) {
           if (res.status === 404) throw new Error('Job lost — the server may have restarted. Please try again.');
@@ -893,7 +865,7 @@
       fetch(API_BASE + '/transcribe/chapters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text, token: TRANSCRIBE_TOKEN })
+        body: JSON.stringify({ text: text })
       })
       .then(function(res) {
         if (!res.ok) return res.json().then(function(b) { throw new Error(b.detail || 'Server error'); });
