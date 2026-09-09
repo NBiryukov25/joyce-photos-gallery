@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Softness in Surrender · Sheryl Joyce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../gallery.css">
+  <link rel="stylesheet" href="../lightbox.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-nav">
+      <a href="../gallery.html" class="nav-brand">Sheryl Joyce</a>
+      <nav class="nav-links">
+        <a href="../gallery.html" class="nav-link active">Galleries</a>
+        <a href="../stories.html" class="nav-link">Stories</a>
+      </nav>
+    </div>
+  </header>
+
+  <a class="back-link" href="../gallery.html">← Back to Galleries</a>
+
+  <h1 class="portfolio-title">Softness in Surrender</h1>
+  <div class="portfolio-subtitle">Series III — Roadside Encounters</div>
+  <p class="portfolio-caption">An intimate roadside series expanded with new frames of softness, quiet motion, and the lingering feeling of surrender beneath late afternoon light.</p>
+  <p class="portfolio-meta">Digital, 2024 · Available Light</p>
+
+  <hr class="portfolio-divider">
+
+  <div class="photo-grid masonry" id="photo-grid">
+    <p class="empty-notice">Loading photos…</p>
+  </div>
+
+  <script>
+    (function () {
+      var filenames = [
+        'Surrender (1).JPG',
+        'Surrender (2).png',
+        'Surrender (3).png',
+        'Surrender (4).png',
+        'Surrender (5).png',
+        'Surrender (7).png',
+        'Surrender (8).png',
+        'Surrender (9).png',
+        'Surrender (10).png',
+        'Surrender (11).png',
+        'Surrender (12).png',
+        'Surrender (13).png',
+        'Surrender (14).png',
+        'Sweetheart (14).PNG',
+        'Surrender (15).png',
+        'Surrender (16).png',
+        'Surrender (17).png',
+        'Surrender (18).png',
+        'Surrender (19).png',
+        'Surrender (20).png',
+        'Surrender (21).png',
+        'Surrender (22).png',
+        'Surrender (23).png',
+        'Surrender (24).png',
+        'Surrender (25).png',
+        'Surrender (27).png',
+        'Surrender (28).png',
+        'Surrender (29).png',
+        'Surrender (30).PNG',
+        'Surrender (31).png',
+        'Surrender (32).PNG',
+        'Surrender (33).png',
+        'Surrender (34).PNG',
+        'Surrender (35).PNG',
+        'Surrender (36).PNG',
+        'Surrender (37).PNG',
+        'Surrender (38).PNG',
+        'photo-20260705-014654.jpg',
+        'photo-20260705-014657-01.jpg',
+        'photo-20260705-014700-02.jpg',
+        'photo-20260705-014703-03.jpg',
+      ];
+
+      var roman = [
+        'I','II','III','IV','V','VI','VII','VIII','IX','X',
+        'XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX',
+        'XXI','XXII','XXIII','XXIV','XXV','XXVI','XXVII','XXVIII','XXIX','XXX',
+        'XXXI','XXXII','XXXIII','XXXIV','XXXV','XXXVI','XXXVII','XXXVIII'
+      ];
+
+      var grid = document.getElementById('photo-grid');
+      grid.innerHTML = '';
+
+      filenames.forEach(function (filename, index) {
+        var item = document.createElement('div');
+        item.className = 'photo-item';
+
+        var img = document.createElement('img');
+        img.src = '../assets/Softness-in-Surrender/' + filename.replace(/ /g, '%20');
+        img.alt = 'Softness in Surrender ' + (roman[index] || (index + 1));
+
+        var info = document.createElement('div');
+        info.className = 'photo-info';
+        info.innerHTML = '<p class="photo-title">' + (roman[index] || (index + 1)) + '</p>';
+
+        item.appendChild(img);
+        item.appendChild(info);
+        grid.appendChild(item);
+      });
+    })();
+  </script>
+
+  <script src="../lightbox.js"></script>
+</body>
+</html>
