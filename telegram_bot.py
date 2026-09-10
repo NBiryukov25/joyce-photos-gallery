@@ -85,6 +85,7 @@ SHARE_SECRET      = os.environ.get("SHARE_SECRET", "")
 _SHARE_EXPIRY_DAYS = 30
 
 CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM, REORDER_BROWSE, DISPLAY_GALLERY, DISPLAY_SETTINGS, CARD_GALLERY, CARD_FIELD, CARD_VALUE, CARD_PHOTO, CARD_PHOTO_UPLOAD, AI_CAP_TONE, AI_CAP_CONFIRM = range(37)
+BULK_ARCHIVE_SELECT, BULK_ARCHIVE_CONFIRM, MOVE_GALLERY_PICK, MOVE_GALLERY_DEST = range(37, 41)
 
 _SKIP_CB   = "sc"   # callback_data for the inline Skip Caption button
 _AICAP_CB  = "aic"  # callback_data for AI Caption button
@@ -1454,6 +1455,229 @@ async def delete_gallery_confirm(update: Update, context: ContextTypes.DEFAULT_T
         await query.edit_message_text(f"Done with issues:\n" + "\n".join(f"• {e}" for e in errors))
     else:
         await query.edit_message_text(f"✅ {gallery} archived. Files are in assets/archive/{gallery}/ and galleries/archive/.")
+    return ConversationHandler.END
+
+
+# ---------------------------------------------------------------------------
+# Bulk-archive multiple galleries
+# ---------------------------------------------------------------------------
+
+_MOVE_PAGES = [
+    ("gallery.html",     "🖼 Main Gallery"),
+    ("friends.html",     "👯 Friends"),
+    ("senza-veli.html",  "🌸 Senza Veli"),
+    ("joyce-ultra.html", "⚡ Joyce Ultra"),
+]
+
+
+def _bulk_archive_keyboard(galleries: list[str], selected: set) -> InlineKeyboardMarkup:
+    rows = []
+    for i, g in enumerate(galleries):
+        tick = "✅ " if i in selected else "☐  "
+        rows.append([InlineKeyboardButton(tick + g, callback_data=f"ba:tog:{i}")])
+    rows.append([
+        InlineKeyboardButton("Archive Selected →", callback_data="ba:done"),
+        InlineKeyboardButton("Cancel", callback_data="ba:cancel"),
+    ])
+    return InlineKeyboardMarkup(rows)
+
+
+async def cmd_archivegalleries(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        return ConversationHandler.END
+    galleries = await _existing_galleries()
+    if not galleries:
+        await update.message.reply_text("No galleries found.")
+        return ConversationHandler.END
+    context.user_data["ba_galleries"] = galleries
+    context.user_data["ba_selected"] = set()
+    await update.message.reply_text(
+        "Tap galleries to select them for archiving, then press *Archive Selected*.\n\n"
+        "Nothing is permanently deleted — files move to assets/archive/ and galleries/archive/.",
+        reply_markup=_bulk_archive_keyboard(galleries, set()),
+        parse_mode="Markdown",
+    )
+    return BULK_ARCHIVE_SELECT
+
+
+async def bulk_archive_toggle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    galleries = context.user_data.get("ba_galleries", [])
+    selected: set = context.user_data.get("ba_selected", set())
+
+    if query.data == "ba:cancel":
+        await query.edit_message_text("Cancelled.")
+        return ConversationHandler.END
+
+    if query.data == "ba:done":
+        if not selected:
+            await query.answer("Select at least one gallery first.", show_alert=True)
+            return BULK_ARCHIVE_SELECT
+        names = [galleries[i] for i in sorted(selected)]
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("✅ Yes, archive all", callback_data="baconf:yes"),
+            InlineKeyboardButton("❌ Cancel", callback_data="baconf:no"),
+        ]])
+        await query.edit_message_text(
+            "Archive these galleries?\n\n" + "\n".join(f"• {n}" for n in names) +
+            "\n\nFiles will be moved to assets/archive/ and galleries/archive/.",
+            reply_markup=keyboard,
+        )
+        return BULK_ARCHIVE_CONFIRM
+
+    if query.data.startswith("ba:tog:"):
+        idx = int(query.data[7:])
+        if idx in selected:
+            selected.discard(idx)
+        else:
+            selected.add(idx)
+        context.user_data["ba_selected"] = selected
+        await query.edit_message_reply_markup(reply_markup=_bulk_archive_keyboard(galleries, selected))
+        return BULK_ARCHIVE_SELECT
+
+    return BULK_ARCHIVE_SELECT
+
+
+async def bulk_archive_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    if query.data == "baconf:no":
+        await query.edit_message_text("Cancelled.")
+        return ConversationHandler.END
+    galleries = context.user_data.get("ba_galleries", [])
+    selected: set = context.user_data.get("ba_selected", set())
+    names = [galleries[i] for i in sorted(selected)]
+    count = len(names)
+    await query.edit_message_text(f"Archiving {count} {'gallery' if count == 1 else 'galleries'}… this may take a moment.")
+    all_errors: list[str] = []
+    for name in names:
+        errors = await _archive_gallery_on_github(name)
+        if errors:
+            all_errors.append(f"{name}: " + "; ".join(errors))
+    if all_errors:
+        await query.edit_message_text("Done with issues:\n" + "\n".join(f"• {e}" for e in all_errors))
+    else:
+        label = "gallery" if count == 1 else "galleries"
+        await query.edit_message_text(
+            f"✅ {count} {label} archived. Files moved to assets/archive/ and galleries/archive/."
+        )
+    return ConversationHandler.END
+
+
+# ---------------------------------------------------------------------------
+# Move a gallery card to a different index page
+# ---------------------------------------------------------------------------
+
+
+async def cmd_movegallery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        return ConversationHandler.END
+    galleries = await _existing_galleries()
+    if not galleries:
+        await update.message.reply_text("No galleries found.")
+        return ConversationHandler.END
+    context.user_data["mv_galleries"] = galleries
+    keyboard = [[InlineKeyboardButton(g, callback_data=f"mv:{i}")] for i, g in enumerate(galleries)]
+    keyboard.append([InlineKeyboardButton("❌ Cancel", callback_data="mv:cancel")])
+    await update.message.reply_text(
+        "Which gallery do you want to move to a different page?",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return MOVE_GALLERY_PICK
+
+
+async def move_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    if query.data == "mv:cancel":
+        await query.edit_message_text("Cancelled.")
+        return ConversationHandler.END
+    idx = int(query.data[3:])
+    gallery = context.user_data["mv_galleries"][idx]
+    context.user_data["mv_gallery"] = gallery
+    keyboard = [
+        [InlineKeyboardButton(label, callback_data=f"mvdest:{i}")]
+        for i, (_, label) in enumerate(_MOVE_PAGES)
+    ]
+    keyboard.append([InlineKeyboardButton("❌ Cancel", callback_data="mvdest:cancel")])
+    await query.edit_message_text(
+        f"Move *{gallery}* to which page?",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown",
+    )
+    return MOVE_GALLERY_DEST
+
+
+async def move_gallery_dest(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    if query.data == "mvdest:cancel":
+        await query.edit_message_text("Cancelled.")
+        return ConversationHandler.END
+
+    dest_idx = int(query.data[7:])
+    dest_path, dest_label = _MOVE_PAGES[dest_idx]
+    gallery = context.user_data.get("mv_gallery", "")
+    await query.edit_message_text(f"Moving *{gallery}* to {dest_label}…", parse_mode="Markdown")
+
+    # Get first image for the card thumbnail
+    files = await _gh_list_dir(f"assets/{gallery}")
+    filename = files[0] if files else "photo.jpg"
+
+    # Add card to destination page
+    timeout = httpx.Timeout(connect=10.0, read=30.0, write=30.0, pool=5.0)
+    dest_url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/{dest_path}"
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        r = await client.get(dest_url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
+        if r.status_code != 200:
+            await query.edit_message_text(f"❌ Could not read {dest_path}.")
+            return ConversationHandler.END
+        data = r.json()
+        old_bytes = base64.b64decode(data["content"])
+        update_fns = [_update_gallery_index, _update_friends_index, _update_senza_index, _update_ultra_index]
+        new_bytes = update_fns[dest_idx](old_bytes, gallery, filename)
+        if new_bytes == old_bytes:
+            await query.edit_message_text(f"ℹ️ *{gallery}* is already linked on {dest_label}.", parse_mode="Markdown")
+            return ConversationHandler.END
+        pr = await client.put(dest_url, headers=_GH_HEADERS, json={
+            "message": f"Move gallery card {gallery} → {dest_path}",
+            "content": base64.b64encode(new_bytes).decode(),
+            "sha": data["sha"],
+            "branch": GITHUB_BRANCH,
+        })
+        if pr.status_code not in (200, 201):
+            await query.edit_message_text(f"❌ Failed to update {dest_path}.")
+            return ConversationHandler.END
+
+    # Remove card from all other index pages
+    html_path = SPECIAL_HTML.get(gallery, f"galleries/{gallery.lower()}.html")
+    gallery_html_name = html_path.split("/")[-1]
+    slug = gallery_html_name[:-5] if gallery_html_name.endswith(".html") else gallery.lower()
+    for idx_path, _ in _MOVE_PAGES:
+        if idx_path == dest_path:
+            continue
+        idx_url = f"{_GH_API}/repos/{GITHUB_REPO}/contents/{idx_path}"
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.get(idx_url, headers=_GH_HEADERS, params={"ref": GITHUB_BRANCH})
+            if r.status_code != 200:
+                continue
+            d = r.json()
+            old_content = base64.b64decode(d["content"]).decode("utf-8")
+            new_content = _remove_gallery_card(old_content, gallery_html_name)
+            if idx_path == "friends.html":
+                base = new_content if new_content is not None else old_content
+                new_content = _remove_collection_entry(base, slug)
+            if new_content is None or new_content == old_content:
+                continue
+            await client.put(idx_url, headers=_GH_HEADERS, json={
+                "message": f"Remove {gallery} card from {idx_path} (moved to {dest_path})",
+                "content": base64.b64encode(new_content.encode()).decode(),
+                "sha": d["sha"],
+                "branch": GITHUB_BRANCH,
+            })
+
+    await query.edit_message_text(f"✅ *{gallery}* moved to {dest_label}.", parse_mode="Markdown")
     return ConversationHandler.END
 
 
@@ -5145,6 +5369,8 @@ def main() -> None:
             CommandHandler("share", cmd_share),
             CommandHandler("revoke", cmd_revoke),
             CommandHandler("deletegallery", cmd_deletegallery),
+            CommandHandler("archivegalleries", cmd_archivegalleries),
+            CommandHandler("movegallery", cmd_movegallery),
             CommandHandler("display", cmd_display),
             CommandHandler("card", cmd_card),
         ],
@@ -5207,6 +5433,10 @@ def main() -> None:
             ],
             DELETING_GALLERY:         [CallbackQueryHandler(delete_gallery_chosen, pattern=r"^dg:")],
             DELETING_GALLERY_CONFIRM: [CallbackQueryHandler(delete_gallery_confirm, pattern=r"^dgconf:")],
+            BULK_ARCHIVE_SELECT: [CallbackQueryHandler(bulk_archive_toggle, pattern=r"^ba:")],
+            BULK_ARCHIVE_CONFIRM: [CallbackQueryHandler(bulk_archive_confirm, pattern=r"^baconf:")],
+            MOVE_GALLERY_PICK: [CallbackQueryHandler(move_gallery_chosen, pattern=r"^mv:")],
+            MOVE_GALLERY_DEST: [CallbackQueryHandler(move_gallery_dest, pattern=r"^mvdest:")],
             DISPLAY_GALLERY:  [CallbackQueryHandler(display_gallery_chosen, pattern=r"^dp:")],
             DISPLAY_SETTINGS: [CallbackQueryHandler(display_style_chosen, pattern=r"^dstyle:")],
             CARD_GALLERY: [
@@ -5267,6 +5497,8 @@ def main() -> None:
                         BotCommand("share",     "Generate a shareable gallery link"),
                         BotCommand("revoke",    "Info about private share link expiry"),
                         BotCommand("deletegallery", "Archive an entire gallery (moves to archive, not deleted)"),
+                        BotCommand("archivegalleries", "Archive multiple galleries at once"),
+                        BotCommand("movegallery", "Move a gallery card to a different page"),
                         BotCommand("display",   "Adjust gallery display settings"),
                         BotCommand("cancel",    "Cancel current operation"),
                     ])
