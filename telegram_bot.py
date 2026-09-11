@@ -1012,21 +1012,25 @@ async def youtube_download(req: _YTRequest):
 
     tmpdir = _tempfile.mkdtemp()
     try:
+        # Use Android client to bypass YouTube's bot/sign-in check on server IPs
+        _yt_bypass = {
+            "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
+            "quiet": True,
+            "no_warnings": True,
+        }
         if req.format == "audio":
             ydl_opts = {
+                **_yt_bypass,
                 "format": "bestaudio[ext=m4a]/bestaudio/best",
                 "outtmpl": f"{tmpdir}/download.%(ext)s",
-                "quiet": True,
-                "no_warnings": True,
             }
             default_mime = "audio/mp4"
             default_ext  = "m4a"
         else:
             ydl_opts = {
+                **_yt_bypass,
                 "format": "best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
                 "outtmpl": f"{tmpdir}/download.%(ext)s",
-                "quiet": True,
-                "no_warnings": True,
                 "merge_output_format": "mp4",
             }
             default_mime = "video/mp4"
