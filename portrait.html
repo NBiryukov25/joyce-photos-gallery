@@ -193,6 +193,10 @@
         <p class="char-card-name">Transcribe</p>
         <p class="char-card-snippet">Upload an .mp3, .mov, or .mp4 and get back a verbatim text transcript. Any length — long recordings are chunked automatically.</p>
       </div>
+      <div class="char-card" id="tool-card-youtube">
+        <p class="char-card-name">YouTube Download</p>
+        <p class="char-card-snippet">Paste a YouTube link and download the video as MP4 or audio-only as M4A.</p>
+      </div>
     </div>
     <div class="tools-gallery-link">
       <a href="gallery.html">← Back to Joyce Photos Gallery</a>
@@ -377,6 +381,35 @@
     <button class="back-btn" id="angle-pack-back" type="button">← Tools</button>
     <angle-pack-tool></angle-pack-tool>
   </div>
+  <!-- YOUTUBE DOWNLOAD -->
+  <div id="view-youtube" hidden>
+    <div class="view-header">
+      <button class="back-btn" id="youtube-back-btn">← Tools</button>
+      <span class="view-title">YouTube Download</span>
+    </div>
+    <div class="char-form" style="max-width:720px">
+      <div class="field-group">
+        <label class="field-label" for="youtube-url-input">YouTube URL</label>
+        <input type="url" id="youtube-url-input" class="field-input" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Format</label>
+        <div style="display:flex;gap:1rem;margin-top:0.4rem;">
+          <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-family:'Jost',sans-serif;font-size:0.88rem;">
+            <input type="radio" name="yt-format" value="video" checked> Video (MP4)
+          </label>
+          <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-family:'Jost',sans-serif;font-size:0.88rem;">
+            <input type="radio" name="yt-format" value="audio"> Audio only (M4A)
+          </label>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="pill-btn primary" id="youtube-submit-btn" disabled>Download</button>
+      </div>
+      <p id="youtube-status" style="font-family:'Jost',sans-serif;font-size:0.72rem;color:rgba(247,241,238,0.45);margin-top:1.2rem;"></p>
+    </div>
+  </div>
+
   <script type="module" src="assets/angle-pack/app.js"></script>
   <script>
     var API_BASE = 'https://joyce-photos-gallery.onrender.com';
@@ -414,7 +447,7 @@
 
     // ── views ──────────────────────────────────────────────────────────────────
     function showView(name) {
-      ['tools-home', 'collection', 'form', 'portrait', 'transcribe', 'angle-pack'].forEach(function(v) {
+      ['tools-home', 'collection', 'form', 'portrait', 'transcribe', 'angle-pack', 'youtube'].forEach(function(v) {
         document.getElementById('view-' + v).hidden = (v !== name);
       });
       window.scrollTo(0, 0);
@@ -1038,6 +1071,65 @@
 
     document.getElementById('tool-card-angle-pack').onclick = function(){showView('angle-pack');};
     document.getElementById('angle-pack-back').onclick = function(){showView('tools-home');};
+
+    // ── youtube download ───────────────────────────────────────────────────────
+    (function() {
+      var urlInput  = document.getElementById('youtube-url-input');
+      var submitBtn = document.getElementById('youtube-submit-btn');
+      var statusEl  = document.getElementById('youtube-status');
+
+      urlInput.addEventListener('input', function() {
+        submitBtn.disabled = !urlInput.value.trim();
+      });
+
+      document.getElementById('tool-card-youtube').addEventListener('click', function() {
+        urlInput.value = '';
+        submitBtn.disabled = true;
+        statusEl.textContent = '';
+        showView('youtube');
+      });
+      document.getElementById('youtube-back-btn').addEventListener('click', function() {
+        showView('tools-home');
+      });
+
+      submitBtn.addEventListener('click', async function() {
+        var url = urlInput.value.trim();
+        var fmt = document.querySelector('input[name="yt-format"]:checked').value;
+        if (!url) return;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Downloading…';
+        statusEl.textContent = 'Contacting server — this may take a minute for longer videos…';
+        try {
+          var res = await fetch(API_BASE + '/youtube/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: url, format: fmt }),
+          });
+          if (!res.ok) {
+            var err = await res.json().catch(function(){ return {}; });
+            throw new Error(err.detail || 'Server error ' + res.status);
+          }
+          var disposition = res.headers.get('content-disposition') || '';
+          var fnMatch = disposition.match(/filename="?([^"]+)"?/);
+          var filename = fnMatch ? fnMatch[1] : (fmt === 'audio' ? 'download.m4a' : 'download.mp4');
+          var blob = await res.blob();
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+          statusEl.textContent = '✓ Download started.';
+        } catch(e) {
+          statusEl.textContent = '⚠ ' + e.message;
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Download';
+        }
+      });
+    })();
+
     // ── boot ───────────────────────────────────────────────────────────────────
     showView('tools-home');
   </script>

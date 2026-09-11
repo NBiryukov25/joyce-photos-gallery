@@ -990,6 +990,86 @@ async def _make_chapters(req: _ChaptersRequest):
 
 
 # ---------------------------------------------------------------------------
+# YouTube download endpoint
+# ---------------------------------------------------------------------------
+
+import tempfile as _tempfile
+import shutil as _shutil
+
+class _YTRequest(BaseModel):
+    url: str
+    format: str = "video"  # "video" or "audio"
+
+
+@portrait_api.post("/youtube/download")
+async def youtube_download(req: _YTRequest):
+    if not req.url.strip():
+        raise HTTPException(status_code=400, detail="No URL provided.")
+    try:
+        import yt_dlp as _yt_dlp
+    except ImportError:
+        raise HTTPException(status_code=503, detail="yt-dlp not installed on server.")
+
+    tmpdir = _tempfile.mkdtemp()
+    try:
+        if req.format == "audio":
+            ydl_opts = {
+                "format": "bestaudio[ext=m4a]/bestaudio/best",
+                "outtmpl": f"{tmpdir}/download.%(ext)s",
+                "quiet": True,
+                "no_warnings": True,
+            }
+            default_mime = "audio/mp4"
+            default_ext  = "m4a"
+        else:
+            ydl_opts = {
+                "format": "best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
+                "outtmpl": f"{tmpdir}/download.%(ext)s",
+                "quiet": True,
+                "no_warnings": True,
+                "merge_output_format": "mp4",
+            }
+            default_mime = "video/mp4"
+            default_ext  = "mp4"
+
+        loop = asyncio.get_event_loop()
+
+        def _do_download():
+            with _yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(req.url, download=True)
+                title = info.get("title", "download")
+                ext   = info.get("ext", default_ext)
+                return title, ext
+
+        title, ext = await loop.run_in_executor(None, _do_download)
+
+        candidates = [f for f in __import__("os").listdir(tmpdir) if not f.endswith(".part")]
+        if not candidates:
+            raise HTTPException(status_code=500, detail="Download produced no output file.")
+        filepath = __import__("os").path.join(tmpdir, candidates[0])
+
+        safe_title = "".join(c if c.isalnum() or c in " -_()" else "_" for c in title)[:80]
+        download_name = f"{safe_title}.{ext}"
+        mime = "audio/mp4" if req.format == "audio" else "video/mp4"
+
+        from fastapi.responses import FileResponse as _FileResp
+        return _FileResp(
+            filepath,
+            media_type=mime,
+            filename=download_name,
+            background=__import__("starlette.background", fromlist=["BackgroundTask"]).BackgroundTask(
+                lambda: _shutil.rmtree(tmpdir, ignore_errors=True)
+            ),
+        )
+    except HTTPException:
+        _shutil.rmtree(tmpdir, ignore_errors=True)
+        raise
+    except Exception as exc:
+        _shutil.rmtree(tmpdir, ignore_errors=True)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ---------------------------------------------------------------------------
 # authorization
 # ---------------------------------------------------------------------------
 
