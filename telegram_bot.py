@@ -1893,6 +1893,11 @@ async def photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text("Not authorized.")
         return ConversationHandler.END
 
+    if context.user_data.get("rph_target"):
+        return await replace_photo_received(update, context)
+    if context.user_data.get("adding_more"):
+        return await more_photo_received(update, context)
+
     err = _store_media(update.message, context)
     if err:
         await update.message.reply_text(err)
@@ -2351,7 +2356,8 @@ async def more_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE
     return ADDING_CAPTION
 
 
-async def cmd_done(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> int:
+async def cmd_done(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    ctx.user_data.pop("adding_more", None)
     await update.message.reply_text("Done. Send a photo any time to start a new upload.")
     return ConversationHandler.END
 
@@ -2539,6 +2545,7 @@ async def _finalize_inner(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         f"Send another photo for {display}, or /done to finish."
     )
 
+    context.user_data["adding_more"] = True
     return ADDING_MORE
 
 
@@ -3340,6 +3347,10 @@ async def replace_photo_received(update: Update, context: ContextTypes.DEFAULT_T
     # Update stored SHA so a second replace in the same session would work
     _, new_sha = await _gh_get_file(rel_path)
     target["sha"] = new_sha or old_sha
+
+    context.user_data.pop("rph_target", None)
+    context.user_data.pop("rph_gallery", None)
+    context.user_data.pop("rph_files", None)
 
     pages_url = f"{GITHUB_PAGES_URL}/galleries/{gallery.lower().replace(' ', '-')}.html"
     await msg.edit_text(
