@@ -86,6 +86,7 @@ _SHARE_EXPIRY_DAYS = 30
 
 CHOOSING_GALLERY, NAMING_GALLERY, CHOOSING_FRIEND_GALLERY, NAMING_FRIEND_GALLERY, ADDING_CAPTION, ADDING_MORE, REMOVING_GALLERY, REMOVING_FILE, CAPTION_GALLERY, CAPTION_FILE, CAPTION_TEXT, CHOOSING_ULTRA_GALLERY, NAMING_ULTRA_GALLERY, FEATURE_TITLE, FEATURE_PHOTOS, FEATURE_CAPTION, FCAP_CHOOSE, REORDER_GALLERY, REORDER_ORDER, SHARE_GALLERY, CHOOSING_SENZA_GALLERY, NAMING_SENZA_GALLERY, PHOTO_GALLERY, PHOTO_NUMBER, PHOTO_ACTION, DELETING_GALLERY, DELETING_GALLERY_CONFIRM, REORDER_BROWSE, DISPLAY_GALLERY, DISPLAY_SETTINGS, CARD_GALLERY, CARD_FIELD, CARD_VALUE, CARD_PHOTO, CARD_PHOTO_UPLOAD, AI_CAP_TONE, AI_CAP_CONFIRM = range(37)
 BULK_ARCHIVE_SELECT, BULK_ARCHIVE_CONFIRM, MOVE_GALLERY_PICK, MOVE_GALLERY_DEST = range(37, 41)
+REPLACE_GALLERY, REPLACE_FILE, REPLACE_UPLOAD = range(41, 44)
 
 _SKIP_CB   = "sc"   # callback_data for the inline Skip Caption button
 _AICAP_CB  = "aic"  # callback_data for AI Caption button
@@ -3200,6 +3201,153 @@ async def remove_file_action(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return REMOVING_FILE
 
 
+# ---------------------------------------------------------------------------
+# /replacephoto — browse a gallery, pick a photo, upload a replacement
+# ---------------------------------------------------------------------------
+
+async def cmd_replacephoto(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not _authorized(update):
+        await update.message.reply_text("Not authorized.")
+        return ConversationHandler.END
+    galleries = await _existing_galleries()
+    if not galleries:
+        await update.message.reply_text("No galleries found.")
+        return ConversationHandler.END
+    context.user_data["rph_galleries"] = galleries
+    keyboard = [[InlineKeyboardButton(g, callback_data=f"rph:{i}")] for i, g in enumerate(galleries)]
+    await update.message.reply_text(
+        "Replace a photo in which gallery?",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return REPLACE_GALLERY
+
+
+async def replace_gallery_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    idx = int(query.data[4:])
+    gallery = context.user_data["rph_galleries"][idx]
+    context.user_data["rph_gallery"] = gallery
+
+    await query.edit_message_text(f"Loading {gallery}…")
+    files = await _list_gallery_files(gallery)
+    if not files:
+        await query.edit_message_text(f"No files found in {gallery}.")
+        return ConversationHandler.END
+
+    context.user_data["rph_files"] = files
+    await query.edit_message_text(f"{gallery} — {len(files)} file(s). Browse to the one you want to replace.")
+    await _send_replace_preview(update.effective_chat.id, context, 0)
+    return REPLACE_FILE
+
+
+async def _send_replace_preview(chat_id: int, context: ContextTypes.DEFAULT_TYPE, idx: int) -> None:
+    files = context.user_data["rph_files"]
+    gallery = context.user_data["rph_gallery"]
+    total = len(files)
+    if total == 0:
+        await context.bot.send_message(chat_id, "No files in gallery.")
+        return
+    idx = idx % total
+    file_info = files[idx]
+    filename = file_info["name"]
+    ext = filename.rsplit(".", 1)[-1].lower()
+    caption = f"{idx + 1} / {total}  ·  {filename}"
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("← Back",       callback_data=f"rp:prv:{idx}"),
+            InlineKeyboardButton("✏️ Replace",    callback_data=f"rp:sel:{idx}"),
+            InlineKeyboardButton("→ Next",        callback_data=f"rp:nxt:{idx}"),
+        ],
+        [InlineKeyboardButton("✓ Done",           callback_data=f"rp:done:{idx}")],
+    ])
+    assets_folder = _assets_folder_name(gallery)
+    raw_url = (
+        f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}"
+        f"/assets/{urllib.parse.quote(assets_folder)}/{urllib.parse.quote(filename)}"
+    )
+    if ext in _VIDEO_EXTS:
+        await context.bot.send_message(chat_id, f"📹 {caption}", reply_markup=keyboard)
+    else:
+        try:
+            await context.bot.send_photo(chat_id, photo=raw_url, caption=caption, reply_markup=keyboard)
+        except Exception:
+            await context.bot.send_message(chat_id, f"🖼 {caption}", reply_markup=keyboard)
+
+
+async def replace_file_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    parts = query.data.split(":")  # "rp", action, idx
+    action = parts[1]
+    file_idx = int(parts[2])
+
+    try:
+        await query.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+
+    if action == "done":
+        await query.message.reply_text("Done.\n\n/replacephoto to swap another photo.")
+        return ConversationHandler.END
+
+    files = context.user_data["rph_files"]
+
+    if action == "sel":
+        file_info = files[file_idx]
+        context.user_data["rph_target"] = file_info
+        await query.message.reply_text(
+            f"Selected: {file_info['name']}\n\nNow send the replacement photo."
+        )
+        return REPLACE_UPLOAD
+
+    next_idx = (file_idx - 1) % len(files) if action == "prv" else (file_idx + 1) % len(files)
+    await _send_replace_preview(update.effective_chat.id, context, next_idx)
+    return REPLACE_FILE
+
+
+async def replace_photo_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    gallery = context.user_data.get("rph_gallery")
+    target = context.user_data.get("rph_target")
+    if not gallery or not target:
+        await update.message.reply_text("Session expired. Run /replacephoto again.")
+        return ConversationHandler.END
+
+    filename = target["name"]
+    old_sha = target["sha"]
+    assets_folder = _assets_folder_name(gallery)
+    rel_path = f"assets/{assets_folder}/{filename}"
+
+    msg = await update.message.reply_text("Uploading replacement…")
+
+    # Download the new photo from Telegram
+    if update.message.photo:
+        tg_file = await update.message.photo[-1].get_file()
+    elif update.message.document:
+        tg_file = await update.message.document.get_file()
+    else:
+        await msg.edit_text("Please send a photo or image file.")
+        return REPLACE_UPLOAD
+
+    raw = await tg_file.download_as_bytearray()
+    upload_bytes = _compress_photo(bytes(raw))
+
+    ok, err = await _gh_put_file(rel_path, upload_bytes, f"Replace {filename} in {gallery}", sha=old_sha)
+    if not ok:
+        await msg.edit_text(f"Upload failed: {err}")
+        return REPLACE_UPLOAD
+
+    # Update stored SHA so a second replace in the same session would work
+    _, new_sha = await _gh_get_file(rel_path)
+    target["sha"] = new_sha or old_sha
+
+    pages_url = f"{GITHUB_PAGES_URL}/galleries/{gallery.lower().replace(' ', '-')}.html"
+    await msg.edit_text(
+        f"✓ Replaced {filename} in {gallery}.\n\nThe new photo is live — the gallery will refresh shortly."
+    )
+    return ConversationHandler.END
+
+
 def _unescape_js(value: str) -> str:
     return value.replace("\\'", "'").replace("\\\\", "\\").replace("\\n", "\n")
 
@@ -5467,6 +5615,7 @@ def main() -> None:
             CommandHandler("movegallery", cmd_movegallery),
             CommandHandler("display", cmd_display),
             CommandHandler("card", cmd_card),
+            CommandHandler("replacephoto", cmd_replacephoto),
         ],
         states={
             CHOOSING_GALLERY:        [
@@ -5544,6 +5693,9 @@ def main() -> None:
                 CallbackQueryHandler(card_photo_page_nav, pattern=r"^cardpickp:\d+$"),
             ],
             CARD_PHOTO_UPLOAD: [MessageHandler((filters.PHOTO | filters.Document.IMAGE), card_photo_upload_received)],
+            REPLACE_GALLERY: [CallbackQueryHandler(replace_gallery_chosen, pattern=r"^rph:")],
+            REPLACE_FILE:    [CallbackQueryHandler(replace_file_action, pattern=r"^rp:")],
+            REPLACE_UPLOAD:  [MessageHandler((filters.PHOTO | filters.Document.IMAGE), replace_photo_received)],
         },
         fallbacks=[CommandHandler("cancel", cmd_cancel), CommandHandler("start", _conv_start)],
         name="main_conv",
@@ -5593,8 +5745,9 @@ def main() -> None:
                         BotCommand("deletegallery", "Archive an entire gallery (moves to archive, not deleted)"),
                         BotCommand("archivegalleries", "Archive multiple galleries at once"),
                         BotCommand("movegallery", "Move a gallery card to a different page"),
-                        BotCommand("display",   "Adjust gallery display settings"),
-                        BotCommand("cancel",    "Cancel current operation"),
+                        BotCommand("display",       "Adjust gallery display settings"),
+                        BotCommand("replacephoto",  "Replace a photo with a new upload"),
+                        BotCommand("cancel",        "Cancel current operation"),
                     ])
                     await app.updater.start_polling(drop_pending_updates=True)
                     logger.info("Bot polling · Portrait API on :%d", PORT)
