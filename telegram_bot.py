@@ -78,9 +78,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "tools"))
 import chunk_audio as _chunk_audio
 
 _repo_owner, _repo_name = GITHUB_REPO.split("/", 1)
-GITHUB_PAGES_URL = f"https://{_repo_owner}.github.io/{_repo_name}"
-
 NETLIFY_SITE_URL  = os.environ.get("NETLIFY_SITE_URL", "https://stalwart-crumble-e6035f.netlify.app")
+GITHUB_PAGES_URL  = os.environ.get("SITE_URL", NETLIFY_SITE_URL)
 SHARE_SECRET      = os.environ.get("SHARE_SECRET", "")
 _SHARE_EXPIRY_DAYS = 30
 
@@ -1212,9 +1211,7 @@ async def cmd_spreadsheet(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         ws.row_dimensions[1].height = 22
 
         assets_folder = _assets_folder_name(gallery)
-        base_url = (
-            f"https://nbiryukov25.github.io/joyce-photos-gallery/assets/{assets_folder}/"
-        )
+        base_url = f"{GITHUB_PAGES_URL}/assets/{assets_folder}/"
 
         for i, slide in enumerate(slides, 1):
             row  = i + 1
@@ -4172,7 +4169,7 @@ def _build_share_html(gallery: str, title: str, filenames: list[str], share_url:
     first_img = ""
     if preview_file:
         first_img = (
-            f"https://{owner}.github.io/{_repo_name}"
+            f"{NETLIFY_SITE_URL}"
             f"/assets/{urllib.parse.quote(gallery, safe='')}/{urllib.parse.quote(preview_file, safe='')}"
         )
     files_json = json.dumps(filenames)

@@ -35,9 +35,8 @@ function verifyShareToken(raw) {
   }
 }
 
-const OWNER  = "NBiryukov25";
-const REPO   = "joyce-photos-gallery";
-const BRANCH = "main";
+const [OWNER, REPO] = (process.env.GITHUB_REPO || "NBiryukov25/joyce-photos-gallery").split("/");
+const BRANCH = process.env.GITHUB_BRANCH || "main";
 
 function ghFetch(path) {
   return new Promise((resolve, reject) => {
